@@ -91,8 +91,7 @@ class MainActivity : ComponentActivity() {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
-                    Manifest.permission.READ_MEDIA_AUDIO,
-                    Manifest.permission.BLUETOOTH_CONNECT
+                    Manifest.permission.READ_MEDIA_AUDIO
                 ),
                 1000
             )
@@ -100,8 +99,7 @@ class MainActivity : ComponentActivity() {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.BLUETOOTH_CONNECT
+                    Manifest.permission.READ_EXTERNAL_STORAGE
                 ),
                 1000
             )

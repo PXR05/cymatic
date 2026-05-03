@@ -3,6 +3,7 @@ package com.pxr.cymatic.ui.components.common
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -10,6 +11,8 @@ import android.content.IntentFilter
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +43,7 @@ import com.pxr.cymatic.R
 fun StatusBar(
     context: Context = LocalContext.current,
 ) {
+    val context = LocalContext.current
     val fontFamily = FontFamily(Font(R.font.pixel))
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -127,6 +131,53 @@ fun StatusBar(
         },
     )
 
+    fun openOutputSwitcherFallback() {
+        listOf(
+            Settings.Panel.ACTION_VOLUME,
+            Settings.ACTION_SOUND_SETTINGS
+        ).forEach {
+            try {
+                val intent = Intent(it)
+                context.startActivity(intent)
+                return
+            } catch (e: Exception) {
+                Log.w(
+                    "Status Bar",
+                    "Failed to open fallback activity for output switcher: $it",
+                    e
+                )
+            }
+        }
+    }
+
+    fun openOutputSwitcher() {
+        val action =
+            "com.android.systemui.action.LAUNCH_SYSTEM_MEDIA_OUTPUT_DIALOG"
+        val sysPackage = "com.android.systemui"
+        val receiver =
+            "com.android.systemui.media.dialog.MediaOutputDialogReceiver"
+
+        try {
+            val intent = Intent(action).apply {
+                component = ComponentName(sysPackage, receiver)
+            }
+            context.sendBroadcast(intent)
+        } catch (e: SecurityException) {
+            Log.w(
+                "Status Bar",
+                "broadcast blocked by system restriction, trying fallbacks",
+                e
+            )
+            openOutputSwitcherFallback()
+        } catch (e: Exception) {
+            Log.e(
+                "Status Bar",
+                "broadcast failed: ${e::class.simpleName}: ${e.message}",
+                e
+            )
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -143,9 +194,7 @@ fun StatusBar(
                 .weight(1f)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .clickable(
-                    onClick = {
-                        /* TODO: audio output picker */
-                    },
+                    onClick = { openOutputSwitcher() },
                     indication = null,
                     interactionSource = null
                 )
