@@ -1,11 +1,11 @@
-package com.pxr.cymatic.ui.screen
+package com.pxr.cymatic.ui.screens.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.pxr.cymatic.ui.components.BaseScreen
-import com.pxr.cymatic.ui.components.NavigationItem
-import com.pxr.cymatic.ui.components.NavigationList
+import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.common.NavigationItem
+import com.pxr.cymatic.ui.components.common.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Preview
@@ -40,3 +40,5 @@ fun SettingsScreen(
         )
     }
 }
+
+

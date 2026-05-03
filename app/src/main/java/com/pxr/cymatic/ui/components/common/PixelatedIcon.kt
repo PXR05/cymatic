@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
@@ -74,3 +74,4 @@ fun PixelatedIcon(
         }
     )
 }
+

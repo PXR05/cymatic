@@ -13,8 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -22,9 +29,12 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.ui.rememberPlaybackState
+import com.pxr.cymatic.ui.state.rememberPlaybackState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -32,6 +42,7 @@ fun PlayerBar(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
@@ -40,6 +51,15 @@ fun PlayerBar(
         audioFiles.find { audioFile -> audioFile.id.toString() == currentMediaId }?.metadata
             ?: return
     val fontFamily = FontFamily(Font(R.font.pixel))
+    val scope = rememberCoroutineScope()
+
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+    SongInfoDialog(
+        mediaId = currentMediaId.toLong(),
+        showDialog = showInfoDialog,
+        onDismissRequest = { showInfoDialog = false },
+    )
 
     Column(
         modifier = modifier
@@ -47,62 +67,64 @@ fun PlayerBar(
             .combinedClickable(
                 onClick = {},
                 onLongClick = {
-                    /* TODO: expand bar */
+                    scope.launch {
+                        SettingsStore.setLocked(!SettingsStore.isLocked())
+                    }
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 },
                 indication = null,
                 interactionSource = null
             ),
         verticalArrangement = Arrangement.Top
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "${playbackState.currentIndex + 1} of ${playbackState.totalTracks}",
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontSize = 14.sp,
-                    fontFamily = fontFamily,
-                    modifier = Modifier
-                        .padding(vertical = 2.dp)
-                        .clickable(
-                            onClick = {
-                                if (playbackState.queueSource != null) {
-                                    navController.navigate(playbackState.queueSource)
-                                }
-                            },
-                            indication = null,
-                            interactionSource = null
-                        )
-                )
-
-                FileInfo(
-                    metadata = metadata,
-                    modifier = Modifier.clickable(
-                        onClick = { /* TODO: show detailed song info */ },
+            Text(
+                text = "${playbackState.currentIndex + 1} of ${playbackState.totalTracks}",
+                color = MaterialTheme.colorScheme.secondary,
+                fontSize = 14.sp,
+                fontFamily = fontFamily,
+                modifier = Modifier
+                    .padding(vertical = 2.dp)
+                    .clickable(
+                        onClick = {
+                            if (playbackState.queueSource != null) {
+                                navController.navigate(playbackState.queueSource)
+                            }
+                        },
                         indication = null,
                         interactionSource = null
                     )
+            )
+
+            FileInfo(
+                metadata = metadata,
+                modifier = Modifier.clickable(
+                    onClick = {
+                        showInfoDialog = true
+                    },
+                    indication = null,
+                    interactionSource = null
                 )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Info(
-                metadata,
-                titleSize = 20.sp,
-                artistSize = 14.sp,
-                gap = 2.dp,
-                modifier = Modifier
-                    .height(48.dp)
             )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Info(
+            metadata,
+            titleSize = 20.sp,
+            artistSize = 14.sp,
+            gap = 2.dp,
+            modifier = Modifier
+                .height(48.dp)
+                .padding(horizontal = 24.dp)
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 

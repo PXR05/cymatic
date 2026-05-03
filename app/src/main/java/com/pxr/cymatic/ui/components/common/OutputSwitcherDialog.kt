@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import android.media.AudioDeviceInfo
 import androidx.compose.foundation.background
@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,9 +44,6 @@ fun OutputSwitcherDialog(
     val dialogWidth =
         with(window) { (containerSize.width * 0.8f) }
     val dialogWidthDp = with(density) { dialogWidth.toDp() }
-    val dialogHeight =
-        with(window) { containerSize.height * 0.6f }
-    val dialogHeightDp = with(density) { dialogHeight.toDp() }
     var selectedDevice: AudioDeviceInfo? =
         remember(defaultDevice) { mutableStateOf(defaultDevice) }.value
 
@@ -64,10 +60,9 @@ fun OutputSwitcherDialog(
         Column(
             modifier = modifier
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(vertical = 16.dp)
-                .width(dialogWidthDp)
-                .height(dialogHeightDp)
-                .background(MaterialTheme.colorScheme.background),
+                .width(dialogWidthDp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
@@ -199,3 +194,4 @@ private fun mapDeviceToType(device: AudioDeviceInfo): String {
         else -> "UNK"
     }
 }
+

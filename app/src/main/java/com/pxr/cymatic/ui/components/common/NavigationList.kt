@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -68,3 +68,6 @@ fun NavigationListPreview() {
         )
     })
 }
+
+
+

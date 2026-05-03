@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavBackStackEntry
@@ -48,20 +52,24 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.media.loadCachedAudioFiles
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.ui.components.StatusBar
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.ui.components.common.AudioFileList
+import com.pxr.cymatic.ui.components.common.MaximizedScreenHeader
+import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.ui.rememberPlaybackState
-import com.pxr.cymatic.ui.screen.AlbumSongsScreen
-import com.pxr.cymatic.ui.screen.AlbumsScreen
-import com.pxr.cymatic.ui.screen.AllSongsScreen
-import com.pxr.cymatic.ui.screen.ArtistSongsScreen
-import com.pxr.cymatic.ui.screen.ArtistsScreen
-import com.pxr.cymatic.ui.screen.HomeScreen
-import com.pxr.cymatic.ui.screen.SettingsScreen
-import com.pxr.cymatic.ui.screen.UnknownAlbum
-import com.pxr.cymatic.ui.screen.UnknownArtist
+import com.pxr.cymatic.ui.screens.home.HomeScreen
+import com.pxr.cymatic.ui.screens.library.AlbumSongsScreen
+import com.pxr.cymatic.ui.screens.library.AlbumsScreen
+import com.pxr.cymatic.ui.screens.library.AllSongsScreen
+import com.pxr.cymatic.ui.screens.library.ArtistSongsScreen
+import com.pxr.cymatic.ui.screens.library.ArtistsScreen
+import com.pxr.cymatic.ui.screens.library.UnknownAlbum
+import com.pxr.cymatic.ui.screens.library.UnknownArtist
+import com.pxr.cymatic.ui.screens.settings.SettingsScreen
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -99,6 +107,7 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             var mediaController by remember { mutableStateOf<MediaController?>(null) }
             var audioFiles by remember { mutableStateOf(emptyList<AudioFile>()) }
+            val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
 
             LaunchedEffect(Unit) {
                 val start = System.currentTimeMillis()
@@ -107,6 +116,20 @@ class MainActivity : ComponentActivity() {
                 val end = System.currentTimeMillis()
                 Log.d("MainActivity", "Loaded ${audioFiles.size} audio files in ${end - start} ms")
                 isReady = true
+            }
+
+            LaunchedEffect(locked) {
+                val windowInsetsController =
+                    WindowCompat.getInsetsController(window, window.decorView)
+                if (locked) {
+                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+                    windowInsetsController.systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                } else {
+                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                    windowInsetsController.systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                }
             }
 
             DisposableEffect(Unit) {
@@ -149,21 +172,69 @@ class MainActivity : ComponentActivity() {
 
                     Surface(modifier = Modifier.fillMaxSize()) {
                         Column {
-                            NavHost(
-                                navController = navController,
-                                startDestination = "home",
-                                enterTransition = { EnterTransition.None },
-                                exitTransition = { ExitTransition.None },
-                                popEnterTransition = { EnterTransition.None },
-                                popExitTransition = { ExitTransition.None },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                routes.forEach { (route, composable) ->
-                                    composable(route) { backStackEntry ->
-                                        composable(backStackEntry)
+                            if (!locked) {
+                                NavHost(
+                                    navController = navController,
+                                    startDestination = "home",
+                                    enterTransition = { EnterTransition.None },
+                                    exitTransition = { ExitTransition.None },
+                                    popEnterTransition = { EnterTransition.None },
+                                    popExitTransition = { ExitTransition.None },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    routes.forEach { (route, composable) ->
+                                        composable(route) { backStackEntry ->
+                                            composable(backStackEntry)
+                                        }
                                     }
                                 }
+                            } else if (playbackState.currentMediaId != null) {
+                                val queueFiles = remember(mediaController?.mediaItemCount) {
+                                    if (mediaController != null && mediaController!!.mediaItemCount > 1) {
+                                        val mediaIdToFile =
+                                            audioFiles.associateBy { it.id.toString() }
+                                        val queue = mutableListOf<AudioFile>()
+                                        for (i in 0 until mediaController!!.mediaItemCount) {
+                                            val mediaId =
+                                                mediaController!!.getMediaItemAt(i).mediaId
+                                            mediaIdToFile[mediaId]?.let { queue.add(it) }
+                                        }
+                                        queue
+                                    } else {
+                                        emptyList()
+                                    }
+                                }
+
+                                MaximizedScreenHeader(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(MaterialTheme.colorScheme.secondary)
+                                )
+
+                                AudioFileList(
+                                    audioFiles = queueFiles,
+                                    onItemClick = { audioFile ->
+                                        mediaController?.let {
+                                            handleItemClick(
+                                                mediaController = it,
+                                                audioFile,
+                                                queue = queueFiles,
+                                                queueSource = playbackState.queueSource
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                )
                             }
+
                             Column(
                                 modifier = Modifier.padding(
                                     bottom = WindowInsets.systemBars.asPaddingValues()

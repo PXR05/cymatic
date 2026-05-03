@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
@@ -11,18 +11,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.ui.locals.LocalMediaController
-import com.pxr.cymatic.ui.rememberPlaybackState
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun AudioFileList(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier,
-    onItemClick: (AudioFile) -> Unit
+    onItemClick: (AudioFile) -> Unit,
+    topOffset: Dp = 0.dp,
+    bottomOffset: Dp = 0.dp
 ) {
     val mediaController = LocalMediaController.current
     val playbackState = rememberPlaybackState(mediaController)
@@ -31,12 +34,18 @@ fun AudioFileList(
         items(audioFiles.size) { i ->
             val audioFile = audioFiles[i]
             val isCurrent = playbackState.currentMediaId == audioFile.id.toString()
+            if (i == 0 && topOffset > 0.dp) {
+                Box(modifier = Modifier.height(topOffset))
+            }
             AudioFileItem(
                 audioFile = audioFile,
                 isCurrent = isCurrent,
                 onClick = { onItemClick(audioFile) },
                 modifier = Modifier.height(76.dp)
             )
+            if (i == audioFiles.size - 1 && bottomOffset > 0.dp) {
+                Box(modifier = Modifier.height(bottomOffset))
+            }
         }
     }
 }
@@ -175,3 +184,5 @@ fun AudioFileItemPreview() {
         )
     }
 }
+
+

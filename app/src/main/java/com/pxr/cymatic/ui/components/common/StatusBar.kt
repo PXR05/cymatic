@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -261,3 +261,4 @@ private fun deviceToDisplay(device: AudioDeviceInfo): DeviceDisplay {
 fun StatusBarPreview() {
     StatusBar()
 }
+

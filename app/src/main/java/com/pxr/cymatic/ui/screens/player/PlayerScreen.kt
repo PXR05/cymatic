@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screen
+package com.pxr.cymatic.ui.screens.player
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,7 +13,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
@@ -32,7 +31,7 @@ import com.pxr.cymatic.ui.components.player.Info
 import com.pxr.cymatic.ui.components.player.ProgressBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.ui.rememberPlaybackState
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun PlayerScreen(
@@ -133,3 +132,5 @@ fun PlayerScreen(
         }
     }
 }
+
+

@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screen
+package com.pxr.cymatic.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
-import com.pxr.cymatic.ui.components.NavigationItem
-import com.pxr.cymatic.ui.components.NavigationList
+import com.pxr.cymatic.ui.components.common.NavigationItem
+import com.pxr.cymatic.ui.components.common.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
@@ -71,3 +71,5 @@ fun HomeScreen() {
         }
     }
 }
+
+

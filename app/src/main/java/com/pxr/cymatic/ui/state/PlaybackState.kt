@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui
+package com.pxr.cymatic.ui.state
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -156,3 +156,4 @@ private fun MediaController?.queueSourceOrNull(): String? {
         ?.getString(QUEUE_SOURCE_KEY)
         ?.takeIf { it.isNotBlank() }
 }
+

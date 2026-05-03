@@ -1,34 +1,34 @@
-package com.pxr.cymatic.ui.screen
+package com.pxr.cymatic.ui.screens.library
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.ui.components.BaseScreen
-import com.pxr.cymatic.ui.components.NavigationItem
-import com.pxr.cymatic.ui.components.NavigationList
+import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.common.NavigationItem
+import com.pxr.cymatic.ui.components.common.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
-fun AlbumsScreen(
+fun ArtistsScreen(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier
 ) {
     val navController = LocalNavController.current
 
-    val albums = audioFiles
-        .map(::albumDisplayName)
+    val artists = audioFiles
+        .map(::artistDisplayName)
         .distinct()
         .sortedBy { it.lowercase() }
 
-    val items = albums.map { albumName ->
-        NavigationItem(albumName) {
-            navController.navigate("album/${Uri.encode(albumName)}")
+    val items = artists.map { artistName ->
+        NavigationItem(artistName) {
+            navController.navigate("artist/${Uri.encode(artistName)}")
         }
     }
 
     BaseScreen(
-        title = "Albums",
+        title = "Artists",
         onBackClick = { navController.popBackStack() },
         modifier = modifier
     ) {
@@ -38,3 +38,5 @@ fun AlbumsScreen(
         )
     }
 }
+
+

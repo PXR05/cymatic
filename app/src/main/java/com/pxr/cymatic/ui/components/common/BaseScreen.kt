@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components
+package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.ui.locals.LocalMediaController
-import com.pxr.cymatic.ui.rememberPlaybackState
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun BaseScreen(
@@ -42,4 +42,5 @@ fun BaseScreen(
         }
     }
 }
+
 

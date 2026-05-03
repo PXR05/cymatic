@@ -21,12 +21,14 @@ object SettingsStore {
     private const val DEFAULT_CONTROLS_SELECT = ""
     private const val DEFAULT_CONTROLS_FORWARD = ""
     private const val DEFAULT_CONTROLS_BACKWARD = ""
+    private const val DEFAULT_LOCKED = false
 
     private val THEME_KEY = stringPreferencesKey("THEME")
     private val TIMEOUT_MS_KEY = longPreferencesKey("TIMEOUT_MS")
     private val CONTROLS_SELECT_KEY = stringPreferencesKey("CONTROLS_SELECT")
     private val CONTROLS_FORWARD_KEY = stringPreferencesKey("CONTROLS_FORWARD")
     private val CONTROLS_BACKWARD_KEY = stringPreferencesKey("CONTROLS_BACKWARD")
+    private val LOCKED_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("LOCKED")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
@@ -69,6 +71,11 @@ object SettingsStore {
             prefs[CONTROLS_BACKWARD_KEY] ?: DEFAULT_CONTROLS_BACKWARD
         }
 
+    val lockedFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[LOCKED_KEY] ?: DEFAULT_LOCKED
+        }
+
     suspend fun getTheme(): String = themeFlow.first()
 
     suspend fun getTimeoutMs(): Long = timeoutMsFlow.first()
@@ -78,6 +85,8 @@ object SettingsStore {
     suspend fun getControlsForward(): String = controlsForwardFlow.first()
 
     suspend fun getControlsBackward(): String = controlsBackwardFlow.first()
+
+    suspend fun isLocked(): Boolean = lockedFlow.first()
 
     suspend fun setTheme(value: String) {
         store.edit { prefs ->
@@ -106,6 +115,12 @@ object SettingsStore {
     suspend fun setControlsBackward(value: String) {
         store.edit { prefs ->
             prefs[CONTROLS_BACKWARD_KEY] = value
+        }
+    }
+
+    suspend fun setLocked(value: Boolean) {
+        store.edit { prefs ->
+            prefs[LOCKED_KEY] = value
         }
     }
 }
