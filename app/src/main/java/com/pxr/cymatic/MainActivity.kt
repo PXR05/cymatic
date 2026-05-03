@@ -52,6 +52,7 @@ import com.pxr.cymatic.ui.components.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.rememberPlaybackState
 import com.pxr.cymatic.ui.screen.AlbumSongsScreen
 import com.pxr.cymatic.ui.screen.AlbumsScreen
 import com.pxr.cymatic.ui.screen.AllSongsScreen
@@ -88,11 +89,8 @@ class MainActivity : ComponentActivity() {
         }
 
         val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        val audioAttributionContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        val audioAttributionContext =
             createAttributionContext("audioPlayback")
-        } else {
-            this
-        }
         controllerFuture =
             MediaController.Builder(audioAttributionContext, sessionToken).buildAsync()
 
@@ -147,6 +145,8 @@ class MainActivity : ComponentActivity() {
                     LocalMediaController provides mediaController,
                     LocalNavController provides navController
                 ) {
+                    val playbackState = rememberPlaybackState(mediaController)
+
                     Surface(modifier = Modifier.fillMaxSize()) {
                         Column {
                             NavHost(
@@ -170,18 +170,20 @@ class MainActivity : ComponentActivity() {
                                         .calculateBottomPadding()
                                 )
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(MaterialTheme.colorScheme.secondary)
-                                )
+                                if (playbackState.currentMediaId != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.secondary)
+                                    )
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                    Spacer(modifier = Modifier.height(24.dp))
 
-                                PlayerBar(audioFiles = audioFiles)
+                                    PlayerBar(audioFiles = audioFiles)
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
 
                                 Box(
                                     modifier = Modifier

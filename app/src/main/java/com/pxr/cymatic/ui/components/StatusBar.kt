@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,26 +41,37 @@ fun StatusBar(
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
-    val maxAudioVolume = remember(audioManager) {
-        audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    var maxAudioVolume by remember {
+        mutableIntStateOf(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
+    }
+    var isMuted by remember {
+        mutableStateOf(audioManager.isStreamMute(AudioManager.STREAM_MUSIC))
     }
     var audioVolume by remember {
         mutableIntStateOf(
             audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         )
     }
-    var deviceDisplay by remember {
+    var devices by remember {
+        mutableStateOf(
+            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+        )
+    }
+    var activeDevice by remember {
         mutableStateOf(resolveActiveOutput(audioManager))
     }
 
     DisposableEffect(context) {
-        val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        val volumeFilter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        val muteFilter = IntentFilter("android.media.STREAM_MUTE_CHANGED_ACTION")
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 audioVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                isMuted = audioManager.isStreamMute(AudioManager.STREAM_MUSIC)
             }
         }
-        context.registerReceiver(receiver, filter)
+        context.registerReceiver(receiver, volumeFilter)
+        context.registerReceiver(receiver, muteFilter)
 
         onDispose {
             context.unregisterReceiver(receiver)
@@ -68,43 +81,96 @@ fun StatusBar(
     DisposableEffect(audioManager) {
         val callback = object : AudioDeviceCallback() {
             override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-                deviceDisplay = resolveActiveOutput(audioManager)
+                activeDevice = resolveActiveOutput(audioManager)
+                devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+                maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-                deviceDisplay = resolveActiveOutput(audioManager)
+                activeDevice = resolveActiveOutput(audioManager)
+                devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
+                maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
         }
 
         audioManager.registerAudioDeviceCallback(callback, null)
-        deviceDisplay = resolveActiveOutput(audioManager)
+        activeDevice = resolveActiveOutput(audioManager)
 
         onDispose {
             audioManager.unregisterAudioDeviceCallback(callback)
         }
     }
 
+    var showOutputSwitcher by remember { mutableStateOf(false) }
+
+    OutputSwitcherDialog(
+        devices = devices,
+        defaultDevice = activeDevice.device,
+        showDialog = showOutputSwitcher,
+        onDismissRequest = { showOutputSwitcher = false },
+        onConfirmation = { device ->
+            if (device != null) {
+                val res = audioManager.setCommunicationDevice(device)
+                if (res) {
+                    activeDevice = resolveActiveOutput(audioManager)
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Failed to switch output device",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        },
+    )
+
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                16.dp,
-                8.dp
-            ),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "${deviceDisplay.label} (${deviceDisplay.type})",
+            text = "[${activeDevice.type}] ${activeDevice.label}",
             color = MaterialTheme.colorScheme.secondary,
             fontFamily = fontFamily,
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clickable(
+                    onClick = {
+                        showOutputSwitcher = true
+                    },
+                    indication = null,
+                    interactionSource = null
+                )
         )
 
         Text(
-            text = "${(audioVolume / maxAudioVolume.toFloat() * 100).toInt()}%",
+            text = if (isMuted) "MUTED" else "${(audioVolume / maxAudioVolume.toFloat() * 100).toInt()}%",
             color = MaterialTheme.colorScheme.secondary,
             fontFamily = fontFamily,
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clickable(
+                    onClick = {
+                        if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
+                            audioManager.adjustStreamVolume(
+                                AudioManager.STREAM_MUSIC,
+                                AudioManager.ADJUST_UNMUTE,
+                                AudioManager.FLAG_SHOW_UI
+                            )
+                        } else {
+                            audioManager.adjustStreamVolume(
+                                AudioManager.STREAM_MUSIC,
+                                AudioManager.ADJUST_MUTE,
+                                AudioManager.FLAG_SHOW_UI
+                            )
+                        }
+                    },
+                    indication = null,
+                    interactionSource = null
+                )
         )
     }
 }
@@ -112,6 +178,7 @@ fun StatusBar(
 private data class DeviceDisplay(
     val label: String,
     val type: String,
+    var device: AudioDeviceInfo? = null
 )
 
 private fun resolveActiveOutput(audioManager: AudioManager): DeviceDisplay {
@@ -143,47 +210,50 @@ private fun resolveActiveOutput(audioManager: AudioManager): DeviceDisplay {
 
 private fun deviceToDisplay(device: AudioDeviceInfo): DeviceDisplay {
     val productName = device.productName?.toString()?.trim().orEmpty()
-    return when (device.type) {
+    var label = productName.ifBlank { "DEVICE" }
+    var type = "UNK"
+    when (device.type) {
         AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> DeviceDisplay(
-            label = productName.ifBlank { "BLUETOOTH" },
-            type = "BT",
-        )
+        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
+            label = productName.ifBlank { "BLUETOOTH" }
+            type = "BT"
+        }
 
         AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-        AudioDeviceInfo.TYPE_WIRED_HEADSET -> DeviceDisplay(
-            label = "WIRED",
+        AudioDeviceInfo.TYPE_WIRED_HEADSET -> {
+            label = "WIRED"
             type = "AUX"
-        )
+        }
 
         AudioDeviceInfo.TYPE_USB_HEADSET,
         AudioDeviceInfo.TYPE_USB_DEVICE,
-        AudioDeviceInfo.TYPE_USB_ACCESSORY -> DeviceDisplay(
-            label = productName.ifBlank { "USB" },
+        AudioDeviceInfo.TYPE_USB_ACCESSORY -> {
+            label = productName.ifBlank { "USB" }
             type = "USB"
-        )
+        }
 
         AudioDeviceInfo.TYPE_LINE_ANALOG,
-        AudioDeviceInfo.TYPE_LINE_DIGITAL -> DeviceDisplay(
-            label = "LINE",
+        AudioDeviceInfo.TYPE_LINE_DIGITAL -> {
+            label = "LINE"
             type = "LINE"
-        )
+        }
 
-        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> DeviceDisplay(
-            label = "EARPIECE",
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> {
+            label = "EARPIECE"
             type = "EAR"
-        )
+        }
 
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> DeviceDisplay(
-            label = "SPEAKER",
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
+            label = "SPEAKER"
             type = "SPK"
-        )
+        }
 
         else -> DeviceDisplay(
             label = productName.ifBlank { "DEVICE" },
             type = "UNK"
         )
     }
+    return DeviceDisplay(label, type, device)
 }
 
 @Preview(showBackground = true)
