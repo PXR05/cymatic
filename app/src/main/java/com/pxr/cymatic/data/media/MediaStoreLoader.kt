@@ -4,6 +4,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.media.AudioStoreDatabase.AudioDbRecord
@@ -14,9 +15,13 @@ fun loadCachedAudioFiles(context: Context): List<AudioFile> {
     return AudioStoreDatabase.getInstance(context).getAllAudio()
 }
 
-fun syncAudioFilesToDb(context: Context): List<AudioFile> {
+fun syncAudioFilesToDb(
+    context: Context,
+    directories: List<String> = emptyList(),
+    scanAllMedia: Boolean = true
+): List<AudioFile> {
     val database = AudioStoreDatabase.getInstance(context)
-    val mediaIndex = queryMediaStoreIndex(context)
+    val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
     val dbIndex = database.getAudioIndex()
 
     val toDelete = dbIndex.keys - mediaIndex.keys
@@ -30,14 +35,18 @@ fun syncAudioFilesToDb(context: Context): List<AudioFile> {
     }.keys
 
     if (toUpsert.isNotEmpty()) {
-        val records = queryMediaStoreDetails(context, toUpsert.toList())
+        val records = queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
         database.upsertAudio(records)
     }
 
     return database.getAllAudio()
 }
 
-private fun queryMediaStoreIndex(context: Context): Map<Long, AudioIndexEntry> {
+private fun queryMediaStoreIndex(
+    context: Context,
+    directories: List<String>,
+    scanAllMedia: Boolean
+): Map<Long, AudioIndexEntry> {
     val results = mutableMapOf<Long, AudioIndexEntry>()
     val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
     val projection = arrayOf(
@@ -45,12 +54,13 @@ private fun queryMediaStoreIndex(context: Context): Map<Long, AudioIndexEntry> {
         MediaStore.Audio.Media.DATE_MODIFIED,
         MediaStore.Audio.Media.SIZE
     )
+    val (selection, args) = buildRelativePathSelection(directories, scanAllMedia)
 
     context.contentResolver.query(
         collection,
         projection,
-        null,
-        null,
+        selection,
+        args,
         null
     )?.use { cursor ->
         val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -68,7 +78,12 @@ private fun queryMediaStoreIndex(context: Context): Map<Long, AudioIndexEntry> {
     return results
 }
 
-private fun queryMediaStoreDetails(context: Context, ids: List<Long>): List<AudioDbRecord> {
+private fun queryMediaStoreDetails(
+    context: Context,
+    ids: List<Long>,
+    directories: List<String>,
+    scanAllMedia: Boolean
+): List<AudioDbRecord> {
     val records = mutableListOf<AudioDbRecord>()
     val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
     val projection = arrayOf(
@@ -84,9 +99,21 @@ private fun queryMediaStoreDetails(context: Context, ids: List<Long>): List<Audi
         MediaStore.Audio.Media.ALBUM_ID,
         MediaStore.Audio.Media.DATE_MODIFIED
     )
+    val (baseSelection, baseArgs) = buildRelativePathSelection(directories, scanAllMedia)
 
     for (chunk in ids.chunked(800)) {
-        val (selection, args) = buildIdSelection(chunk)
+        val (idSelection, idArgs) = buildIdSelection(chunk)
+        val selection = if (baseSelection == null) {
+            idSelection
+        } else {
+            "($baseSelection) AND ($idSelection)"
+        }
+        val args = if (baseArgs == null) {
+            idArgs
+        } else {
+            baseArgs + idArgs
+        }
+
         context.contentResolver.query(
             collection,
             projection,
@@ -166,4 +193,39 @@ private fun buildIdSelection(ids: List<Long>): Pair<String, Array<String>> {
     val selection = "${MediaStore.Audio.Media._ID} IN ($placeholders)"
     val args = ids.map { it.toString() }.toTypedArray()
     return selection to args
+}
+
+private fun buildRelativePathSelection(
+    directories: List<String>,
+    scanAllMedia: Boolean
+): Pair<String?, Array<String>?> {
+    if (scanAllMedia || directories.isEmpty()) return null to null
+    val relativePaths = directories.mapNotNull { uriString ->
+        runCatching {
+            val uri = uriString.toUri()
+            val docId = DocumentsContract.getTreeDocumentId(uri)
+            val parts = docId.split(':', limit = 2)
+            if (parts.size < 2) return@runCatching null
+            val path = parts[1]
+            if (path.isBlank()) null else if (path.endsWith("/")) path else "$path/"
+        }.getOrNull()
+    }.distinct()
+
+    if (relativePaths.isEmpty()) return null to null
+
+    val selection = relativePaths.joinToString(" OR ") {
+        "${MediaStore.Audio.Media.RELATIVE_PATH} LIKE ? ESCAPE '\\'"
+    }
+    val args = relativePaths.map { path ->
+        "${escapeLike(path)}%"
+    }.toTypedArray()
+
+    return selection to args
+}
+
+private fun escapeLike(value: String): String {
+    return value
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
 }

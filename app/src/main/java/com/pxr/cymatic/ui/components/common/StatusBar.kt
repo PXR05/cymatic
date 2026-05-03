@@ -1,8 +1,10 @@
 package com.pxr.cymatic.ui.components.common
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioDeviceCallback
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,7 +107,7 @@ fun StatusBar(
     var showOutputSwitcher by remember { mutableStateOf(false) }
 
     OutputSwitcherDialog(
-        devices = devices,
+        devices = devices.filter { deviceToDisplay(it).type != "UNK" },
         defaultDevice = activeDevice.device,
         showDialog = showOutputSwitcher,
         onDismissRequest = { showOutputSwitcher = false },
@@ -134,11 +137,14 @@ fun StatusBar(
             color = MaterialTheme.colorScheme.secondary,
             fontFamily = fontFamily,
             fontSize = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
+                .weight(1f)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .clickable(
                     onClick = {
-                        showOutputSwitcher = true
+                        /* TODO: audio output picker */
                     },
                     indication = null,
                     interactionSource = null
@@ -160,6 +166,16 @@ fun StatusBar(
                                 AudioManager.ADJUST_UNMUTE,
                                 AudioManager.FLAG_SHOW_UI
                             )
+                            if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC) || audioManager.getStreamVolume(
+                                    AudioManager.STREAM_MUSIC
+                                ) == 0
+                            ) {
+                                Toast.makeText(
+                                    context,
+                                    "Failed to unmute audio. Please try raising the volume manually.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         } else {
                             audioManager.adjustStreamVolume(
                                 AudioManager.STREAM_MUSIC,
@@ -172,6 +188,14 @@ fun StatusBar(
                     interactionSource = null
                 )
         )
+    }
+}
+
+private fun Context.findActivity(): Activity? {
+    return when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
     }
 }
 
@@ -261,4 +285,3 @@ private fun deviceToDisplay(device: AudioDeviceInfo): DeviceDisplay {
 fun StatusBarPreview() {
     StatusBar()
 }
-

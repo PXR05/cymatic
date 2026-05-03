@@ -8,14 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -44,8 +47,9 @@ fun OutputSwitcherDialog(
     val dialogWidth =
         with(window) { (containerSize.width * 0.8f) }
     val dialogWidthDp = with(density) { dialogWidth.toDp() }
-    var selectedDevice: AudioDeviceInfo? =
-        remember(defaultDevice) { mutableStateOf(defaultDevice) }.value
+    val dialogHeight = with(window) { (containerSize.height * 0.5f) }
+    val dialogHeightDp = with(density) { dialogHeight.toDp() }
+    var selectedDevice: AudioDeviceInfo? by remember(defaultDevice) { mutableStateOf(defaultDevice) }
 
     if (!showDialog) return
 
@@ -62,7 +66,8 @@ fun OutputSwitcherDialog(
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(vertical = 16.dp)
-                .width(dialogWidthDp),
+                .width(dialogWidthDp)
+                .heightIn(max = dialogHeightDp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
@@ -77,7 +82,6 @@ fun OutputSwitcherDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
-                    .weight(1f)
                     .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 items(devices.size) { index ->
@@ -108,6 +112,7 @@ fun OutputSwitcherDialog(
                             fontSize = 16.sp,
                             fontFamily = fontFamily,
                         )
+
 
                         Text(
                             text = devices[index].productName.toString(),

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ fun PlayerBar(
             ?: return
     val fontFamily = FontFamily(Font(R.font.pixel))
     val scope = rememberCoroutineScope()
+    val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
 
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -70,7 +72,7 @@ fun PlayerBar(
                     scope.launch {
                         SettingsStore.setLocked(!SettingsStore.isLocked())
                     }
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
                 },
                 indication = null,
                 interactionSource = null
@@ -93,7 +95,7 @@ fun PlayerBar(
                     .padding(vertical = 2.dp)
                     .clickable(
                         onClick = {
-                            if (playbackState.queueSource != null) {
+                            if (playbackState.queueSource != null && !locked) {
                                 navController.navigate(playbackState.queueSource)
                             }
                         },

@@ -1,0 +1,98 @@
+package com.pxr.cymatic.ui.screens.settings
+
+import android.annotation.SuppressLint
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.settings.DirectoryActions
+import com.pxr.cymatic.ui.components.settings.DirectoryBox
+import com.pxr.cymatic.ui.components.settings.StatusBento
+import com.pxr.cymatic.ui.locals.LocalNavController
+import kotlinx.coroutines.launch
+
+@SuppressLint("WrongConstant")
+@Composable
+fun StorageSettingsScreen(
+    modifier: Modifier = Modifier
+) {
+    val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val directories by SettingsStore.scanDirectoriesFlow.collectAsState(initial = emptyList())
+    val fontFamily = FontFamily(Font(R.font.pixel))
+
+    BaseScreen(
+        title = "Storage Settings",
+        onBackClick = { navController.popBackStack() },
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+        ) {
+            Text(
+                text = "Status",
+                fontSize = 20.sp,
+                fontFamily = fontFamily,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StatusBento()
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Directories",
+                fontSize = 20.sp,
+                fontFamily = fontFamily,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            DirectoryActions(
+                directories = directories,
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .height(32.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            DirectoryBox(
+                directories = directories,
+                onRemove = { uri ->
+                    scope.launch { SettingsStore.removeScanDirectory(uri) }
+                },
+                onToggleScanAll = { enabled ->
+                    scope.launch { SettingsStore.setScanAllMedia(enabled) }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+

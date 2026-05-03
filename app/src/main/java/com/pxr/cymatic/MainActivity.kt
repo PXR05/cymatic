@@ -69,6 +69,7 @@ import com.pxr.cymatic.ui.screens.library.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
+import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.Dispatchers
@@ -88,11 +89,21 @@ class MainActivity : ComponentActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.READ_MEDIA_AUDIO), 1000
+                this,
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_AUDIO,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ),
+                1000
             )
         } else {
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 1000
+                this,
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ),
+                1000
             )
         }
 
@@ -108,14 +119,27 @@ class MainActivity : ComponentActivity() {
             var mediaController by remember { mutableStateOf<MediaController?>(null) }
             var audioFiles by remember { mutableStateOf(emptyList<AudioFile>()) }
             val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
+            val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = 0L)
 
             LaunchedEffect(Unit) {
                 val start = System.currentTimeMillis()
+                val scanDirectories = SettingsStore.getScanDirectories()
+                val scanAllMedia = SettingsStore.getScanAllMedia()
                 audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
-                audioFiles = withContext(Dispatchers.IO) { syncAudioFilesToDb(context) }
+                audioFiles = withContext(Dispatchers.IO) {
+                    syncAudioFilesToDb(context, scanDirectories, scanAllMedia)
+                }
                 val end = System.currentTimeMillis()
+                SettingsStore.setLastScanTimeMs(end)
+                SettingsStore.setLastScanCount(audioFiles.size.toLong())
+                SettingsStore.setLastScanDurationMs(end - start)
                 Log.d("MainActivity", "Loaded ${audioFiles.size} audio files in ${end - start} ms")
                 isReady = true
+            }
+
+            LaunchedEffect(lastScanTimeMs) {
+                if (lastScanTimeMs <= 0L) return@LaunchedEffect
+                audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
             }
 
             LaunchedEffect(locked) {
@@ -160,7 +184,8 @@ class MainActivity : ComponentActivity() {
                     val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
                     AlbumSongsScreen(albumName = albumName, audioFiles = audioFiles)
                 },
-                "settings" to { SettingsScreen() }
+                "settings" to { SettingsScreen() },
+                "setting/storage" to { StorageSettingsScreen() }
             )
 
             CymaticTheme {
