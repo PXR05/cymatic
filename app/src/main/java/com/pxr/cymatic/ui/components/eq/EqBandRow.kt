@@ -43,11 +43,11 @@ fun EqBandRow(
             Text(
                 text = if (band.enabled) "ON" else "OF",
                 fontFamily = fontFamily,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 color = if (band.enabled) MaterialTheme.colorScheme.onBackground
                 else MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
-                    .padding(24.dp, 20.dp)
+                    .padding(22.dp, 20.dp)
                     .clickable(
                         onClick = onToggleEnabled,
                         indication = null,

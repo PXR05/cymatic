@@ -20,11 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import com.pxr.cymatic.ui.components.common.PixelSlider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,7 +41,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.common.PixelDropdownMenu
+import com.pxr.cymatic.ui.components.common.PixelDropdownMenuItem
+import com.pxr.cymatic.ui.components.common.PixelSlider
 import com.pxr.cymatic.ui.components.eq.EqBandRow
+import com.pxr.cymatic.ui.components.eq.EqBodePlot
 import com.pxr.cymatic.ui.components.eq.PixelConfirmDialog
 import com.pxr.cymatic.ui.components.eq.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -159,7 +160,7 @@ fun EQSettingsScreen(
                     color = if (state.eqEnabled) MaterialTheme.colorScheme.onBackground
                     else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier
-                        .padding(20.dp, 16.dp)
+                        .padding(18.dp, 16.dp)
                         .clickable(
                             onClick = { viewModel.setEnabled(!state.eqEnabled) },
                             indication = null,
@@ -190,19 +191,14 @@ fun EQSettingsScreen(
                             )
                     )
 
-                    DropdownMenu(
+                    PixelDropdownMenu(
                         expanded = showPresetDropdown,
                         onDismissRequest = { showPresetDropdown = false }
                     ) {
                         state.presets.forEach { preset ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = preset.name,
-                                        fontFamily = fontFamily,
-                                        fontSize = 14.sp
-                                    )
-                                },
+                            PixelDropdownMenuItem(
+                                text = preset.name,
+                                fontFamily = fontFamily,
                                 onClick = {
                                     viewModel.selectPreset(preset.name)
                                     showPresetDropdown = false
@@ -221,11 +217,11 @@ fun EQSettingsScreen(
 
                 Box {
                     Text(
-                        text = "⋮",
+                        text = ":",
                         fontFamily = fontFamily,
                         fontSize = 16.sp,
                         modifier = Modifier
-                            .padding(24.dp, 16.dp)
+                            .padding(22.dp, 16.dp)
                             .clickable(
                                 onClick = { showPresetMenu = true },
                                 indication = null,
@@ -233,35 +229,39 @@ fun EQSettingsScreen(
                             )
                     )
 
-                    DropdownMenu(
+                    PixelDropdownMenu(
                         expanded = showPresetMenu,
                         onDismissRequest = { showPresetMenu = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("New", fontFamily = fontFamily, fontSize = 14.sp) },
+                        PixelDropdownMenuItem(
+                            text = "New",
+                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = ""
                                 showAddDialog = true
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("Rename", fontFamily = fontFamily, fontSize = 14.sp) },
+                        PixelDropdownMenuItem(
+                            text = "Rename",
+                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = state.selectedPresetName
                                 showRenameDialog = true
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("Delete", fontFamily = fontFamily, fontSize = 14.sp) },
+                        PixelDropdownMenuItem(
+                            text = "Delete",
+                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 showDeleteConfirm = true
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("Import", fontFamily = fontFamily, fontSize = 14.sp) },
+                        PixelDropdownMenuItem(
+                            text = "Import",
+                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -271,8 +271,9 @@ fun EQSettingsScreen(
                                 importLauncher.launch(intent)
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("Export", fontFamily = fontFamily, fontSize = 14.sp) },
+                        PixelDropdownMenuItem(
+                            text = "Export",
+                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -301,22 +302,15 @@ fun EQSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Box(
+            EqBodePlot(
+                preset = activePreset,
+                fontFamily = fontFamily,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16 / 9f)
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "EQ Graph",
-                    fontFamily = fontFamily,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
+            )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -346,7 +340,7 @@ fun EQSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 text = "Bands",

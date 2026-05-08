@@ -16,6 +16,23 @@ data class BiquadCoefficients(
     val a1: Double,
     val a2: Double
 ) {
+    fun evaluateMagnitudeDb(frequency: Double, sampleRate: Double): Double {
+        val w = 2.0 * PI * frequency / sampleRate
+        val cosW = cos(w)
+        val cos2W = cos(2.0 * w)
+        
+        val num = b0 * b0 + b1 * b1 + b2 * b2 +
+                  2.0 * (b0 * b1 + b1 * b2) * cosW +
+                  2.0 * b0 * b2 * cos2W
+                  
+        val den = 1.0 + a1 * a1 + a2 * a2 +
+                  2.0 * (a1 + a1 * a2) * cosW +
+                  2.0 * a2 * cos2W
+                  
+        val magnitudeSquared = num / den
+        return if (magnitudeSquared > 0) 10.0 * Math.log10(magnitudeSquared) else -100.0
+    }
+
     companion object {
         val IDENTITY = BiquadCoefficients(
             b0 = 1.0, b1 = 0.0, b2 = 0.0,
