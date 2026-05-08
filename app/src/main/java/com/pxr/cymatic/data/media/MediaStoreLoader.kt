@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.util.Log
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.media.AudioStoreDatabase.AudioDbRecord
 import com.pxr.cymatic.data.media.AudioStoreDatabase.AudioIndexEntry
@@ -22,16 +23,24 @@ fun syncAudioFilesToDb(
 ): List<AudioFile> {
     val database = AudioStoreDatabase.getInstance(context)
     val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
+    Log.d(
+        "MediaStoreLoader",
+        "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia"
+    )
     val dbIndex = database.getAudioIndex()
 
     val toDelete = dbIndex.keys - mediaIndex.keys
+    Log.d(
+        "MediaStoreLoader",
+        "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore"
+    )
     database.deleteByIds(toDelete)
 
     val toUpsert = mediaIndex.filter { (id, mediaEntry) ->
         val dbEntry = dbIndex[id]
         dbEntry == null ||
-            dbEntry.dateModified != mediaEntry.dateModified ||
-            dbEntry.size != mediaEntry.size
+                dbEntry.dateModified != mediaEntry.dateModified ||
+                dbEntry.size != mediaEntry.size
     }.keys
 
     if (toUpsert.isNotEmpty()) {
@@ -55,6 +64,16 @@ private fun queryMediaStoreIndex(
         MediaStore.Audio.Media.SIZE
     )
     val (selection, args) = buildRelativePathSelection(directories, scanAllMedia)
+
+    Log.d(
+        "MediaStoreLoader",
+        "Querying MediaStore for index with selection=$selection args=${args?.joinToString()}"
+    )
+
+    if (!scanAllMedia && selection == null) {
+        Log.d("MediaStoreLoader", "No valid directories provided for scanning, skipping MediaStore query")
+        return emptyMap()
+    }
 
     context.contentResolver.query(
         collection,
@@ -199,6 +218,10 @@ private fun buildRelativePathSelection(
     directories: List<String>,
     scanAllMedia: Boolean
 ): Pair<String?, Array<String>?> {
+    Log.d(
+        "MediaStoreLoader",
+        "Building relative path selection for directories=$directories scanAllMedia=$scanAllMedia"
+    )
     if (scanAllMedia || directories.isEmpty()) return null to null
     val relativePaths = directories.mapNotNull { uriString ->
         runCatching {

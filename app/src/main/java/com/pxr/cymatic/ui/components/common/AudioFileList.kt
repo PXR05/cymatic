@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,15 +25,32 @@ import com.pxr.cymatic.ui.state.rememberPlaybackState
 fun AudioFileList(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier,
+    scrollTargetId: Long? = null,
     onItemClick: (AudioFile) -> Unit,
     topOffset: Dp = 0.dp,
     bottomOffset: Dp = 0.dp
 ) {
     val mediaController = LocalMediaController.current
     val playbackState = rememberPlaybackState(mediaController)
+    val listState = rememberLazyListState()
 
-    LazyColumn(modifier = modifier) {
-        items(audioFiles.size) { i ->
+    LaunchedEffect(scrollTargetId) {
+        if (scrollTargetId != null) {
+            val index = audioFiles.indexOfFirst{ it.id == scrollTargetId }
+            if (index != -1) {
+                listState.scrollToItem(index)
+            }
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier
+    ) {
+        items(
+            count = audioFiles.size,
+            key = { i -> audioFiles[i].id }
+        ) { i ->
             val audioFile = audioFiles[i]
             val isCurrent = playbackState.currentMediaId == audioFile.id.toString()
             if (i == 0 && topOffset > 0.dp) {

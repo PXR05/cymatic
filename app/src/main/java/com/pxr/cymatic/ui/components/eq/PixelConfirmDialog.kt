@@ -1,0 +1,50 @@
+package com.pxr.cymatic.ui.components.eq
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.ui.components.common.PixelDialog
+import com.pxr.cymatic.ui.components.common.PixelDialogButton
+import com.pxr.cymatic.ui.components.common.PixelDialogDivider
+
+@Composable
+fun PixelConfirmDialog(
+    fontFamily: FontFamily,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    PixelDialog(
+        title = "Confirm",
+        fontFamily = fontFamily,
+        onDismissRequest = onDismiss,
+        content = {
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 16.sp,
+                fontFamily = fontFamily,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        },
+        buttons = {
+            PixelDialogButton(
+                text = "Cancel",
+                fontFamily = fontFamily,
+                onClick = onDismiss
+            )
+            PixelDialogDivider(fontFamily = fontFamily)
+            PixelDialogButton(
+                text = "Delete",
+                fontFamily = fontFamily,
+                onClick = onConfirm,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    )
+}

@@ -7,27 +7,41 @@ import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.pxr.cymatic.audio.EqAudioProcessor
+import com.pxr.cymatic.audio.EqRenderersFactory
 import com.pxr.cymatic.data.media.AudioStoreDatabase
+import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.store.PlaybackStore
+import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import com.pxr.cymatic.playback.createMediaItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     lateinit var player: ExoPlayer
         private set
     private lateinit var mediaSession: MediaSession
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private val eqAudioProcessor = EqAudioProcessor()
+
     override fun onCreate() {
         super.onCreate()
-        player = ExoPlayer.Builder(this).build()
+
+        val renderersFactory = EqRenderersFactory(this, eqAudioProcessor)
+
+        player = ExoPlayer.Builder(this)
+            .setRenderersFactory(renderersFactory)
+            .build()
+
         mediaSession = MediaSession.Builder(this, player)
             .setId("audio_session")
             .build()
@@ -62,6 +76,29 @@ class PlaybackService : MediaSessionService() {
             while (isActive) {
                 persistPlaybackState()
                 delay(5_000L)
+            }
+        }
+
+        serviceScope.launch {
+            combine(
+                SettingsStore.eqGlobalEnabledFlow,
+                SettingsStore.eqPresetsFlow,
+                SettingsStore.eqSelectedPresetFlow
+            ) { enabled, presets, selectedName ->
+                Triple(enabled, presets, selectedName)
+            }.collect { (enabled, presets, selectedName) ->
+                Log.d("PlaybackService", "EQ settings changed - enabled: $enabled, selected preset: $selectedName")
+                if (!enabled) {
+                    eqAudioProcessor.disable()
+                } else {
+                    val preset = presets.firstOrNull { it.name == selectedName }
+                        ?: presets.firstOrNull()
+                        ?: EqPreset.defaultPreset()
+                    val sampleRate = withContext(Dispatchers.Main) {
+                        player.audioFormat?.sampleRate ?: 44100
+                    }
+                    eqAudioProcessor.updateBands(preset.preamp, preset.bands, sampleRate)
+                }
             }
         }
     }
@@ -120,6 +157,9 @@ class PlaybackService : MediaSessionService() {
                     player.playWhenReady = stored.wasPlaying
                     player.prepare()
                 }
+            } else {
+                SettingsStore.setLocked(false)
+                Log.w("PlaybackService", "Current audio file not found in database, cannot restore playback state")
             }
         }
 

@@ -40,7 +40,7 @@ fun StorageSettingsScreen(
     val fontFamily = FontFamily(Font(R.font.pixel))
 
     BaseScreen(
-        title = "Storage Settings",
+        title = "Storage",
         onBackClick = { navController.popBackStack() },
         modifier = modifier
     ) {
@@ -48,7 +48,7 @@ fun StorageSettingsScreen(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(24.dp, 16.dp)
         ) {
             Text(
                 text = "Status",

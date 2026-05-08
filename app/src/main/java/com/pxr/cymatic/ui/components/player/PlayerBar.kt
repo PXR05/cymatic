@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,13 +22,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
@@ -43,6 +49,7 @@ fun PlayerBar(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current ?: return
@@ -52,8 +59,8 @@ fun PlayerBar(
         audioFiles.find { audioFile -> audioFile.id.toString() == currentMediaId }?.metadata
             ?: return
     val fontFamily = FontFamily(Font(R.font.pixel))
-    val scope = rememberCoroutineScope()
     val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
+    val baseGap = 16.dp
 
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -79,6 +86,29 @@ fun PlayerBar(
             ),
         verticalArrangement = Arrangement.Top
     ) {
+        if (locked) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                AsyncImage(
+                    model = ImageRequest
+                        .Builder(LocalContext.current)
+                        .data(metadata.artworkUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = metadata.album,
+                    contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.None,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                )
+            }
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -96,7 +126,11 @@ fun PlayerBar(
                     .clickable(
                         onClick = {
                             if (playbackState.queueSource != null && !locked) {
-                                navController.navigate(playbackState.queueSource)
+                                navController.navigate(
+                                    playbackState.queueSource + "?scrollId=${playbackState.currentMediaId}"
+                                ) {
+                                    launchSingleTop = true
+                                }
                             }
                         },
                         indication = null,
@@ -116,53 +150,92 @@ fun PlayerBar(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(baseGap))
 
-        Info(
-            metadata,
-            titleSize = 20.sp,
-            artistSize = 14.sp,
-            gap = 2.dp,
+        Row(
+            verticalAlignment = Alignment.Bottom,
             modifier = Modifier
-                .height(48.dp)
+                .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-        )
+        ) {
+            Info(
+                metadata,
+                titleSize = 20.sp,
+                artistSize = 14.sp,
+                gap = 2.dp,
+                modifier = Modifier
+                    .height(48.dp)
+                    .weight(1f)
+            )
+            if (locked) {
+                if (playbackState.isShuffling) {
+                    Text(
+                        text = "SHUF",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 14.sp,
+                        fontFamily = fontFamily,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
 
-        Spacer(modifier = Modifier.height(24.dp))
+                if (playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
+                    Text(
+                        text = when (playbackState.repeatMode) {
+                            Player.REPEAT_MODE_ALL -> "ALL"
+                            Player.REPEAT_MODE_ONE -> "ONE"
+                            else -> ""
+                        },
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 14.sp,
+                        fontFamily = fontFamily,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(baseGap * 1.5f))
 
         ProgressBar(
             currentPosition = playbackState.currentPositionMs,
             durationMs = playbackState.durationMs ?: 0L,
-            onSeek = { targetMs -> mediaController.seekTo(targetMs) },
+            onSeek = { targetMs ->
+                if (locked) return@ProgressBar
+                mediaController.seekTo(targetMs)
+            },
+            seekEnabled = !locked,
             modifier = Modifier.padding(horizontal = 24.dp),
             showNumber = false,
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(baseGap))
 
-        Controls(
-            isPlaying = playbackState.isPlaying,
-            isShuffling = playbackState.isShuffling,
-            repeatMode = playbackState.repeatMode,
-            onClick = mapOf(
-                "shuffle" to {
-                    mediaController.shuffleModeEnabled = !playbackState.isShuffling
-                },
-                "previous" to { mediaController.seekToPrevious() },
-                "play_pause" to {
-                    if (playbackState.isPlaying) mediaController.pause()
-                    else mediaController.play()
-                },
-                "next" to { mediaController.seekToNext() },
-                "repeat" to {
-                    val newMode = when (playbackState.repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
+        if (!locked) {
+            Controls(
+                isPlaying = playbackState.isPlaying,
+                isShuffling = playbackState.isShuffling,
+                repeatMode = playbackState.repeatMode,
+                onClick = mapOf(
+                    "shuffle" to {
+                        mediaController.shuffleModeEnabled = !playbackState.isShuffling
+                    },
+                    "previous" to { mediaController.seekToPrevious() },
+                    "play_pause" to {
+                        if (playbackState.isPlaying) mediaController.pause()
+                        else mediaController.play()
+                    },
+                    "next" to { mediaController.seekToNext() },
+                    "repeat" to {
+                        val newMode = when (playbackState.repeatMode) {
+                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                            else -> Player.REPEAT_MODE_OFF
+                        }
+                        mediaController.repeatMode = newMode
                     }
-                    mediaController.repeatMode = newMode
-                }
+                )
             )
-        )
+        }
+
     }
 }

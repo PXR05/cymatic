@@ -38,9 +38,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavBackStackEntry
@@ -53,8 +50,6 @@ import com.pxr.cymatic.data.media.loadCachedAudioFiles
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.playback.handleItemClick
-import com.pxr.cymatic.ui.components.common.AudioFileList
 import com.pxr.cymatic.ui.components.common.MaximizedScreenHeader
 import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
@@ -68,6 +63,7 @@ import com.pxr.cymatic.ui.screens.library.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
+import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
@@ -105,7 +101,10 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val sessionToken = SessionToken(
+            this,
+            ComponentName(this, PlaybackService::class.java)
+        )
         val audioAttributionContext =
             createAttributionContext("audioPlayback")
         controllerFuture =
@@ -140,20 +139,6 @@ class MainActivity : ComponentActivity() {
                 audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
             }
 
-            LaunchedEffect(locked) {
-                val windowInsetsController =
-                    WindowCompat.getInsetsController(window, window.decorView)
-                if (locked) {
-                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
-                    windowInsetsController.systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                } else {
-                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-                    windowInsetsController.systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
-                }
-            }
-
             DisposableEffect(Unit) {
                 controllerFuture?.let { future ->
                     future.addListener({
@@ -169,20 +154,37 @@ class MainActivity : ComponentActivity() {
 
             val routes: Map<String, @Composable (NavBackStackEntry) -> Unit> = mapOf(
                 "home" to { HomeScreen() },
-                "all_songs" to { AllSongsScreen(audioFiles) },
-                "artists" to { ArtistsScreen(audioFiles) },
-                "albums" to { AlbumsScreen(audioFiles) },
-                "artist/{artistName}" to { backStackEntry ->
-                    val rawName = backStackEntry.arguments?.getString("artistName")
-                    val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
-                    ArtistSongsScreen(artistName = artistName, audioFiles = audioFiles)
+                "all_songs?scrollId={scrollId}" to { entry ->
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    AllSongsScreen(
+                        audioFiles,
+                        scrollTargetId = scrollId?.toLongOrNull()
+                    )
                 },
-                "album/{albumName}" to { backStackEntry ->
-                    val rawName = backStackEntry.arguments?.getString("albumName")
+                "artists" to { ArtistsScreen(audioFiles) },
+                "artist/{artistName}?scrollId={scrollId}" to { entry ->
+                    val rawName = entry.arguments?.getString("artistName")
+                    val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    ArtistSongsScreen(
+                        artistName = artistName,
+                        audioFiles = audioFiles,
+                        scrollTargetId = scrollId?.toLongOrNull()
+                    )
+                },
+                "albums" to { AlbumsScreen(audioFiles) },
+                "album/{albumName}?scrollId={scrollId}" to { entry ->
+                    val rawName = entry.arguments?.getString("albumName")
                     val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
-                    AlbumSongsScreen(albumName = albumName, audioFiles = audioFiles)
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    AlbumSongsScreen(
+                        albumName = albumName,
+                        audioFiles = audioFiles,
+                        scrollTargetId = scrollId?.toLongOrNull()
+                    )
                 },
                 "settings" to { SettingsScreen() },
+                "setting/eq" to { EQSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() }
             )
 
@@ -211,50 +213,17 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                            } else if (playbackState.currentMediaId != null) {
-                                val queueFiles = remember(mediaController?.mediaItemCount) {
-                                    if (mediaController != null && mediaController!!.mediaItemCount > 1) {
-                                        val mediaIdToFile =
-                                            audioFiles.associateBy { it.id.toString() }
-                                        val queue = mutableListOf<AudioFile>()
-                                        for (i in 0 until mediaController!!.mediaItemCount) {
-                                            val mediaId =
-                                                mediaController!!.getMediaItemAt(i).mediaId
-                                            mediaIdToFile[mediaId]?.let { queue.add(it) }
-                                        }
-                                        queue
-                                    } else {
-                                        emptyList()
-                                    }
-                                }
-
+                            } else {
                                 MaximizedScreenHeader(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp)
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(MaterialTheme.colorScheme.secondary)
-                                )
-
-                                AudioFileList(
-                                    audioFiles = queueFiles,
-                                    onItemClick = { audioFile ->
-                                        mediaController?.let {
-                                            handleItemClick(
-                                                mediaController = it,
-                                                audioFile,
-                                                queue = queueFiles,
-                                                queueSource = playbackState.queueSource
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
+                                        .padding(
+                                            start = 24.dp,
+                                            end = 24.dp,
+                                            bottom = 24.dp,
+                                            top = WindowInsets.systemBars.asPaddingValues()
+                                                .calculateTopPadding() + 16.dp
+                                        ),
                                 )
                             }
 
@@ -264,7 +233,7 @@ class MainActivity : ComponentActivity() {
                                         .calculateBottomPadding()
                                 )
                             ) {
-                                if (playbackState.currentMediaId != null) {
+                                if (playbackState.currentMediaId != null && playbackState.totalTracks > 0) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -274,7 +243,10 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(modifier = Modifier.height(24.dp))
 
-                                    PlayerBar(audioFiles = audioFiles)
+                                    PlayerBar(
+                                        audioFiles = audioFiles,
+                                        modifier = if (locked) Modifier.weight(1f) else Modifier
+                                    )
 
                                     Spacer(modifier = Modifier.height(16.dp))
                                 }
@@ -288,7 +260,7 @@ class MainActivity : ComponentActivity() {
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                StatusBar()
+                                StatusBar(modifier = Modifier.padding(horizontal = 24.dp))
 
                                 Spacer(modifier = Modifier.height(8.dp))
                             }

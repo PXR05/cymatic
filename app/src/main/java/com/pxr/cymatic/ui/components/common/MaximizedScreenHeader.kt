@@ -35,13 +35,26 @@ fun MaximizedScreenHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "Cymatic",
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "/",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 24.sp,
+                fontFamily = fontFamily,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .padding(end = 24.dp)
+            )
+            Text(
+                text = "Cymatic",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 20.sp,
+                fontFamily = fontFamily,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
         Text(
             text = "LOCKED",
             color = MaterialTheme.colorScheme.background,

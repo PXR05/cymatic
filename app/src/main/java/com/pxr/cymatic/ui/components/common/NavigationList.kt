@@ -26,7 +26,10 @@ fun NavigationList(
     separator: (@Composable () -> Unit)? = null,
 ) {
     LazyColumn(modifier = modifier) {
-        items(items.size) { index ->
+        items(
+            count = items.size,
+            key = { i -> items[i].label }
+        ) { index ->
             val item = items[index]
             ListItem(
                 label = item.label,

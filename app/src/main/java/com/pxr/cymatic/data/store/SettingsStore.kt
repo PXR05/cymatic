@@ -40,6 +40,9 @@ object SettingsStore {
     private val LAST_SCAN_DURATION_MS_KEY = longPreferencesKey("LAST_SCAN_DURATION_MS")
     private val SCAN_DIRECTORIES_KEY = stringSetPreferencesKey("SCAN_DIRECTORIES")
     private val SCAN_ALL_MEDIA_KEY = booleanPreferencesKey("SCAN_ALL_MEDIA")
+    private val EQ_PRESETS_KEY = stringPreferencesKey("EQ_PRESETS")
+    private val EQ_SELECTED_PRESET_KEY = stringPreferencesKey("EQ_SELECTED_PRESET")
+    private val EQ_GLOBAL_ENABLED_KEY = booleanPreferencesKey("EQ_GLOBAL_ENABLED")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
@@ -110,6 +113,31 @@ object SettingsStore {
     val scanAllMediaFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[SCAN_ALL_MEDIA_KEY] ?: DEFAULT_SCAN_ALL_MEDIA
+        }
+
+    val eqPresetsFlow: Flow<List<com.pxr.cymatic.data.model.EqPreset>>
+        get() = store.data.map { prefs ->
+            val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
+            try {
+                val array = org.json.JSONArray(jsonStr)
+                val list = mutableListOf<com.pxr.cymatic.data.model.EqPreset>()
+                for (i in 0 until array.length()) {
+                    com.pxr.cymatic.data.model.EqPreset.fromJson(array.getJSONObject(i).toString())?.let { list.add(it) }
+                }
+                if (list.isEmpty()) listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset()) else list
+            } catch (e: Exception) {
+                listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
+            }
+        }
+
+    val eqSelectedPresetFlow: Flow<String>
+        get() = store.data.map { prefs ->
+            prefs[EQ_SELECTED_PRESET_KEY] ?: "Flat"
+        }
+
+    val eqGlobalEnabledFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[EQ_GLOBAL_ENABLED_KEY] ?: true
         }
 
     suspend fun getTheme(): String = themeFlow.first()
@@ -211,6 +239,26 @@ object SettingsStore {
         store.edit { prefs ->
             val current = prefs[SCAN_DIRECTORIES_KEY] ?: emptySet()
             prefs[SCAN_DIRECTORIES_KEY] = current - value
+        }
+    }
+
+    suspend fun setEqPresets(presets: List<com.pxr.cymatic.data.model.EqPreset>) {
+        store.edit { prefs ->
+            val array = org.json.JSONArray()
+            presets.forEach { array.put(it.toJson()) }
+            prefs[EQ_PRESETS_KEY] = array.toString()
+        }
+    }
+
+    suspend fun setEqSelectedPreset(name: String) {
+        store.edit { prefs ->
+            prefs[EQ_SELECTED_PRESET_KEY] = name
+        }
+    }
+
+    suspend fun setEqGlobalEnabled(enabled: Boolean) {
+        store.edit { prefs ->
+            prefs[EQ_GLOBAL_ENABLED_KEY] = enabled
         }
     }
 }

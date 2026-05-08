@@ -26,24 +26,14 @@ fun SettingsScreen(
         NavigationList(
             items = listOf(
                 NavigationItem(
-                    label = "Audio",
-                    subLabel = "EQ, effects, output",
-                    onClick = {
-                        /* TODO */
-                        Toast.makeText(
-                            context,
-                            "WIP",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }),
+                    label = "Equalizer",
+                    onClick = { navController.navigate("setting/eq") }),
                 NavigationItem(
                     label = "Storage",
-                    subLabel = "Status, scan, directories",
                     onClick = { navController.navigate("setting/storage") }
                 ),
                 NavigationItem(
-                    label = "App",
-                    subLabel = "Theme, source, controls",
+                    label = "Remote Source",
                     onClick = {
                         /* TODO */
                         Toast.makeText(

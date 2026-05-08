@@ -14,7 +14,8 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 fun AlbumSongsScreen(
     albumName: String,
     audioFiles: List<AudioFile>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    scrollTargetId: Long? = null
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
@@ -27,6 +28,7 @@ fun AlbumSongsScreen(
     ) {
         AudioFileList(
             audioFiles = filteredFiles,
+            scrollTargetId = scrollTargetId,
             onItemClick = { audioFile ->
                 mediaController?.let {
                     handleItemClick(

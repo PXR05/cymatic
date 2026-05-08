@@ -41,9 +41,9 @@ import com.pxr.cymatic.R
 @SuppressLint("DefaultLocale")
 @Composable
 fun StatusBar(
+    modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
 ) {
-    val context = LocalContext.current
     val fontFamily = FontFamily(Font(R.font.pixel))
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -179,7 +179,7 @@ fun StatusBar(
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -192,7 +192,7 @@ fun StatusBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(vertical = 8.dp)
                 .clickable(
                     onClick = { openOutputSwitcher() },
                     indication = null,
@@ -206,7 +206,7 @@ fun StatusBar(
             fontFamily = fontFamily,
             fontSize = 14.sp,
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(vertical = 8.dp)
                 .clickable(
                     onClick = {
                         if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {

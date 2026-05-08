@@ -43,6 +43,7 @@ fun ProgressBar(
     durationMs: Long,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    seekEnabled: Boolean = true,
     showNumber: Boolean = true
 ) {
     val fontFamily = FontFamily(Font(R.font.pixel))
@@ -65,8 +66,8 @@ fun ProgressBar(
                 .fillMaxWidth()
                 .height(16.dp)
                 .onSizeChanged { barWidthPx = it.width }
-                .pointerInput(durationMs, barWidthPx) {
-                    if (durationMs <= 0L) return@pointerInput
+                .pointerInput(durationMs, barWidthPx, seekEnabled) {
+                    if (durationMs <= 0L || !seekEnabled) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown()
                         val width = barWidthPx.toFloat().coerceAtLeast(1f)
@@ -80,8 +81,8 @@ fun ProgressBar(
                             dragPositionPx = x.roundToLong().toInt()
                             change.consume()
                         }
-                        isDragging = false
                         onSeek(targetMs)
+                        isDragging = false
                     }
                 }
 

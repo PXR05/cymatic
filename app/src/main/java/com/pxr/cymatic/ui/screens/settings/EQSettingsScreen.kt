@@ -1,0 +1,424 @@
+package com.pxr.cymatic.ui.screens.settings
+
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import com.pxr.cymatic.ui.components.common.PixelSlider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.eq.EqBandRow
+import com.pxr.cymatic.ui.components.eq.PixelConfirmDialog
+import com.pxr.cymatic.ui.components.eq.PixelInputDialog
+import com.pxr.cymatic.ui.locals.LocalNavController
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EQSettingsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: EqViewModel = viewModel()
+) {
+    val navController = LocalNavController.current
+    val context = LocalContext.current
+    val fontFamily = FontFamily(Font(R.font.pixel))
+
+    val state by viewModel.uiState.collectAsState()
+    val livePreset by viewModel.livePreset.collectAsState()
+    val activePreset = livePreset ?: state.activePreset
+
+    var showPresetMenu by remember { mutableStateOf(false) }
+    var showPresetDropdown by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    var dialogInput by remember { mutableStateOf("") }
+    var expandedBandIndex by remember { mutableIntStateOf(-1) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                viewModel.exportPreset(context, state.selectedPresetName, uri)
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                val fileName = getFileNameFromUri(context, uri)
+                    ?.removeSuffix(".txt")
+                    ?: "Imported"
+                viewModel.importPreset(context, uri, fileName)
+            }
+        }
+    }
+    if (showAddDialog) {
+        PixelInputDialog(
+            fontFamily = fontFamily,
+            title = "New Preset",
+            hint = "Preset name",
+            value = dialogInput,
+            onValueChange = { dialogInput = it },
+            onConfirm = {
+                viewModel.addPreset(dialogInput.trim())
+                dialogInput = ""
+                showAddDialog = false
+            },
+            onDismiss = { dialogInput = ""; showAddDialog = false }
+        )
+    }
+
+    if (showRenameDialog) {
+        PixelInputDialog(
+            fontFamily = fontFamily,
+            title = "Rename Preset",
+            hint = "New name",
+            value = dialogInput,
+            onValueChange = { dialogInput = it },
+            onConfirm = {
+                viewModel.renamePreset(state.selectedPresetName, dialogInput.trim())
+                dialogInput = ""
+                showRenameDialog = false
+            },
+            onDismiss = { dialogInput = ""; showRenameDialog = false }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        PixelConfirmDialog(
+            fontFamily = fontFamily,
+            message = "Delete \"${state.selectedPresetName}\"?",
+            onConfirm = {
+                viewModel.deletePreset(state.selectedPresetName)
+                showDeleteConfirm = false
+            },
+            onDismiss = { showDeleteConfirm = false }
+        )
+    }
+
+    BaseScreen(
+        title = "Equalizer",
+        onBackClick = { navController.popBackStack() },
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .padding(24.dp, 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
+            ) {
+                Text(
+                    text = if (state.eqEnabled) "ON" else "OF",
+                    fontFamily = fontFamily,
+                    fontSize = 14.sp,
+                    color = if (state.eqEnabled) MaterialTheme.colorScheme.onBackground
+                    else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                        .padding(20.dp, 16.dp)
+                        .clickable(
+                            onClick = { viewModel.setEnabled(!state.eqEnabled) },
+                            indication = null,
+                            interactionSource = null
+                        )
+                )
+
+                Box(
+                    modifier = Modifier
+                        .height(56.dp)
+                        .width(1.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                )
+
+                Box(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = state.selectedPresetName,
+                        fontFamily = fontFamily,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable(
+                                onClick = { showPresetDropdown = true },
+                                indication = null,
+                                interactionSource = null
+                            )
+                    )
+
+                    DropdownMenu(
+                        expanded = showPresetDropdown,
+                        onDismissRequest = { showPresetDropdown = false }
+                    ) {
+                        state.presets.forEach { preset ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = preset.name,
+                                        fontFamily = fontFamily,
+                                        fontSize = 14.sp
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.selectPreset(preset.name)
+                                    showPresetDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .height(56.dp)
+                        .width(1.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                )
+
+                Box {
+                    Text(
+                        text = "⋮",
+                        fontFamily = fontFamily,
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .padding(24.dp, 16.dp)
+                            .clickable(
+                                onClick = { showPresetMenu = true },
+                                indication = null,
+                                interactionSource = null
+                            )
+                    )
+
+                    DropdownMenu(
+                        expanded = showPresetMenu,
+                        onDismissRequest = { showPresetMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("New", fontFamily = fontFamily, fontSize = 14.sp) },
+                            onClick = {
+                                showPresetMenu = false
+                                dialogInput = ""
+                                showAddDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename", fontFamily = fontFamily, fontSize = 14.sp) },
+                            onClick = {
+                                showPresetMenu = false
+                                dialogInput = state.selectedPresetName
+                                showRenameDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete", fontFamily = fontFamily, fontSize = 14.sp) },
+                            onClick = {
+                                showPresetMenu = false
+                                showDeleteConfirm = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import", fontFamily = fontFamily, fontSize = 14.sp) },
+                            onClick = {
+                                showPresetMenu = false
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "*/*"
+                                }
+                                importLauncher.launch(intent)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Export", fontFamily = fontFamily, fontSize = 14.sp) },
+                            onClick = {
+                                showPresetMenu = false
+                                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TITLE,
+                                        "${state.selectedPresetName}.txt"
+                                    )
+                                }
+                                exportLauncher.launch(intent)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Graph",
+                fontFamily = fontFamily,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16 / 9f)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "EQ Graph",
+                    fontFamily = fontFamily,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Pre-amp",
+                    fontFamily = fontFamily,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "${"%.1f".format(activePreset.preamp)} dB",
+                    fontFamily = fontFamily,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            PixelSlider(
+                value = activePreset.preamp,
+                onValueChange = { viewModel.updatePreamp(it) },
+                valueRange = -12f..12f,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Bands",
+                fontFamily = fontFamily,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+            ) {
+                activePreset.bands.forEachIndexed { index, band ->
+                    EqBandRow(
+                        fontFamily = fontFamily,
+                        index = index,
+                        band = band,
+                        isExpanded = expandedBandIndex == index,
+                        onToggleExpand = {
+                            expandedBandIndex = if (expandedBandIndex == index) -1 else index
+                        },
+                        onToggleEnabled = {
+                            viewModel.updateBand(index, band.copy(enabled = !band.enabled))
+                        },
+                        onBandChange = { updated -> viewModel.updateBand(index, updated) },
+                        onRemove = { viewModel.removeBand(index) }
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    )
+                }
+
+                if (activePreset.bands.size < EqViewModel.MAX_BANDS) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable(
+                                onClick = { viewModel.addBand() },
+                                indication = null,
+                                interactionSource = null
+                            ),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "+ Add Band",
+                            fontFamily = fontFamily,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun getFileNameFromUri(context: android.content.Context, uri: Uri): String? {
+    return try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (cursor.moveToFirst() && nameIndex >= 0) cursor.getString(nameIndex) else null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
