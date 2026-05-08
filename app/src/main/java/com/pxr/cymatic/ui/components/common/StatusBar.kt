@@ -59,11 +59,6 @@ fun StatusBar(
             audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         )
     }
-    var devices by remember {
-        mutableStateOf(
-            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
-        )
-    }
     var activeDevice by remember {
         mutableStateOf(resolveActiveOutput(audioManager))
     }
@@ -89,13 +84,11 @@ fun StatusBar(
         val callback = object : AudioDeviceCallback() {
             override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
                 activeDevice = resolveActiveOutput(audioManager)
-                devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
                 maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
                 activeDevice = resolveActiveOutput(audioManager)
-                devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
                 maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
         }
@@ -107,29 +100,6 @@ fun StatusBar(
             audioManager.unregisterAudioDeviceCallback(callback)
         }
     }
-
-    var showOutputSwitcher by remember { mutableStateOf(false) }
-
-    OutputSwitcherDialog(
-        devices = devices.filter { deviceToDisplay(it).type != "UNK" },
-        defaultDevice = activeDevice.device,
-        showDialog = showOutputSwitcher,
-        onDismissRequest = { showOutputSwitcher = false },
-        onConfirmation = { device ->
-            if (device != null) {
-                val res = audioManager.setCommunicationDevice(device)
-                if (res) {
-                    activeDevice = resolveActiveOutput(audioManager)
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Failed to switch output device",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        },
-    )
 
     fun openOutputSwitcherFallback() {
         listOf(

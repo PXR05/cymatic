@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -168,6 +169,10 @@ fun PlayerBar(
                     .weight(1f)
             )
             if (locked) {
+                if (playbackState.isShuffling || playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 if (playbackState.isShuffling) {
                     Text(
                         text = "SHUF",
