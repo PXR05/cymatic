@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -152,7 +154,7 @@ fun EQSettingsScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = eqAlpha))
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Text(
                     text = if (state.eqEnabled) "I" else "O",

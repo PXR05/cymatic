@@ -38,6 +38,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavBackStackEntry
@@ -50,7 +53,6 @@ import com.pxr.cymatic.data.media.loadCachedAudioFiles
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.common.MaximizedScreenHeader
 import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -134,6 +136,20 @@ class MainActivity : ComponentActivity() {
                 isReady = true
             }
 
+            LaunchedEffect(locked) {
+                val windowInsetsController =
+                    WindowCompat.getInsetsController(window, window.decorView)
+                if (locked) {
+                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+                    windowInsetsController.systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                } else {
+                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                    windowInsetsController.systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                }
+            }
+
             LaunchedEffect(lastScanTimeMs) {
                 if (lastScanTimeMs <= 0L) return@LaunchedEffect
                 audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
@@ -213,19 +229,20 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                            } else {
-                                MaximizedScreenHeader(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            start = 24.dp,
-                                            end = 24.dp,
-                                            bottom = 24.dp,
-                                            top = WindowInsets.systemBars.asPaddingValues()
-                                                .calculateTopPadding() + 16.dp
-                                        ),
-                                )
                             }
+//                            else {
+//                                MaximizedScreenHeader(
+//                                    modifier = Modifier
+//                                        .fillMaxWidth()
+//                                        .padding(
+//                                            start = 24.dp,
+//                                            end = 24.dp,
+//                                            bottom = 24.dp,
+//                                            top = WindowInsets.systemBars.asPaddingValues()
+//                                                .calculateTopPadding() + 16.dp
+//                                        ),
+//                                )
+//                            }
 
                             Column(
                                 modifier = Modifier.padding(
@@ -234,14 +251,16 @@ class MainActivity : ComponentActivity() {
                                 )
                             ) {
                                 if (playbackState.currentMediaId != null && playbackState.totalTracks > 0) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.secondary)
-                                    )
+                                    if (!locked) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(MaterialTheme.colorScheme.secondary)
+                                        )
 
-                                    Spacer(modifier = Modifier.height(24.dp))
+                                        Spacer(modifier = Modifier.height(24.dp))
+                                    }
 
                                     PlayerBar(
                                         audioFiles = audioFiles,
@@ -251,16 +270,18 @@ class MainActivity : ComponentActivity() {
                                     Spacer(modifier = Modifier.height(16.dp))
                                 }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(MaterialTheme.colorScheme.secondary)
-                                )
+                                if (!locked) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.secondary)
+                                    )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
 
-                                StatusBar(modifier = Modifier.padding(horizontal = 24.dp))
+                                    StatusBar(modifier = Modifier.padding(horizontal = 24.dp))
+                                }
 
                                 Spacer(modifier = Modifier.height(8.dp))
                             }

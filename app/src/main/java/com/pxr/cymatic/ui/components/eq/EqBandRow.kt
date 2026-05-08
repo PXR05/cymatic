@@ -114,7 +114,7 @@ private fun formatBandSummary(band: EqBand): String {
     } else {
         String.format("%.0f Hz", band.frequency)
     }
-    return "$freqStr | Gain: ${String.format("%.1f", band.gain)} dB | Q: ${
+    return "$freqStr | ${String.format("%.1f", band.gain)} dB | ${
         String.format(
             "%.2f",
             band.q
