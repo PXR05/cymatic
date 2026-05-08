@@ -25,7 +25,6 @@ fun FileInfo(
     val fontFamily = FontFamily(Font(R.font.pixel))
 
     fun parseBitRate(bitRate: Long) = when {
-        bitRate >= 1_000_000 -> "${bitRate / 1_000_000}M"
         bitRate >= 1_000 -> "${bitRate / 1_000}K"
         else -> "$bitRate"
     }

@@ -151,16 +151,17 @@ fun EQSettingsScreen(
                 .padding(24.dp, 16.dp)
         ) {
             Row(
-                modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
+                modifier = Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = eqAlpha))
             ) {
                 Text(
-                    text = if (state.eqEnabled) "ON" else "OF",
+                    text = if (state.eqEnabled) "I" else "O",
                     fontFamily = fontFamily,
                     fontSize = 14.sp,
-                    color = if (state.eqEnabled) MaterialTheme.colorScheme.onBackground
-                    else MaterialTheme.colorScheme.secondary,
+                    color = if (state.eqEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
-                        .padding(18.dp, 16.dp)
+                        .background(if (state.eqEnabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
+                        .padding(24.dp, 16.dp)
                         .clickable(
                             onClick = { viewModel.setEnabled(!state.eqEnabled) },
                             indication = null,

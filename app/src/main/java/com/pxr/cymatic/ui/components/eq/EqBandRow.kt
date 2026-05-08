@@ -1,6 +1,7 @@
 package com.pxr.cymatic.ui.components.eq
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,13 +43,13 @@ fun EqBandRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (band.enabled) "ON" else "OF",
+                text = if (band.enabled) "I" else "O",
                 fontFamily = fontFamily,
                 fontSize = 14.sp,
-                color = if (band.enabled) MaterialTheme.colorScheme.onBackground
-                else MaterialTheme.colorScheme.secondary,
+                color = if (band.enabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
-                    .padding(22.dp, 20.dp)
+                    .background(if (band.enabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
+                    .padding(28.dp, 20.dp)
                     .clickable(
                         onClick = onToggleEnabled,
                         indication = null,
