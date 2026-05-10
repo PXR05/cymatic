@@ -1,0 +1,36 @@
+[changelog]
+header = ""
+body = """
+{% if version %}## {{ version }}{% endif %}
+{% if timestamp %} ({{ timestamp | date: "%Y-%m-%d" }}){% endif %}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group }}
+{% for commit in commits %}- {{ commit.message | split(pat="\n") | first }}
+{% endfor %}
+
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+tag_pattern = "v[0-9]*"
+sort_commits = "oldest"
+commit_parsers = [
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactor" },
+  { message = "^docs", group = "Docs" },
+  { message = "^test", group = "Tests" },
+  { message = "^ci", group = "CI" },
+  { message = "^chore", group = "Chore" },
+  { message = "^build", group = "Build" },
+  { message = "^revert", group = "Reverts" },
+  { message = "^style", group = "Style" },
+  { message = "^breaking", group = "Breaking" }
+]
+
