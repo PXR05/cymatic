@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.primitives
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

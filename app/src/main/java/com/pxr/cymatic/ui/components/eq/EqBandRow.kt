@@ -45,7 +45,7 @@ fun EqBandRow(
             Text(
                 text = if (band.enabled) "I" else "O",
                 fontFamily = fontFamily,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 color = if (band.enabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .background(if (band.enabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)

@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.primitives
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader

@@ -1,9 +1,7 @@
 package com.pxr.cymatic.ui.screens.settings
 
-import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.pxr.cymatic.ui.components.common.BaseScreen
 import com.pxr.cymatic.ui.components.common.NavigationItem
@@ -15,7 +13,6 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val navController = LocalNavController.current
 
     BaseScreen(
@@ -27,22 +24,20 @@ fun SettingsScreen(
             items = listOf(
                 NavigationItem(
                     label = "Equalizer",
-                    onClick = { navController.navigate("setting/eq") }),
+                    onClick = { navController.navigate("setting/eq") }
+                ),
                 NavigationItem(
                     label = "Storage",
                     onClick = { navController.navigate("setting/storage") }
                 ),
                 NavigationItem(
-                    label = "Remote Source",
-                    onClick = {
-                        /* TODO */
-                        Toast.makeText(
-                            context,
-                            "WIP",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                )
+                    label = "Source",
+                    onClick = { navController.navigate("setting/source") }
+                ),
+                NavigationItem(
+                    label = "Version",
+                    onClick = { navController.navigate("setting/version") }
+                ),
             )
         )
     }

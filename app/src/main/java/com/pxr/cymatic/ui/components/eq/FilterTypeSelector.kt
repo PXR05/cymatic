@@ -4,8 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import com.pxr.cymatic.ui.components.common.PixelDropdownMenu
-import com.pxr.cymatic.ui.components.common.PixelDropdownMenuItem
+import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

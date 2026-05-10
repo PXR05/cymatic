@@ -23,9 +23,9 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.BaseScreen
-import com.pxr.cymatic.ui.components.settings.DirectoryActions
-import com.pxr.cymatic.ui.components.settings.DirectoryBox
-import com.pxr.cymatic.ui.components.settings.StatusBento
+import com.pxr.cymatic.ui.components.storage.DirectoryActions
+import com.pxr.cymatic.ui.components.storage.DirectoryBox
+import com.pxr.cymatic.ui.components.storage.StatusBento
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.launch
 

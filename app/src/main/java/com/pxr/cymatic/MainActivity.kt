@@ -67,7 +67,9 @@ import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
+import com.pxr.cymatic.ui.screens.settings.SourceSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.Dispatchers
@@ -201,7 +203,9 @@ class MainActivity : ComponentActivity() {
                 },
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
-                "setting/storage" to { StorageSettingsScreen() }
+                "setting/storage" to { StorageSettingsScreen() },
+                "setting/source" to { SourceSettingsScreen() },
+                "setting/version" to { VersionSettingsScreen() }
             )
 
             CymaticTheme {
@@ -230,19 +234,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-//                            else {
-//                                MaximizedScreenHeader(
-//                                    modifier = Modifier
-//                                        .fillMaxWidth()
-//                                        .padding(
-//                                            start = 24.dp,
-//                                            end = 24.dp,
-//                                            bottom = 24.dp,
-//                                            top = WindowInsets.systemBars.asPaddingValues()
-//                                                .calculateTopPadding() + 16.dp
-//                                        ),
-//                                )
-//                            }
 
                             Column(
                                 modifier = Modifier.padding(

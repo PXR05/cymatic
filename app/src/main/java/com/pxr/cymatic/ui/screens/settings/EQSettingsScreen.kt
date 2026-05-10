@@ -43,13 +43,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.BaseScreen
-import com.pxr.cymatic.ui.components.common.PixelDropdownMenu
-import com.pxr.cymatic.ui.components.common.PixelDropdownMenuItem
-import com.pxr.cymatic.ui.components.common.PixelSlider
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
-import com.pxr.cymatic.ui.components.eq.PixelConfirmDialog
-import com.pxr.cymatic.ui.components.eq.PixelInputDialog
+import com.pxr.cymatic.ui.components.primitives.PixelConfirmDialog
+import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenuItem
+import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
+import com.pxr.cymatic.ui.components.primitives.PixelSlider
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @OptIn(ExperimentalMaterial3Api::class)

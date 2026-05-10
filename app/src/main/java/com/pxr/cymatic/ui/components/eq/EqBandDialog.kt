@@ -17,9 +17,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
-import com.pxr.cymatic.ui.components.common.PixelDialog
-import com.pxr.cymatic.ui.components.common.PixelDialogButton
-import com.pxr.cymatic.ui.components.common.PixelSlider
+import com.pxr.cymatic.ui.components.primitives.PixelDialog
+import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
+import com.pxr.cymatic.ui.components.primitives.PixelSlider
 
 @SuppressLint("DefaultLocale")
 @Composable

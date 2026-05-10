@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.settings
+package com.pxr.cymatic.ui.components.storage
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
