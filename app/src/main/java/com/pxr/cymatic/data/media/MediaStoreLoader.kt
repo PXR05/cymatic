@@ -8,33 +8,31 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
-import com.pxr.cymatic.data.media.AudioStoreDatabase.AudioDbRecord
-import com.pxr.cymatic.data.media.AudioStoreDatabase.AudioIndexEntry
 import com.pxr.cymatic.data.model.AudioFile
 
-fun loadCachedAudioFiles(context: Context): List<AudioFile> {
-    return AudioStoreDatabase.getInstance(context).getAllAudio()
+suspend fun loadCachedAudioFiles(context: Context): List<AudioFile> {
+    return AudioRepository.getInstance(context).getAllAudio()
 }
 
-fun syncAudioFilesToDb(
+suspend fun syncAudioFilesToDb(
     context: Context,
     directories: List<String> = emptyList(),
     scanAllMedia: Boolean = true
 ): List<AudioFile> {
-    val database = AudioStoreDatabase.getInstance(context)
+    val repository = AudioRepository.getInstance(context)
     val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
     Log.d(
         "MediaStoreLoader",
         "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia"
     )
-    val dbIndex = database.getAudioIndex()
+    val dbIndex = repository.getAudioIndex()
 
     val toDelete = dbIndex.keys - mediaIndex.keys
     Log.d(
         "MediaStoreLoader",
         "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore"
     )
-    database.deleteByIds(toDelete)
+    repository.deleteByIds(toDelete)
 
     val toUpsert = mediaIndex.filter { (id, mediaEntry) ->
         val dbEntry = dbIndex[id]
@@ -45,10 +43,10 @@ fun syncAudioFilesToDb(
 
     if (toUpsert.isNotEmpty()) {
         val records = queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
-        database.upsertAudio(records)
+        repository.upsertAudio(records)
     }
 
-    return database.getAllAudio()
+    return repository.getAllAudio()
 }
 
 private fun queryMediaStoreIndex(
@@ -102,8 +100,8 @@ private fun queryMediaStoreDetails(
     ids: List<Long>,
     directories: List<String>,
     scanAllMedia: Boolean
-): List<AudioDbRecord> {
-    val records = mutableListOf<AudioDbRecord>()
+): List<AudioEntity> {
+    val records = mutableListOf<AudioEntity>()
     val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
     val projection = arrayOf(
         MediaStore.Audio.Media._ID,
@@ -147,8 +145,8 @@ private fun queryMediaStoreDetails(
     return records
 }
 
-private fun Cursor.toAudioRecords(): List<AudioDbRecord> {
-    val records = mutableListOf<AudioDbRecord>()
+private fun Cursor.toAudioRecords(): List<AudioEntity> {
+    val records = mutableListOf<AudioEntity>()
     val idColumn = getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
     val titleColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
     val artistColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
@@ -188,7 +186,7 @@ private fun Cursor.toAudioRecords(): List<AudioDbRecord> {
             albumId
         )
 
-        records += AudioDbRecord(
+        records += AudioEntity(
             id = id,
             uri = contentUri.toString(),
             size = size,

@@ -9,7 +9,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.EqRenderersFactory
-import com.pxr.cymatic.data.media.AudioStoreDatabase
+import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.store.PlaybackStore
 import com.pxr.cymatic.data.store.SettingsStore
@@ -143,11 +143,11 @@ class PlaybackService : MediaSessionService() {
 
     private suspend fun restorePlaybackState() {
         val stored = PlaybackStore.loadState() ?: return
-        val audioStore = AudioStoreDatabase.getInstance(this)
+        val audioRepository = AudioRepository.getInstance(this)
 
         val currentId = stored.queueIds.getOrNull(stored.currentIndex)
         if (currentId != null) {
-            val currentFile = audioStore.getAudioByIds(listOf(currentId)).firstOrNull()
+            val currentFile = audioRepository.getAudioByIds(listOf(currentId)).firstOrNull()
             if (currentFile != null) {
                 val currentMediaItem = createMediaItem(currentFile, stored.queueSource)
                 withContext(Dispatchers.Main) {
@@ -163,7 +163,7 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
-        val audioFiles = audioStore.getAudioByIds(stored.queueIds)
+        val audioFiles = audioRepository.getAudioByIds(stored.queueIds)
         if (audioFiles.isEmpty()) return
 
         val mediaItems = audioFiles.map { audioFile ->

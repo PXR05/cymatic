@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pxr.cymatic.R
-import com.pxr.cymatic.data.media.AudioStoreDatabase
+import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -58,8 +58,7 @@ fun SongInfoDialog(
 
     LaunchedEffect(mediaId) {
         audioFile = withContext(Dispatchers.IO) {
-            val database = AudioStoreDatabase.getInstance(context)
-            database.getAudioByIds(listOf(mediaId)).firstOrNull()
+            AudioRepository.getInstance(context).getAudioByIds(listOf(mediaId)).firstOrNull()
         }
     }
 
