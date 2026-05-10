@@ -2,7 +2,7 @@
 header = ""
 body = """
 {% if version %}## {{ version }}{% endif %}
-{% if timestamp %} ({{ timestamp | date: "%Y-%m-%d" }}){% endif %}
+{% if timestamp %} ({{ timestamp | date: '%Y-%m-%d' }}){% endif %}
 
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group }}
@@ -33,4 +33,3 @@ commit_parsers = [
   { message = "^style", group = "Style" },
   { message = "^breaking", group = "Breaking" }
 ]
-
