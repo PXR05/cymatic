@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,8 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.core.content.pm.PackageInfoCompat
+import androidx.core.net.toUri
 import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -46,7 +48,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import androidx.core.net.toUri
 
 private const val GITHUB_OWNER = "pxr05"
 private const val GITHUB_REPO = "cymatic"
@@ -353,10 +354,15 @@ private data class AppVersion(
 
 private fun getCurrentVersion(context: Context): AppVersion {
     return try {
-        val info = context.packageManager.getPackageInfo(
-            context.packageName,
-            PackageManager.PackageInfoFlags.of(0)
-        )
+        val info = if (Build.VERSION.SDK_INT >= 33) {
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.PackageInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }
         AppVersion(
             name = info.versionName ?: "0.0.0",
             code = PackageInfoCompat.getLongVersionCode(info)
