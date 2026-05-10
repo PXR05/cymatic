@@ -10,16 +10,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: set up JDK
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'zulu'
           cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -32,8 +36,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
+      - name: Build project
+        run: ./gradlew --no-daemon build
+
+      - name: Build APK
+        run: ./gradlew assemble
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
