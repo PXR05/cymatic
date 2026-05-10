@@ -22,7 +22,9 @@ data class EqUiState(
     val eqEnabled: Boolean = true,
     val presets: List<EqPreset> = emptyList(),
     val selectedPresetName: String = "Flat",
-    val activePreset: EqPreset = EqPreset.defaultPreset()
+    val activePreset: EqPreset = EqPreset.defaultPreset(),
+    val activeDeviceKey: String = "",
+    val usesDevicePreset: Boolean = false
 )
 
 class EqViewModel : ViewModel() {
@@ -30,8 +32,12 @@ class EqViewModel : ViewModel() {
     val uiState: StateFlow<EqUiState> = combine(
         SettingsStore.eqGlobalEnabledFlow,
         SettingsStore.eqPresetsFlow,
-        SettingsStore.eqSelectedPresetFlow
-    ) { enabled, presets, selectedName ->
+        SettingsStore.eqSelectedPresetFlow,
+        SettingsStore.activeAudioDeviceFlow,
+        SettingsStore.eqDevicePresetsFlow
+    ) { enabled, presets, globalSelectedName, activeDeviceKey, devicePresets ->
+        val deviceSelectedName = devicePresets[activeDeviceKey]
+        val selectedName = deviceSelectedName ?: globalSelectedName
         val active = presets.firstOrNull { it.name == selectedName }
             ?: presets.firstOrNull()
             ?: EqPreset.defaultPreset()
@@ -39,7 +45,9 @@ class EqViewModel : ViewModel() {
             eqEnabled = enabled,
             presets = presets,
             selectedPresetName = active.name,
-            activePreset = active
+            activePreset = active,
+            activeDeviceKey = activeDeviceKey,
+            usesDevicePreset = deviceSelectedName != null
         )
     }.stateIn(
         scope = viewModelScope,
@@ -60,7 +68,7 @@ class EqViewModel : ViewModel() {
 
     fun selectPreset(name: String) {
         viewModelScope.launch {
-            SettingsStore.setEqSelectedPreset(name)
+            SettingsStore.setEqSelectedPresetForActiveDevice(name)
             _livePreset.value = null
         }
     }
@@ -74,7 +82,7 @@ class EqViewModel : ViewModel() {
             if (current.any { it.name == name }) return@launch
             val newPreset = EqPreset.defaultPreset(name)
             SettingsStore.setEqPresets(current + newPreset)
-            SettingsStore.setEqSelectedPreset(name)
+            SettingsStore.setEqSelectedPresetForActiveDevice(name)
         }
     }
 
@@ -87,12 +95,21 @@ class EqViewModel : ViewModel() {
             if (current.any { it.name == newName }) return@launch
             val updated = current.map { if (it.name == oldName) it.copy(name = newName) else it }
             SettingsStore.setEqPresets(updated)
-            val selected = SettingsStore.eqSelectedPresetFlow
+            val globalSelected = SettingsStore.eqSelectedPresetFlow
                 .stateIn(viewModelScope)
                 .value
-            if (selected == oldName) {
+            if (globalSelected == oldName) {
                 SettingsStore.setEqSelectedPreset(newName)
             }
+            val devicePresets = SettingsStore.eqDevicePresetsFlow
+                .stateIn(viewModelScope)
+                .value
+            devicePresets
+                .filterValues { it == oldName }
+                .keys
+                .forEach { deviceKey ->
+                    SettingsStore.setEqDevicePreset(deviceKey, newName)
+                }
         }
     }
 
@@ -104,12 +121,27 @@ class EqViewModel : ViewModel() {
             if (current.size <= 1) return@launch
             val updated = current.filter { it.name != name }
             SettingsStore.setEqPresets(updated)
-            val selected = SettingsStore.eqSelectedPresetFlow
+            val selected = SettingsStore.effectiveEqSelectedPresetFlow
                 .stateIn(viewModelScope)
                 .value
             if (selected == name) {
+                SettingsStore.setEqSelectedPresetForActiveDevice(updated.first().name)
+            }
+            val globalSelected = SettingsStore.eqSelectedPresetFlow
+                .stateIn(viewModelScope)
+                .value
+            if (globalSelected == name) {
                 SettingsStore.setEqSelectedPreset(updated.first().name)
             }
+            val devicePresets = SettingsStore.eqDevicePresetsFlow
+                .stateIn(viewModelScope)
+                .value
+            devicePresets
+                .filterValues { it == name }
+                .keys
+                .forEach { deviceKey ->
+                    SettingsStore.removeEqDevicePreset(deviceKey)
+                }
         }
     }
 
@@ -197,7 +229,7 @@ class EqViewModel : ViewModel() {
                     ?: return@launch
 
                 SettingsStore.setEqPresets(current + imported)
-                SettingsStore.setEqSelectedPreset(uniqueName)
+                SettingsStore.setEqSelectedPresetForActiveDevice(uniqueName)
             } catch (e: Exception) {
                 Log.e("EqViewModel", "Import failed", e)
             }

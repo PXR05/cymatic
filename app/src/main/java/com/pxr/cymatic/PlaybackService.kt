@@ -1,5 +1,9 @@
 package com.pxr.cymatic
 
+import android.content.Context
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -9,6 +13,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.EqRenderersFactory
+import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.store.PlaybackStore
@@ -32,11 +37,14 @@ class PlaybackService : MediaSessionService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val eqAudioProcessor = EqAudioProcessor()
+    private lateinit var audioManager: AudioManager
+    private var audioDeviceCallback: AudioDeviceCallback? = null
 
     override fun onCreate() {
         super.onCreate()
 
         val renderersFactory = EqRenderersFactory(this, eqAudioProcessor)
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         player = ExoPlayer.Builder(this)
             .setRenderersFactory(renderersFactory)
@@ -83,7 +91,7 @@ class PlaybackService : MediaSessionService() {
             combine(
                 SettingsStore.eqGlobalEnabledFlow,
                 SettingsStore.eqPresetsFlow,
-                SettingsStore.eqSelectedPresetFlow
+                SettingsStore.effectiveEqSelectedPresetFlow
             ) { enabled, presets, selectedName ->
                 Triple(enabled, presets, selectedName)
             }.collect { (enabled, presets, selectedName) ->
@@ -101,6 +109,8 @@ class PlaybackService : MediaSessionService() {
                 }
             }
         }
+
+        registerAudioDeviceTracking()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession {
@@ -119,9 +129,31 @@ class PlaybackService : MediaSessionService() {
                 PlaybackStore.saveState(state)
             }
         }
+        audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
         mediaSession.release()
         player.release()
         super.onDestroy()
+    }
+
+    private fun registerAudioDeviceTracking() {
+        fun updateActiveDevice() {
+            serviceScope.launch {
+                SettingsStore.setActiveAudioDevice(resolveActiveOutput(audioManager).key)
+            }
+        }
+
+        audioDeviceCallback = object : AudioDeviceCallback() {
+            override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+                updateActiveDevice()
+            }
+
+            override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+                updateActiveDevice()
+            }
+        }.also { callback ->
+            audioManager.registerAudioDeviceCallback(callback, null)
+        }
+        updateActiveDevice()
     }
 
     private fun persistPlaybackState() {

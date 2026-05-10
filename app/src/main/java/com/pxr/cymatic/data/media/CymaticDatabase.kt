@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
         PlaylistItemEntity::class
     ],
     version = 2,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class CymaticDatabase : RoomDatabase() {
     abstract fun audioDao(): AudioDao

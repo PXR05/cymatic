@@ -1,11 +1,9 @@
 package com.pxr.cymatic.ui.components.common
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioDeviceCallback
@@ -27,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +36,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
+import com.pxr.cymatic.audio.resolveActiveOutput
+import com.pxr.cymatic.data.store.SettingsStore
+import kotlinx.coroutines.launch
 
 @SuppressLint("DefaultLocale")
 @Composable
@@ -48,6 +50,7 @@ fun StatusBar(
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
+    val scope = rememberCoroutineScope()
     var maxAudioVolume by remember {
         mutableIntStateOf(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
     }
@@ -84,17 +87,20 @@ fun StatusBar(
         val callback = object : AudioDeviceCallback() {
             override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
                 activeDevice = resolveActiveOutput(audioManager)
+                scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
                 maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
                 activeDevice = resolveActiveOutput(audioManager)
+                scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
                 maxAudioVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             }
         }
 
         audioManager.registerAudioDeviceCallback(callback, null)
         activeDevice = resolveActiveOutput(audioManager)
+        scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
 
         onDispose {
             audioManager.unregisterAudioDeviceCallback(callback)
@@ -208,95 +214,6 @@ fun StatusBar(
                 )
         )
     }
-}
-
-private fun Context.findActivity(): Activity? {
-    return when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-    }
-}
-
-private data class DeviceDisplay(
-    val label: String,
-    val type: String,
-    var device: AudioDeviceInfo? = null
-)
-
-private fun resolveActiveOutput(audioManager: AudioManager): DeviceDisplay {
-    val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
-    val preferredTypes = listOf(
-        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-        AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
-        AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-        AudioDeviceInfo.TYPE_WIRED_HEADSET,
-        AudioDeviceInfo.TYPE_USB_HEADSET,
-        AudioDeviceInfo.TYPE_USB_DEVICE,
-        AudioDeviceInfo.TYPE_USB_ACCESSORY,
-        AudioDeviceInfo.TYPE_LINE_ANALOG,
-        AudioDeviceInfo.TYPE_LINE_DIGITAL,
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
-        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
-    )
-
-    val active = preferredTypes
-        .firstNotNullOfOrNull { type -> devices.firstOrNull { it.type == type } }
-        ?: devices.firstOrNull()
-
-    return if (active == null) {
-        DeviceDisplay(label = "?", type = "?")
-    } else {
-        deviceToDisplay(active)
-    }
-}
-
-private fun deviceToDisplay(device: AudioDeviceInfo): DeviceDisplay {
-    val productName = device.productName?.toString()?.trim().orEmpty()
-    var label = productName.ifBlank { "DEVICE" }
-    var type = "UNK"
-    when (device.type) {
-        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
-            label = productName.ifBlank { "BLUETOOTH" }
-            type = "BT"
-        }
-
-        AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-        AudioDeviceInfo.TYPE_WIRED_HEADSET -> {
-            label = "WIRED"
-            type = "AUX"
-        }
-
-        AudioDeviceInfo.TYPE_USB_HEADSET,
-        AudioDeviceInfo.TYPE_USB_DEVICE,
-        AudioDeviceInfo.TYPE_USB_ACCESSORY -> {
-            label = productName.ifBlank { "USB" }
-            type = "USB"
-        }
-
-        AudioDeviceInfo.TYPE_LINE_ANALOG,
-        AudioDeviceInfo.TYPE_LINE_DIGITAL -> {
-            label = "LINE"
-            type = "LINE"
-        }
-
-        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> {
-            label = "EARPIECE"
-            type = "EAR"
-        }
-
-        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
-            label = "SPEAKER"
-            type = "SPK"
-        }
-
-        else -> DeviceDisplay(
-            label = productName.ifBlank { "DEVICE" },
-            type = "UNK"
-        )
-    }
-    return DeviceDisplay(label, type, device)
 }
 
 @Preview(showBackground = true)

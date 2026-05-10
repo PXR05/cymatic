@@ -43,6 +43,8 @@ object SettingsStore {
     private val EQ_PRESETS_KEY = stringPreferencesKey("EQ_PRESETS")
     private val EQ_SELECTED_PRESET_KEY = stringPreferencesKey("EQ_SELECTED_PRESET")
     private val EQ_GLOBAL_ENABLED_KEY = booleanPreferencesKey("EQ_GLOBAL_ENABLED")
+    private val EQ_ACTIVE_AUDIO_DEVICE_KEY = stringPreferencesKey("EQ_ACTIVE_AUDIO_DEVICE")
+    private val EQ_DEVICE_PRESETS_KEY = stringPreferencesKey("EQ_DEVICE_PRESETS")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
@@ -138,6 +140,24 @@ object SettingsStore {
     val eqGlobalEnabledFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[EQ_GLOBAL_ENABLED_KEY] ?: true
+        }
+
+    val activeAudioDeviceFlow: Flow<String>
+        get() = store.data.map { prefs ->
+            prefs[EQ_ACTIVE_AUDIO_DEVICE_KEY] ?: ""
+        }
+
+    val eqDevicePresetsFlow: Flow<Map<String, String>>
+        get() = store.data.map { prefs ->
+            parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY])
+        }
+
+    val effectiveEqSelectedPresetFlow: Flow<String>
+        get() = store.data.map { prefs ->
+            val globalPreset = prefs[EQ_SELECTED_PRESET_KEY] ?: "Flat"
+            val activeDevice = prefs[EQ_ACTIVE_AUDIO_DEVICE_KEY].orEmpty()
+            val devicePresets = parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY])
+            devicePresets[activeDevice] ?: globalPreset
         }
 
     suspend fun getTheme(): String = themeFlow.first()
@@ -256,10 +276,67 @@ object SettingsStore {
         }
     }
 
+    suspend fun setEqSelectedPresetForActiveDevice(name: String) {
+        store.edit { prefs ->
+            val activeDevice = prefs[EQ_ACTIVE_AUDIO_DEVICE_KEY].orEmpty()
+            if (activeDevice.isBlank()) {
+                prefs[EQ_SELECTED_PRESET_KEY] = name
+                return@edit
+            }
+            val devicePresets = parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY]).toMutableMap()
+            devicePresets[activeDevice] = name
+            prefs[EQ_DEVICE_PRESETS_KEY] = encodeStringMap(devicePresets)
+        }
+    }
+
+    suspend fun setEqDevicePreset(deviceKey: String, name: String) {
+        if (deviceKey.isBlank()) return
+        store.edit { prefs ->
+            val devicePresets = parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY]).toMutableMap()
+            devicePresets[deviceKey] = name
+            prefs[EQ_DEVICE_PRESETS_KEY] = encodeStringMap(devicePresets)
+        }
+    }
+
+    suspend fun setActiveAudioDevice(deviceKey: String) {
+        store.edit { prefs ->
+            prefs[EQ_ACTIVE_AUDIO_DEVICE_KEY] = deviceKey
+        }
+    }
+
+    suspend fun removeEqDevicePreset(deviceKey: String) {
+        store.edit { prefs ->
+            val devicePresets = parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY]).toMutableMap()
+            devicePresets.remove(deviceKey)
+            prefs[EQ_DEVICE_PRESETS_KEY] = encodeStringMap(devicePresets)
+        }
+    }
+
     suspend fun setEqGlobalEnabled(enabled: Boolean) {
         store.edit { prefs ->
             prefs[EQ_GLOBAL_ENABLED_KEY] = enabled
         }
+    }
+
+    private fun parseStringMap(jsonStr: String?): Map<String, String> {
+        if (jsonStr.isNullOrBlank()) return emptyMap()
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            json.keys().asSequence().associateWith { key -> json.optString(key) }
+                .filterValues { it.isNotBlank() }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun encodeStringMap(values: Map<String, String>): String {
+        val json = org.json.JSONObject()
+        values.forEach { (key, value) ->
+            if (key.isNotBlank() && value.isNotBlank()) {
+                json.put(key, value)
+            }
+        }
+        return json.toString()
     }
 }
 
