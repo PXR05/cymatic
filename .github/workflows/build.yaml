@@ -29,6 +29,9 @@ jobs:
       - name: Generate release notes
         run: git-cliff -c cliff.toml -o release-notes.md --tag ${{ github.ref_name }}
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
