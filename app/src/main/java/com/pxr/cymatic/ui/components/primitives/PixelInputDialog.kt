@@ -25,7 +25,6 @@ fun PixelInputDialog(
 ) {
     PixelDialog(
         title = title,
-        fontFamily = fontFamily,
         onDismissRequest = onDismiss,
         content = {
             OutlinedTextField(

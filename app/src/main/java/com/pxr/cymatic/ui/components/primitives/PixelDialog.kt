@@ -19,23 +19,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.pxr.cymatic.R
 
 @Composable
 fun PixelDialog(
     title: String,
-    fontFamily: FontFamily,
     onDismissRequest: () -> Unit,
     maxHeightRatio: Float = 0.9f,
     widthRatio: Float = 0.8f,
     content: @Composable ColumnScope.() -> Unit,
     buttons: @Composable RowScope.() -> Unit
 ) {
+    val fontFamily = FontFamily(Font(R.font.pixel))
+    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
+    val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
+    val isTitleCJK = title.contains(cjkRegex)
     val density = LocalDensity.current
     val window = LocalWindowInfo.current
     val dialogWidth = with(window) { (containerSize.width * widthRatio) }
@@ -55,7 +61,7 @@ fun PixelDialog(
             modifier = Modifier
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(vertical = 16.dp)
+                .padding(vertical = 24.dp)
                 .width(dialogWidthDp)
                 .heightIn(max = dialogHeightDp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -65,8 +71,11 @@ fun PixelDialog(
                     text = title,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
-                    fontFamily = fontFamily,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontFamily = if (isTitleCJK) cjkFontFamily else fontFamily,
+                    letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
 
@@ -75,7 +84,7 @@ fun PixelDialog(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                 buttons()
@@ -87,9 +96,9 @@ fun PixelDialog(
 @Composable
 fun RowScope.PixelDialogButton(
     text: String,
-    fontFamily: FontFamily,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fontFamily: FontFamily = FontFamily(Font(R.font.pixel)),
     color: Color? = null,
     weight: Float = 1f
 ) {

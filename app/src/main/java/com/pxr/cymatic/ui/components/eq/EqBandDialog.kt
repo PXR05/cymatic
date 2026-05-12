@@ -33,7 +33,6 @@ fun EqBandDialog(
 ) {
     PixelDialog(
         title = "Band ${index + 1} Controls",
-        fontFamily = fontFamily,
         onDismissRequest = onDismiss,
         maxHeightRatio = 0.7f,
         content = {
@@ -41,7 +40,7 @@ fun EqBandDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 24.dp)
             ) {
                 Text(
                     "Type",

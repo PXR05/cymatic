@@ -1,7 +1,8 @@
 package com.pxr.cymatic.ui.components.common
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ListItem(
     modifier: Modifier = Modifier,
@@ -33,6 +35,7 @@ fun ListItem(
     trailingStyle: TextStyle = TextStyle.Default,
     isActive: Boolean = false,
     onClick: () -> Unit = { },
+    onLongClick: () -> Unit = { }
 ) {
     val fontFamily = FontFamily(Font(R.font.pixel))
     val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
@@ -77,8 +80,9 @@ fun ListItem(
                     Color.Transparent
                 }
             )
-            .clickable(
+            .combinedClickable(
                 onClick = onClick,
+                onLongClick = onLongClick,
                 indication = null,
                 interactionSource = null
             )

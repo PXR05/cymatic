@@ -31,10 +31,6 @@ fun SettingsScreen(
                     onClick = { navController.navigate("setting/storage") }
                 ),
                 NavigationItem(
-                    label = "Source",
-                    onClick = { navController.navigate("setting/source") }
-                ),
-                NavigationItem(
                     label = "Version",
                     onClick = { navController.navigate("setting/version") }
                 ),

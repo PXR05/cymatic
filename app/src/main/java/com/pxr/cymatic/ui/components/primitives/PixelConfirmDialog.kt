@@ -18,7 +18,6 @@ fun PixelConfirmDialog(
 ) {
     PixelDialog(
         title = "Confirm",
-        fontFamily = fontFamily,
         onDismissRequest = onDismiss,
         content = {
             Text(

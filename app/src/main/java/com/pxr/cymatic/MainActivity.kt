@@ -67,7 +67,6 @@ import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
-import com.pxr.cymatic.ui.screens.settings.SourceSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
@@ -204,7 +203,6 @@ class MainActivity : ComponentActivity() {
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() },
-                "setting/source" to { SourceSettingsScreen() },
                 "setting/version" to { VersionSettingsScreen() }
             )
 

@@ -47,7 +47,6 @@ fun SongInfoDialog(
     val context = LocalContext.current
     val density = LocalDensity.current
     val window = LocalWindowInfo.current
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val dialogWidth =
         with(window) { (containerSize.width * 0.8f) }
     val dialogWidthDp = with(density) { dialogWidth.toDp() }
@@ -62,6 +61,8 @@ fun SongInfoDialog(
         }
     }
 
+    val fontFamily = FontFamily(Font(R.font.pixel))
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -74,7 +75,7 @@ fun SongInfoDialog(
             modifier = modifier
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp)
+                .padding(24.dp)
                 .width(dialogWidthDp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -89,51 +90,43 @@ fun SongInfoDialog(
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 8.dp),
+                        .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     InfoItem(
                         label = "Title",
                         value = audioFile?.metadata?.title ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Artist",
                         value = audioFile?.metadata?.artist ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Album",
                         value = audioFile?.metadata?.album ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Duration",
                         value = audioFile?.metadata?.duration?.let { formatDuration(it) }
                             ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Format",
                         value = audioFile?.metadata?.format ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Bit Rate",
                         value = audioFile?.metadata?.bitRate?.let { "${it / 1000} kbps" }
                             ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "Sample Rate",
                         value = audioFile?.metadata?.sampleRate?.let { "${it / 1000} kHz" }
                             ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                     InfoItem(
                         label = "File Size",
                         value = audioFile?.let { formatFileSize(it.size.toLong()) } ?: "Unknown",
-                        fontFamily = fontFamily
                     )
                 }
             } else {
@@ -152,10 +145,15 @@ fun SongInfoDialog(
 private fun InfoItem(
     label: String,
     value: String,
-    fontFamily: FontFamily,
 ) {
+    val fontFamily = FontFamily(Font(R.font.pixel))
+    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
+    val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
+
+    val valueFontFamily = if (value.contains(cjkRegex)) cjkFontFamily else fontFamily
+    val letterSpacing = if (value.contains(cjkRegex)) 1.5.sp else 0.sp
+
     Row(
-        modifier = Modifier.padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
@@ -169,7 +167,8 @@ private fun InfoItem(
             text = value,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
-            fontFamily = fontFamily,
+            fontFamily = valueFontFamily,
+            letterSpacing = letterSpacing,
             modifier = Modifier
                 .weight(1f)
                 .horizontalScroll(rememberScrollState())

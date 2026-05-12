@@ -27,6 +27,7 @@ fun AudioFileList(
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
     onItemClick: (AudioFile) -> Unit,
+    onItemLongClick: (AudioFile) -> Unit = {},
     topOffset: Dp = 0.dp,
     bottomOffset: Dp = 0.dp
 ) {
@@ -60,6 +61,7 @@ fun AudioFileList(
                 audioFile = audioFile,
                 isCurrent = isCurrent,
                 onClick = { onItemClick(audioFile) },
+                onLongClick = { onItemLongClick(audioFile) },
                 modifier = Modifier.height(76.dp)
             )
             if (i == audioFiles.size - 1 && bottomOffset > 0.dp) {
@@ -74,7 +76,8 @@ fun AudioFileItem(
     audioFile: AudioFile,
     isCurrent: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit = {},
 ) {
     val metadata = audioFile.metadata
 
@@ -93,6 +96,7 @@ fun AudioFileItem(
         trailing = parseDuration(metadata.duration),
         isActive = isCurrent,
         onClick = onClick,
+        onLongClick = onLongClick,
         modifier = modifier
     )
 }
