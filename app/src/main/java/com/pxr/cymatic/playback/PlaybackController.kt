@@ -18,7 +18,11 @@ fun createMediaItem(audioFile: AudioFile, queueSource: String? = null): MediaIte
     val mediaMetadata = MediaMetadata.Builder()
         .setTitle(audioFile.metadata.title)
         .setArtist(audioFile.metadata.artist)
+        .setAlbumTitle(audioFile.metadata.album)
         .setArtworkUri(audioFile.metadata.artworkUri)
+        .setIsBrowsable(false)
+        .setIsPlayable(true)
+        .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
         .setExtras(extras)
         .build()
 

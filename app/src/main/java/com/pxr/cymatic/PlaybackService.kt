@@ -9,12 +9,15 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.EqRenderersFactory
 import com.pxr.cymatic.audio.resolveActiveOutput
+import com.pxr.cymatic.auto.AutoMediaLibraryCallback
 import com.pxr.cymatic.data.media.AudioRepository
+import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.store.PlaybackStore
 import com.pxr.cymatic.data.store.SettingsStore
@@ -30,10 +33,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
     lateinit var player: ExoPlayer
         private set
-    private lateinit var mediaSession: MediaSession
+    private lateinit var mediaLibrarySession: MediaLibrarySession
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val eqAudioProcessor = EqAudioProcessor()
@@ -43,6 +46,12 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelName(R.string.notification_channel_name)
+                .build()
+        )
+
         val renderersFactory = EqRenderersFactory(this, eqAudioProcessor)
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -50,7 +59,11 @@ class PlaybackService : MediaSessionService() {
             .setRenderersFactory(renderersFactory)
             .build()
 
-        mediaSession = MediaSession.Builder(this, player)
+        val audioRepository = AudioRepository.getInstance(this)
+        val playlistRepository = PlaylistRepository.getInstance(this)
+        val libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
+
+        mediaLibrarySession = MediaLibrarySession.Builder(this, player, libraryCallback)
             .setId("audio_session")
             .build()
 
@@ -113,8 +126,8 @@ class PlaybackService : MediaSessionService() {
         registerAudioDeviceTracking()
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession {
-        return mediaSession
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
+        return mediaLibrarySession
     }
 
     override fun onDestroy() {
@@ -130,7 +143,7 @@ class PlaybackService : MediaSessionService() {
             }
         }
         audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
-        mediaSession.release()
+        mediaLibrarySession.release()
         player.release()
         super.onDestroy()
     }
