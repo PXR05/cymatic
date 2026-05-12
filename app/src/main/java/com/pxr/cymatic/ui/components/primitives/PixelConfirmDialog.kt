@@ -31,13 +31,11 @@ fun PixelConfirmDialog(
         buttons = {
             PixelDialogButton(
                 text = "Cancel",
-                fontFamily = fontFamily,
                 onClick = onDismiss
             )
             PixelDialogDivider(fontFamily = fontFamily)
             PixelDialogButton(
                 text = "Delete",
-                fontFamily = fontFamily,
                 onClick = onConfirm,
                 color = MaterialTheme.colorScheme.error
             )

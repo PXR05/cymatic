@@ -2,6 +2,7 @@ package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -13,6 +14,7 @@ fun BaseScreen(
     title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
 ) {
     Scaffold(
@@ -25,7 +27,8 @@ fun BaseScreen(
         ) {
             ScreenHeader(
                 title = title,
-                onBackClick = onBackClick
+                onBackClick = onBackClick,
+                actions = actions
             )
             content()
         }

@@ -51,13 +51,11 @@ fun PixelInputDialog(
         buttons = {
             PixelDialogButton(
                 text = "Cancel",
-                fontFamily = fontFamily,
                 onClick = onDismiss
             )
             PixelDialogDivider(fontFamily = fontFamily)
             PixelDialogButton(
                 text = "OK",
-                fontFamily = fontFamily,
                 onClick = onConfirm
             )
         }

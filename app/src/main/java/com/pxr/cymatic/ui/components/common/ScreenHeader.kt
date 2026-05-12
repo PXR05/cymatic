@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,7 +26,8 @@ import com.pxr.cymatic.R
 fun ScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     val fontFamily = FontFamily(Font(R.font.pixel))
     val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
@@ -34,7 +36,7 @@ fun ScreenHeader(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = modifier.fillMaxWidth()
     ) {
         Text(
             text = "<",
@@ -48,7 +50,7 @@ fun ScreenHeader(
                     indication = null,
                     interactionSource = null
                 )
-                .padding(24.dp,  16.dp)
+                .padding(24.dp, 16.dp)
         )
         Text(
             text = title,
@@ -57,11 +59,14 @@ fun ScreenHeader(
             fontWeight = FontWeight.SemiBold,
             fontFamily = if (isTitleCJK) cjkFontFamily else fontFamily,
             letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
-            modifier = Modifier.padding(
-                bottom = 16.dp,
-                top = if (isTitleCJK) 20.dp else 16.dp
-            )
+            modifier = Modifier
+                .weight(1f)
+                .padding(
+                    bottom = 16.dp,
+                    top = if (isTitleCJK) 20.dp else 16.dp
+                )
         )
+        actions()
     }
 }
 

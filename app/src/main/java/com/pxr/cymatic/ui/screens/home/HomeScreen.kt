@@ -29,6 +29,7 @@ fun HomeScreen() {
         NavigationItem("All Songs") { navController.navigate("all_songs") },
         NavigationItem("Artists") { navController.navigate("artists") },
         NavigationItem("Albums") { navController.navigate("albums") },
+        NavigationItem("Playlists") { navController.navigate("playlists") },
         NavigationItem("Settings") { navController.navigate("settings") }
     )
     val fontFamily = FontFamily(Font(R.font.pixel))

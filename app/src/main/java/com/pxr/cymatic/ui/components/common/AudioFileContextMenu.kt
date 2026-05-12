@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -22,10 +26,22 @@ fun AudioFileContextMenu(
     audioFile: AudioFile,
     onDismiss: () -> Unit,
     onPlay: (AudioFile) -> Unit,
-    onAddToPlaylist: (AudioFile) -> Unit = {},
     onTrackInfo: (AudioFile) -> Unit,
 ) {
     val title = audioFile.metadata.title ?: "Unknown Title"
+
+    var showPlaylistPicker by remember { mutableStateOf(false) }
+
+    if (showPlaylistPicker) {
+        AddToPlaylistDialog(
+            audioId = audioFile.id,
+            onDismiss = {
+                showPlaylistPicker = false
+                onDismiss()
+            }
+        )
+        return
+    }
 
     PixelDialog(
         title = title,
@@ -40,7 +56,6 @@ fun AudioFileContextMenu(
             ) {
                 ContextMenuAction(
                     label = "Play",
-
                     onClick = {
                         onPlay(audioFile)
                         onDismiss()
@@ -48,15 +63,10 @@ fun AudioFileContextMenu(
                 )
                 ContextMenuAction(
                     label = "Add to Playlist",
-
-                    onClick = {
-                        onAddToPlaylist(audioFile)
-                        onDismiss()
-                    }
+                    onClick = { showPlaylistPicker = true }
                 )
                 ContextMenuAction(
                     label = "Track Info",
-
                     onClick = {
                         onTrackInfo(audioFile)
                         onDismiss()

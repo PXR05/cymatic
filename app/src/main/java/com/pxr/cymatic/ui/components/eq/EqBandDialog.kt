@@ -113,7 +113,6 @@ fun EqBandDialog(
         buttons = {
             PixelDialogButton(
                 text = "Done",
-                fontFamily = fontFamily,
                 onClick = onDismiss
             )
         }

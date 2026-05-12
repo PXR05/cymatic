@@ -63,6 +63,8 @@ import com.pxr.cymatic.ui.screens.library.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
 import com.pxr.cymatic.ui.screens.library.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.ArtistsScreen
+import com.pxr.cymatic.ui.screens.library.PlaylistSongsScreen
+import com.pxr.cymatic.ui.screens.library.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
@@ -197,6 +199,15 @@ class MainActivity : ComponentActivity() {
                     AlbumSongsScreen(
                         albumName = albumName,
                         audioFiles = audioFiles,
+                        scrollTargetId = scrollId?.toLongOrNull()
+                    )
+                },
+                "playlists" to { PlaylistsScreen() },
+                "playlist/{playlistId}?scrollId={scrollId}" to { entry ->
+                    val playlistId = entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    PlaylistSongsScreen(
+                        playlistId = playlistId,
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },

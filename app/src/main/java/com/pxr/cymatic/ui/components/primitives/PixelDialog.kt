@@ -98,10 +98,10 @@ fun RowScope.PixelDialogButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    fontFamily: FontFamily = FontFamily(Font(R.font.pixel)),
     color: Color? = null,
     weight: Float = 1f
 ) {
+    val fontFamily = FontFamily(Font(R.font.pixel))
     Text(
         text = text,
         color = color ?: MaterialTheme.colorScheme.onBackground,
