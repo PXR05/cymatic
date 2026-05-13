@@ -9,14 +9,22 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 private val Context.dataStore by preferencesDataStore("settings")
 
 object SettingsStore {
     private lateinit var dataStore: DataStore<Preferences>
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _prefs = MutableStateFlow<Preferences?>(null)
 
     private const val DEFAULT_THEME = "system"
     private const val DEFAULT_TIMEOUT_MS = 30_000L
@@ -48,6 +56,11 @@ object SettingsStore {
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
+        scope.launch {
+            dataStore.data.collect {
+                _prefs.value = it
+            }
+        }
     }
 
     private fun requireInit() {
@@ -117,40 +130,90 @@ object SettingsStore {
             prefs[SCAN_ALL_MEDIA_KEY] ?: DEFAULT_SCAN_ALL_MEDIA
         }
 
-    val eqPresetsFlow: Flow<List<com.pxr.cymatic.data.model.EqPreset>>
-        get() = store.data.map { prefs ->
-            val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
-            try {
-                val array = org.json.JSONArray(jsonStr)
-                val list = mutableListOf<com.pxr.cymatic.data.model.EqPreset>()
-                for (i in 0 until array.length()) {
-                    com.pxr.cymatic.data.model.EqPreset.fromJson(array.getJSONObject(i).toString())?.let { list.add(it) }
-                }
-                if (list.isEmpty()) listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset()) else list
-            } catch (e: Exception) {
-                listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
+    val currentTheme: String
+        get() = _prefs.value?.get(THEME_KEY) ?: DEFAULT_THEME
+
+    val currentTimeoutMs: Long
+        get() = _prefs.value?.get(TIMEOUT_MS_KEY) ?: DEFAULT_TIMEOUT_MS
+
+    val currentControlsSelect: String
+        get() = _prefs.value?.get(CONTROLS_SELECT_KEY) ?: DEFAULT_CONTROLS_SELECT
+
+    val currentControlsForward: String
+        get() = _prefs.value?.get(CONTROLS_FORWARD_KEY) ?: DEFAULT_CONTROLS_FORWARD
+
+    val currentControlsBackward: String
+        get() = _prefs.value?.get(CONTROLS_BACKWARD_KEY) ?: DEFAULT_CONTROLS_BACKWARD
+
+    val currentLocked: Boolean
+        get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
+
+    val currentLastScanTimeMs: Long
+        get() = _prefs.value?.get(LAST_SCAN_TIME_MS_KEY) ?: DEFAULT_LAST_SCAN_TIME_MS
+
+    val currentLastScanCount: Long
+        get() = _prefs.value?.get(LAST_SCAN_COUNT_KEY) ?: DEFAULT_LAST_SCAN_COUNT
+
+    val currentLastScanDurationMs: Long
+        get() = _prefs.value?.get(LAST_SCAN_DURATION_MS_KEY) ?: DEFAULT_LAST_SCAN_DURATION_MS
+
+    val currentScanDirectories: List<String>
+        get() = (_prefs.value?.get(SCAN_DIRECTORIES_KEY) ?: emptySet()).sorted()
+
+    val currentScanAllMedia: Boolean
+        get() = _prefs.value?.get(SCAN_ALL_MEDIA_KEY) ?: DEFAULT_SCAN_ALL_MEDIA
+
+    private fun getEqPresetsList(prefs: Preferences): List<com.pxr.cymatic.data.model.EqPreset> {
+        val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
+        return try {
+            val array = org.json.JSONArray(jsonStr)
+            val list = mutableListOf<com.pxr.cymatic.data.model.EqPreset>()
+            for (i in 0 until array.length()) {
+                com.pxr.cymatic.data.model.EqPreset.fromJson(array.getJSONObject(i).toString())?.let { list.add(it) }
             }
+            if (list.isEmpty()) listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset()) else list
+        } catch (e: Exception) {
+            listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
         }
+    }
+
+    val eqPresetsFlow: Flow<List<com.pxr.cymatic.data.model.EqPreset>>
+        get() = store.data.map { prefs -> getEqPresetsList(prefs) }
+
+    val currentEqPresets: List<com.pxr.cymatic.data.model.EqPreset>
+        get() = _prefs.value?.let { getEqPresetsList(it) } ?: listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
 
     val eqSelectedPresetFlow: Flow<String>
         get() = store.data.map { prefs ->
             prefs[EQ_SELECTED_PRESET_KEY] ?: "Flat"
         }
 
+    val currentEqSelectedPreset: String
+        get() = _prefs.value?.get(EQ_SELECTED_PRESET_KEY) ?: "Flat"
+
     val eqGlobalEnabledFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[EQ_GLOBAL_ENABLED_KEY] ?: true
         }
+
+    val currentEqGlobalEnabled: Boolean
+        get() = _prefs.value?.get(EQ_GLOBAL_ENABLED_KEY) ?: true
 
     val activeAudioDeviceFlow: Flow<String>
         get() = store.data.map { prefs ->
             prefs[EQ_ACTIVE_AUDIO_DEVICE_KEY] ?: ""
         }
 
+    val currentActiveAudioDevice: String
+        get() = _prefs.value?.get(EQ_ACTIVE_AUDIO_DEVICE_KEY) ?: ""
+
     val eqDevicePresetsFlow: Flow<Map<String, String>>
         get() = store.data.map { prefs ->
             parseStringMap(prefs[EQ_DEVICE_PRESETS_KEY])
         }
+
+    val currentEqDevicePresets: Map<String, String>
+        get() = parseStringMap(_prefs.value?.get(EQ_DEVICE_PRESETS_KEY))
 
     val effectiveEqSelectedPresetFlow: Flow<String>
         get() = store.data.map { prefs ->

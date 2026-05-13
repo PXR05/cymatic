@@ -36,7 +36,7 @@ fun StorageSettingsScreen(
 ) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
-    val directories by SettingsStore.scanDirectoriesFlow.collectAsState(initial = emptyList())
+    val directories by SettingsStore.scanDirectoriesFlow.collectAsState(initial = SettingsStore.currentScanDirectories)
     val fontFamily = FontFamily(Font(R.font.pixel))
 
     BaseScreen(
@@ -95,4 +95,3 @@ fun StorageSettingsScreen(
         }
     }
 }
-

@@ -60,7 +60,7 @@ fun PlayerBar(
         audioFiles.find { audioFile -> audioFile.id.toString() == currentMediaId }?.metadata
             ?: return
     val fontFamily = FontFamily(Font(R.font.pixel))
-    val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
+    val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
     val baseGap = 16.dp
 
     var showInfoDialog by remember { mutableStateOf(false) }
@@ -143,7 +143,9 @@ fun PlayerBar(
                 metadata = metadata,
                 modifier = Modifier.clickable(
                     onClick = {
-                        showInfoDialog = true
+                        if (!locked) {
+                            showInfoDialog = true
+                        }
                     },
                     indication = null,
                     interactionSource = null

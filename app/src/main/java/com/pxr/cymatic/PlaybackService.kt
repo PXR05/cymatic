@@ -1,6 +1,8 @@
 package com.pxr.cymatic
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -63,8 +65,25 @@ class PlaybackService : MediaLibraryService() {
         val playlistRepository = PlaylistRepository.getInstance(this)
         val libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
 
+        val mediaNotificationProvider = DefaultMediaNotificationProvider(this)
+            .apply {
+                setSmallIcon(R.mipmap.ic_launcher)
+            }
+        setMediaNotificationProvider(mediaNotificationProvider)
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         mediaLibrarySession = MediaLibrarySession.Builder(this, player, libraryCallback)
             .setId("audio_session")
+            .setSessionActivity(pendingIntent)
             .build()
 
         player.addListener(object : Player.Listener {

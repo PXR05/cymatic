@@ -120,8 +120,8 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             var mediaController by remember { mutableStateOf<MediaController?>(null) }
             var audioFiles by remember { mutableStateOf(emptyList<AudioFile>()) }
-            val locked by SettingsStore.lockedFlow.collectAsState(initial = false)
-            val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = 0L)
+            val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
+            val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = SettingsStore.currentLastScanTimeMs)
 
             LaunchedEffect(Unit) {
                 val start = System.currentTimeMillis()

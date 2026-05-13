@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -153,8 +152,7 @@ fun EQSettingsScreen(
                 .padding(24.dp, 16.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
                     text = if (state.eqEnabled) "I" else "O",
@@ -162,6 +160,7 @@ fun EQSettingsScreen(
                     fontSize = 14.sp,
                     color = if (state.eqEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
                         .background(if (state.eqEnabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
                         .padding(24.dp, 16.dp)
                         .clickable(
@@ -173,12 +172,9 @@ fun EQSettingsScreen(
 
                 Box(
                     modifier = Modifier
-                        .height(56.dp)
-                        .width(1.dp)
                         .border(1.dp, MaterialTheme.colorScheme.secondary)
-                )
-
-                Box(modifier = Modifier.weight(1f)) {
+                        .weight(1f)
+                ) {
                     Text(
                         text = state.selectedPresetName,
                         fontFamily = fontFamily,
@@ -211,19 +207,13 @@ fun EQSettingsScreen(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .height(56.dp)
-                        .width(1.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                )
-
                 Box {
                     Text(
                         text = ":",
                         fontFamily = fontFamily,
                         fontSize = 16.sp,
                         modifier = Modifier
+                            .border(1.dp, MaterialTheme.colorScheme.secondary)
                             .padding(22.dp, 16.dp)
                             .clickable(
                                 onClick = { showPresetMenu = true },

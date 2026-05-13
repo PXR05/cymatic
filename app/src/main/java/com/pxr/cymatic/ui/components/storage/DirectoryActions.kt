@@ -38,7 +38,7 @@ fun DirectoryActions(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isRescanning by remember { mutableStateOf(false) }
-    val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = true)
+    val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
     val fontFamily = FontFamily(Font(R.font.pixel))
 
     fun rescanDirectories() {

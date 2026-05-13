@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class EqUiState(
-    val eqEnabled: Boolean = true,
+    val eqEnabled: Boolean = false,
     val presets: List<EqPreset> = emptyList(),
     val selectedPresetName: String = "Flat",
     val activePreset: EqPreset = EqPreset.defaultPreset(),
@@ -28,6 +28,12 @@ data class EqUiState(
 )
 
 class EqViewModel : ViewModel() {
+
+    private val initialDeviceSelectedName = SettingsStore.currentEqDevicePresets[SettingsStore.currentActiveAudioDevice]
+    private val initialSelectedName = initialDeviceSelectedName ?: SettingsStore.currentEqSelectedPreset
+    private val initialActive = SettingsStore.currentEqPresets.firstOrNull { it.name == initialSelectedName }
+        ?: SettingsStore.currentEqPresets.firstOrNull()
+        ?: EqPreset.defaultPreset()
 
     val uiState: StateFlow<EqUiState> = combine(
         SettingsStore.eqGlobalEnabledFlow,
@@ -52,7 +58,14 @@ class EqViewModel : ViewModel() {
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = EqUiState()
+        initialValue = EqUiState(
+            eqEnabled = SettingsStore.currentEqGlobalEnabled,
+            presets = SettingsStore.currentEqPresets,
+            selectedPresetName = initialActive.name,
+            activePreset = initialActive,
+            activeDeviceKey = SettingsStore.currentActiveAudioDevice,
+            usesDevicePreset = initialDeviceSelectedName != null
+        )
     )
 
     private var bandPersistJob: Job? = null

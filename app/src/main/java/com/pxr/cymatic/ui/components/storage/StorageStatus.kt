@@ -32,9 +32,9 @@ fun StatusBento(
     modifier: Modifier = Modifier,
 ) {
     val fontFamily = FontFamily(Font(R.font.pixel))
-    val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = 0L)
-    val lastScanCount by SettingsStore.lastScanCountFlow.collectAsState(initial = 0L)
-    val lastScanDurationMs by SettingsStore.lastScanDurationMsFlow.collectAsState(initial = 0L)
+    val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = SettingsStore.currentLastScanTimeMs)
+    val lastScanCount by SettingsStore.lastScanCountFlow.collectAsState(initial = SettingsStore.currentLastScanCount)
+    val lastScanDurationMs by SettingsStore.lastScanDurationMsFlow.collectAsState(initial = SettingsStore.currentLastScanDurationMs)
 
     Column(
         modifier = modifier

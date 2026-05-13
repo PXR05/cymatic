@@ -11,15 +11,11 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -152,10 +148,6 @@ fun VersionSettingsScreen(
                     enabled = !isChecking,
                     shape = pixelShape
                 ) {
-                    if (isChecking) {
-                        CircularProgressIndicator(modifier = Modifier.height(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
                     Text(
                         text = "Check for updates",
                         fontFamily = fontFamily

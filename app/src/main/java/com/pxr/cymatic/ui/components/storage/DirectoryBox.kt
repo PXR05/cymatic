@@ -51,7 +51,7 @@ fun DirectoryBox(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fontFamily = FontFamily(Font(R.font.pixel))
-    val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = true)
+    val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var pendingDeleteUri by remember { mutableStateOf<String?>(null) }
 
