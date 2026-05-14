@@ -15,16 +15,21 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  resolve-tag:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      should_build: ${{ steps.resolve.outputs.should_build }}
+      prev_tag: ${{ steps.prev.outputs.prev_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Resolve tag
+      - name: Resolve tag and release state
+        id: resolve
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
@@ -35,31 +40,43 @@ jobs:
 
           if [ -z "$TAG" ]; then
             echo "No tag found. Skipping build."
-          else
-            echo "TAG=$TAG" >> $GITHUB_ENV
+            echo "tag=" >> $GITHUB_OUTPUT
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
-      - name: Check if release exists
-        if: env.TAG != ''
-        run: |
           API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}"
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${GITHUB_TOKEN}" "$API_URL")
 
           if [ "$STATUS" = "200" ]; then
             echo "Release already exists for ${TAG}. Skipping build."
-            echo "SHOULD_BUILD=false" >> $GITHUB_ENV
+            echo "should_build=false" >> $GITHUB_OUTPUT
           else
             echo "Release not found for ${TAG}. Continuing build."
-            echo "SHOULD_BUILD=true" >> $GITHUB_ENV
+            echo "should_build=true" >> $GITHUB_OUTPUT
           fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve previous tag
+        id: prev
+        if: steps.resolve.outputs.should_build == 'true'
+        run: |
+          git fetch --tags --force
+          PREV_TAG=$(git describe --tags --abbrev=0 "${{ steps.resolve.outputs.tag }}^" 2>/dev/null || true)
+          echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+  build:
+    needs: resolve-tag
+    if: needs.resolve-tag.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout tag
-        if: env.SHOULD_BUILD == 'true'
         uses: actions/checkout@v6
         with:
-          ref: refs/tags/${{ env.TAG }}
+          ref: refs/tags/${{ needs.resolve-tag.outputs.tag }}
           fetch-depth: 0
 
       - name: Set up JDK
@@ -87,18 +104,20 @@ jobs:
           tool: git-cliff
 
       - name: Generate release notes
-        if: env.SHOULD_BUILD == 'true'
-        run: git-cliff -c cliff.toml -o release-notes.md --tag ${{ env.TAG }}
+        run: |
+          if [ -n "${{ needs.resolve-tag.outputs.prev_tag }}" ]; then
+            git-cliff -c cliff.toml -o release-notes.md --tag "${{ needs.resolve-tag.outputs.tag }}" -- "${{ needs.resolve-tag.outputs.prev_tag }}..${{ needs.resolve-tag.outputs.tag }}"
+          else
+            git-cliff -c cliff.toml -o release-notes.md --tag "${{ needs.resolve-tag.outputs.tag }}"
+          fi
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build APK
-        if: env.SHOULD_BUILD == 'true'
         run: ./gradlew assemble
 
       - name: Sign APK
-        if: env.SHOULD_BUILD == 'true'
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -108,12 +127,45 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
+      - name: Rename signed APK
+        run: |
+          SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
+          RENAMED_APK="cymatic-release-${{ needs.resolve-tag.outputs.tag }}.apk"
+          mv "$SIGNED_APK" "$RENAMED_APK"
+          echo "RENAMED_APK=$RENAMED_APK" >> $GITHUB_ENV
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-apk
+          path: ${{ env.RENAMED_APK }}
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  release:
+    needs: [resolve-tag, build]
+    if: needs.resolve-tag.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed APK
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-apk
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
       - name: Create GitHub Release
-        if: env.SHOULD_BUILD == 'true'
         uses: softprops/action-gh-release@v3
         with:
-          files: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          body_path: release-notes.md
-          tag_name: ${{ env.TAG }}
+          files: ${{ github.workspace }}/signed-apk/*.apk
+          body_path: ${{ github.workspace }}/release-notes.md
+          tag_name: ${{ needs.resolve-tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
