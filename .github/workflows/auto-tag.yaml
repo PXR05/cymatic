@@ -1,0 +1,38 @@
+name: Auto Tag
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check version and tag
+        id: tag
+        run: |
+          VERSION=$(grep "versionName" app/build.gradle.kts | cut -d'"' -f2)
+          TAG="v$VERSION"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping auto-tagging."
+            echo "tag=" >> $GITHUB_OUTPUT
+          else
+            echo "New version $VERSION detected. Creating tag $TAG..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "$TAG" > tag.txt
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
