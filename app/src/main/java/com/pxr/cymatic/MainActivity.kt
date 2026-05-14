@@ -266,8 +266,6 @@ class MainActivity : ComponentActivity() {
                                         audioFiles = audioFiles,
                                         modifier = if (locked) Modifier.weight(1f) else Modifier
                                     )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
                                 }
 
                                 if (!locked) {
@@ -282,8 +280,6 @@ class MainActivity : ComponentActivity() {
 
                                     StatusBar(modifier = Modifier.padding(horizontal = 24.dp))
                                 }
-
-                                Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
                     }

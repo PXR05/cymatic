@@ -47,18 +47,6 @@ fun Controls(
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
     ) {
-//        PixelatedIcon(
-//            imageVector = Icons.Filled.Shuffle,
-//            contentDescription = "Shuffle",
-//            tint = shuffleColor,
-//            modifier = Modifier
-//                .size(24.dp)
-//                .clickable(
-//                    onClick = onClick["shuffle"] ?: {},
-//                    indication = null,
-//                    interactionSource = null
-//                )
-//        )
         Text(
             modifier = Modifier
                 .padding(16.dp)
@@ -111,23 +99,6 @@ fun Controls(
                     interactionSource = null
                 )
         )
-
-//        PixelatedIcon(
-//            imageVector = when (repeatMode) {
-//                Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-//                Player.REPEAT_MODE_ALL -> Icons.Filled.Repeat
-//                else -> Icons.Filled.Repeat
-//            },
-//            contentDescription = "Repeat",
-//            tint = repeatColor,
-//            modifier = Modifier
-//                .size(24.dp)
-//                .clickable(
-//                    onClick = onClick["repeat"] ?: {},
-//                    indication = null,
-//                    interactionSource = null
-//                )
-//        )
         Text(
             modifier = Modifier
                 .padding(16.dp)

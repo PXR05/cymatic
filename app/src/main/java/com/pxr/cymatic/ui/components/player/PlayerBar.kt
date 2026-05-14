@@ -1,13 +1,16 @@
 package com.pxr.cymatic.ui.components.player
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -23,6 +26,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -71,7 +76,7 @@ fun PlayerBar(
         onDismissRequest = { showInfoDialog = false },
     )
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -85,14 +90,42 @@ fun PlayerBar(
                 indication = null,
                 interactionSource = null
             ),
-        verticalArrangement = Arrangement.Top
     ) {
         if (locked) {
-            Column(
+            AsyncImage(
+                model = ImageRequest
+                    .Builder(LocalContext.current)
+                    .data(metadata.artworkUri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = metadata.album,
+                contentScale = ContentScale.Crop,
+                filterQuality = FilterQuality.None,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.Center,
+                    .fillMaxSize()
+                    .blur(32.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
+                            ),
+                        )
+                    )
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
                     model = ImageRequest
@@ -104,145 +137,153 @@ fun PlayerBar(
                     contentScale = ContentScale.Crop,
                     filterQuality = FilterQuality.None,
                     modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
                         .fillMaxWidth()
                         .aspectRatio(1f)
                 )
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+        Column(
+            modifier = if (locked) Modifier.fillMaxSize()
+            else Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.Bottom,
         ) {
-            Text(
-                text = "${playbackState.currentIndex + 1} of ${playbackState.totalTracks}",
-                color = MaterialTheme.colorScheme.secondary,
-                fontSize = 14.sp,
-                fontFamily = fontFamily,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .padding(vertical = 2.dp)
-                    .clickable(
-                        onClick = {
-                            if (playbackState.queueSource != null && !locked) {
-                                navController.navigate(
-                                    playbackState.queueSource + "?scrollId=${playbackState.currentMediaId}"
-                                ) {
-                                    launchSingleTop = true
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            ) {
+                Text(
+                    text = "${playbackState.currentIndex + 1} of ${playbackState.totalTracks}",
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 14.sp,
+                    fontFamily = fontFamily,
+                    modifier = Modifier
+                        .padding(vertical = 2.dp)
+                        .clickable(
+                            onClick = {
+                                if (playbackState.queueSource != null && !locked) {
+                                    navController.navigate(
+                                        playbackState.queueSource + "?scrollId=${playbackState.currentMediaId}"
+                                    ) {
+                                        launchSingleTop = true
+                                    }
                                 }
+                            },
+                            indication = null,
+                            interactionSource = null
+                        )
+                )
+
+                FileInfo(
+                    metadata = metadata,
+                    modifier = Modifier.clickable(
+                        onClick = {
+                            if (!locked) {
+                                showInfoDialog = true
                             }
                         },
                         indication = null,
                         interactionSource = null
                     )
-            )
-
-            FileInfo(
-                metadata = metadata,
-                modifier = Modifier.clickable(
-                    onClick = {
-                        if (!locked) {
-                            showInfoDialog = true
-                        }
-                    },
-                    indication = null,
-                    interactionSource = null
                 )
-            )
-        }
+            }
 
-        Spacer(modifier = Modifier.height(baseGap))
+            Spacer(modifier = Modifier.height(baseGap))
 
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-        ) {
-            Info(
-                metadata,
-                titleSize = 20.sp,
-                artistSize = 14.sp,
-                gap = 2.dp,
+            Row(
+                verticalAlignment = Alignment.Bottom,
                 modifier = Modifier
-                    .height(48.dp)
-                    .weight(1f)
-            )
-            if (locked) {
-                if (playbackState.isShuffling || playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            ) {
+                Info(
+                    metadata,
+                    titleSize = 20.sp,
+                    artistSize = 14.sp,
+                    gap = 2.dp,
+                    modifier = Modifier
+                        .height(48.dp)
+                        .weight(1f)
+                )
+                if (locked) {
+                    if (playbackState.isShuffling || playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
 
-                if (playbackState.isShuffling) {
-                    Text(
-                        text = "SHUF",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 14.sp,
-                        fontFamily = fontFamily,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                    if (playbackState.isShuffling) {
+                        Text(
+                            text = "SHUF",
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 14.sp,
+                            fontFamily = fontFamily,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
 
-                if (playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
-                    Text(
-                        text = when (playbackState.repeatMode) {
-                            Player.REPEAT_MODE_ALL -> "ALL"
-                            Player.REPEAT_MODE_ONE -> "ONE"
-                            else -> ""
-                        },
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 14.sp,
-                        fontFamily = fontFamily,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                    if (playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
+                        Text(
+                            text = when (playbackState.repeatMode) {
+                                Player.REPEAT_MODE_ALL -> "ALL"
+                                Player.REPEAT_MODE_ONE -> "ONE"
+                                else -> ""
+                            },
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 14.sp,
+                            fontFamily = fontFamily,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(baseGap * 1.5f))
+            Spacer(modifier = Modifier.height(baseGap * 1.5f))
 
-        ProgressBar(
-            currentPosition = playbackState.currentPositionMs,
-            durationMs = playbackState.durationMs ?: 0L,
-            onSeek = { targetMs ->
-                if (locked) return@ProgressBar
-                mediaController.seekTo(targetMs)
-            },
-            seekEnabled = !locked,
-            modifier = Modifier.padding(horizontal = 24.dp),
-            showNumber = false,
-        )
-
-        Spacer(modifier = Modifier.height(baseGap))
-
-        if (!locked) {
-            Controls(
-                isPlaying = playbackState.isPlaying,
-                isShuffling = playbackState.isShuffling,
-                repeatMode = playbackState.repeatMode,
-                onClick = mapOf(
-                    "shuffle" to {
-                        mediaController.shuffleModeEnabled = !playbackState.isShuffling
-                    },
-                    "previous" to { mediaController.seekToPrevious() },
-                    "play_pause" to {
-                        if (playbackState.isPlaying) mediaController.pause()
-                        else mediaController.play()
-                    },
-                    "next" to { mediaController.seekToNext() },
-                    "repeat" to {
-                        val newMode = when (playbackState.repeatMode) {
-                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                            else -> Player.REPEAT_MODE_OFF
-                        }
-                        mediaController.repeatMode = newMode
-                    }
-                )
+            ProgressBar(
+                currentPosition = playbackState.currentPositionMs,
+                durationMs = playbackState.durationMs ?: 0L,
+                onSeek = { targetMs ->
+                    if (locked) return@ProgressBar
+                    mediaController.seekTo(targetMs)
+                },
+                seekEnabled = !locked,
+                modifier = Modifier.padding(horizontal = 24.dp),
+                showNumber = false,
             )
-        }
 
+            Spacer(modifier = Modifier.height(baseGap))
+
+            if (!locked) {
+                Controls(
+                    isPlaying = playbackState.isPlaying,
+                    isShuffling = playbackState.isShuffling,
+                    repeatMode = playbackState.repeatMode,
+                    onClick = mapOf(
+                        "shuffle" to {
+                            mediaController.shuffleModeEnabled = !playbackState.isShuffling
+                        },
+                        "previous" to { mediaController.seekToPrevious() },
+                        "play_pause" to {
+                            if (playbackState.isPlaying) mediaController.pause()
+                            else mediaController.play()
+                        },
+                        "next" to { mediaController.seekToNext() },
+                        "repeat" to {
+                            val newMode = when (playbackState.repeatMode) {
+                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                else -> Player.REPEAT_MODE_OFF
+                            }
+                            mediaController.repeatMode = newMode
+                        }
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(baseGap * 1f))
+        }
     }
 }

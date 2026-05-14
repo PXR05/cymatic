@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 
 
@@ -51,27 +50,3 @@ fun PixelatedIcon(
         }
     )
 }
-
-@Composable
-fun PixelatedIcon(
-    modifier: Modifier = Modifier,
-    painter: Painter,
-    contentDescription: String? = null,
-    tint: Color = MaterialTheme.colorScheme.secondary,
-    pixelSize : Float = 8f
-) {
-    Icon(
-        painter = painter,
-        contentDescription = contentDescription,
-        tint = tint,
-        modifier = modifier.graphicsLayer {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                PixelateShader.setFloatUniform("pixelSize", pixelSize)
-                renderEffect = RenderEffect.createRuntimeShaderEffect(
-                    PixelateShader, "composable"
-                ).asComposeRenderEffect()
-            }
-        }
-    )
-}
-
