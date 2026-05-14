@@ -8,14 +8,17 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -63,7 +66,7 @@ fun VersionSettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fontFamily = FontFamily(Font(R.font.pixel))
-    val pixelShape = RoundedCornerShape(0.dp)
+    val sharpCorners = RoundedCornerShape(0.dp)
     val currentVersion = remember { getCurrentVersion(context) }
 
     var isChecking by remember { mutableStateOf(false) }
@@ -146,10 +149,11 @@ fun VersionSettingsScreen(
                         }
                     },
                     enabled = !isChecking,
-                    shape = pixelShape
+                    shape = sharpCorners,
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Check for updates",
+                        text = "Check updates",
                         fontFamily = fontFamily
                     )
                 }
@@ -157,16 +161,24 @@ fun VersionSettingsScreen(
                 latestRelease?.versionUrl?.let { url ->
                     OutlinedButton(
                         onClick = { openUrl(context, url) },
-                        shape = pixelShape
+                        shape = sharpCorners,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Open releases",
+                            text = "GitHub",
                             fontFamily = fontFamily
                         )
 
                     }
                 }
             }
+
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.secondary
+            )
 
             latestRelease?.let { release ->
                 val isUpdateAvailable = isVersionNewer(release.versionName, currentVersion.name)
@@ -182,7 +194,8 @@ fun VersionSettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = { showChangelog = !showChangelog },
-                        shape = pixelShape
+                        shape = sharpCorners,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = if (showChangelog) "Hide changelog" else "Show changelog",
@@ -199,22 +212,16 @@ fun VersionSettingsScreen(
                                 }
                             },
                             enabled = downloadId == null,
-                            shape = pixelShape
+                            shape = sharpCorners,
+                            modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "Download update",
+                                text = "Download",
                                 fontFamily = fontFamily
                             )
 
                         }
                     }
-                }
-
-                if (showChangelog) {
-                    Text(
-                        text = release.changelog.ifBlank { "No changelog provided." },
-                        fontFamily = fontFamily
-                    )
                 }
 
                 if (downloadId != null) {
@@ -227,12 +234,34 @@ fun VersionSettingsScreen(
                 if (downloadedApkUri != null) {
                     Button(
                         onClick = { installApk(context, downloadedApkUri) },
-                        shape = pixelShape
+                        shape = sharpCorners,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "Install update")
+                        Text(
+                            text = "Install update",
+                            fontFamily = fontFamily
+                        )
+
                     }
                 } else if (release.apkUrl == null) {
-                    Text(text = "No APK asset found in latest release.")
+                    Text(
+                        text = "No APK asset found in latest release.",
+                        fontFamily = fontFamily,
+                    )
+                }
+
+                if (showChangelog) {
+                    val normalizedChangelog = release.changelog
+                        .replace("\r\n", "\n")
+                        .replace(Regex("\n{3,}"), "\n\n")
+
+                    Text(
+                        text = normalizedChangelog.ifBlank { "No changelog provided." },
+                        fontFamily = fontFamily,
+                        modifier = Modifier
+                            .border(1.dp, MaterialTheme.colorScheme.secondary)
+                            .padding(16.dp)
+                    )
                 }
             }
 
