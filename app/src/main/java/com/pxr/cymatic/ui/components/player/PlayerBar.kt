@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,15 @@ fun PlayerBar(
 
     var screenOff by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(locked) {
+        if (!locked && screenOff) {
+            screenOff = false
+            activity?.window?.attributes = activity.window.attributes.apply {
+                screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            }
+        }
+    }
 
     SongInfoDialog(
         mediaId = currentMediaId.toLong(),
