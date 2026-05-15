@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_run:
     workflows:
       - Auto Tag
@@ -82,8 +82,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'zulu'
+          java-version: "17"
+          distribution: "zulu"
           cache: gradle
 
       - name: Set up Android SDK

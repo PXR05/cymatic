@@ -166,7 +166,7 @@ fun PlayerBar(
                         .build(),
                     contentDescription = metadata.album,
                     contentScale = ContentScale.Crop,
-                    filterQuality = FilterQuality.None,
+                    filterQuality = FilterQuality.High,
                     modifier = Modifier
                         .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
                         .fillMaxWidth()
