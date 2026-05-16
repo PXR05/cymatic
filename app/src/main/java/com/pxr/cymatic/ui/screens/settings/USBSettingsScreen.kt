@@ -156,8 +156,9 @@ fun USBSettingsScreen(
                 ) {
                     listOf(
                         "The app will take exclusive control of the USB audio device",
-                        "No other apps will be able to play audio through the USB device while this mode is enabled",
-                        "Your device volume must be controlled directly within this app or through the DAC's hardware controls",
+                        "EQ and other audio processing features are disabled",
+                        "No other apps will be able to play audio through the USB device",
+                        "Your device volume can only be controlled within this app or the DAC's controls",
                     ).forEach {
                         Row {
                             Text(
@@ -187,6 +188,7 @@ fun USBSettingsScreen(
                     onClick = {
                         showExclusiveDisclaimer = false
                         viewModel.setUsbExclusive(true)
+                        usbAudioDevice.resetAndReopen()
                     },
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -233,6 +235,7 @@ fun USBSettingsScreen(
                         onClick = {
                             if (state.usbExclusiveEnabled) {
                                 viewModel.setUsbExclusive(false)
+                                usbAudioDevice.closeDevice()
                             } else {
                                 showExclusiveDisclaimer = true
                             }

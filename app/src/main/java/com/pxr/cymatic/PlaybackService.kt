@@ -21,6 +21,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import com.decent.usbaudio.media3.UsbAudioSink
+import com.decent.usbaudio.media3.UsbAudioSinkConfig
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 @UnstableApi
@@ -57,6 +59,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var sessionActivityPendingIntent: PendingIntent
     private val playerRebuildMutex = kotlinx.coroutines.sync.Mutex()
     private var activeRenderersMode: RenderersMode = RenderersMode.DEFAULT
+    private var pendingExclusiveUntilPlay: Boolean = false
 
     private enum class RenderersMode {
         USB,
@@ -77,7 +80,8 @@ class PlaybackService : MediaLibraryService() {
 
         val audioRepository = AudioRepository.getInstance(this)
         val playlistRepository = PlaylistRepository.getInstance(this)
-        libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
+        libraryCallback =
+            AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -89,7 +93,15 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        activeRenderersMode = resolveRenderersMode(
+        val storedState = try {
+            runBlocking(Dispatchers.IO) { PlaybackStore.loadState() }
+        } catch (e: Exception) {
+            Log.w("PlaybackService", "Failed to read playback state on startup", e)
+            null
+        }
+        pendingExclusiveUntilPlay =
+            SettingsStore.currentUsbExclusive && storedState?.wasPlaying != true
+        activeRenderersMode = effectiveRenderersMode(
             SettingsStore.currentUsbExclusive,
             SettingsStore.currentEqGlobalEnabled
         )
@@ -100,12 +112,22 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             SettingsStore.usbExclusiveFlow
                 .combine(SettingsStore.eqGlobalEnabledFlow) { usbExclusive, eqEnabled ->
-                    resolveRenderersMode(usbExclusive, eqEnabled)
+                    usbExclusive to effectiveRenderersMode(usbExclusive, eqEnabled)
                 }
                 .distinctUntilChanged()
-                .collect { mode ->
-                    if (mode != activeRenderersMode) {
-                        rebuildPlayerForMode(mode)
+                .collect { (usbExclusive, mode) ->
+                    val isPlaying = withContext(Dispatchers.Main) { player.isPlaying }
+                    if (usbExclusive && !isPlaying) {
+                        pendingExclusiveUntilPlay = true
+                    } else if (!usbExclusive) {
+                        pendingExclusiveUntilPlay = false
+                    }
+                    val effectiveMode = effectiveRenderersMode(
+                        usbExclusive,
+                        SettingsStore.currentEqGlobalEnabled
+                    )
+                    if (effectiveMode != activeRenderersMode) {
+                        rebuildPlayerForMode(effectiveMode)
                     }
                 }
         }
@@ -129,7 +151,10 @@ class PlaybackService : MediaLibraryService() {
             ) { enabled, presets, selectedName ->
                 Triple(enabled, presets, selectedName)
             }.collect { (enabled, presets, selectedName) ->
-                Log.d("PlaybackService", "EQ settings changed - enabled: $enabled, selected preset: $selectedName")
+                Log.d(
+                    "PlaybackService",
+                    "EQ settings changed - enabled: $enabled, selected preset: $selectedName"
+                )
                 if (!enabled) {
                     eqAudioProcessor.disable()
                 } else {
@@ -194,7 +219,9 @@ class PlaybackService : MediaLibraryService() {
                 val hasLibFlac = try {
                     Class.forName("androidx.media3.decoder.flac.LibflacAudioRenderer")
                     true
-                } catch (_: ClassNotFoundException) { false }
+                } catch (_: ClassNotFoundException) {
+                    false
+                }
 
                 val useFloat = !hasLibFlac
 
@@ -203,7 +230,12 @@ class PlaybackService : MediaLibraryService() {
                     .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
                     .build()
 
-                return UsbAudioSink(delegate, context).also {
+                val config = UsbAudioSinkConfig(
+                    bitPerfectEnabled = true,
+                    forceRouteToSpeaker = false
+                )
+
+                return UsbAudioSink(delegate, context, config).also {
                     currentUsbSink = it
                 }
             }
@@ -272,7 +304,10 @@ class PlaybackService : MediaLibraryService() {
                 }
             } else {
                 SettingsStore.setLocked(false)
-                Log.w("PlaybackService", "Current audio file not found in database, cannot restore playback state")
+                Log.w(
+                    "PlaybackService",
+                    "Current audio file not found in database, cannot restore playback state"
+                )
             }
         }
 
@@ -308,7 +343,7 @@ class PlaybackService : MediaLibraryService() {
             shuffleEnabled = player.shuffleModeEnabled,
             repeatMode = player.repeatMode,
             queueSource = queueSource,
-            wasPlaying = player.playWhenReady
+            wasPlaying = player.isPlaying
         )
     }
 
@@ -317,6 +352,23 @@ class PlaybackService : MediaLibraryService() {
             usbExclusive -> RenderersMode.USB
             eqEnabled -> RenderersMode.EQ
             else -> RenderersMode.DEFAULT
+        }
+    }
+
+    private fun effectiveRenderersMode(usbExclusive: Boolean, eqEnabled: Boolean): RenderersMode {
+        if (usbExclusive && pendingExclusiveUntilPlay) {
+            return if (eqEnabled) RenderersMode.EQ else RenderersMode.DEFAULT
+        }
+        return resolveRenderersMode(usbExclusive, eqEnabled)
+    }
+
+    private fun maybeActivateExclusiveOnPlay() {
+        if (!pendingExclusiveUntilPlay) return
+        if (!SettingsStore.currentUsbExclusive) return
+        if (activeRenderersMode == RenderersMode.USB) return
+        pendingExclusiveUntilPlay = false
+        serviceScope.launch {
+            rebuildPlayerForMode(RenderersMode.USB)
         }
     }
 
@@ -335,6 +387,7 @@ class PlaybackService : MediaLibraryService() {
                     .setBufferDurationsMs(5000, 15000, 2000, 3000)
                     .build()
             ) { currentUsbSink?.isNativeEngineActive == true }
+
             else -> DefaultLoadControl.Builder()
                 .setBufferDurationsMs(5000, 15000, 2000, 3000)
                 .build()
@@ -365,6 +418,9 @@ class PlaybackService : MediaLibraryService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 persistPlaybackState()
+                if (isPlaying) {
+                    maybeActivateExclusiveOnPlay()
+                }
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
@@ -385,7 +441,7 @@ class PlaybackService : MediaLibraryService() {
         val mediaItems: List<MediaItem>,
         val currentIndex: Int,
         val positionMs: Long,
-        val playWhenReady: Boolean,
+        val wasPlaying: Boolean,
         val shuffleEnabled: Boolean,
         val repeatMode: Int
     )
@@ -399,7 +455,7 @@ class PlaybackService : MediaLibraryService() {
             mediaItems = items,
             currentIndex = target.currentMediaItemIndex.coerceAtLeast(0),
             positionMs = target.currentPosition,
-            playWhenReady = target.playWhenReady,
+            wasPlaying = target.isPlaying,
             shuffleEnabled = target.shuffleModeEnabled,
             repeatMode = target.repeatMode
         )
@@ -427,8 +483,12 @@ class PlaybackService : MediaLibraryService() {
                         newPlayer.shuffleModeEnabled = it.shuffleEnabled
                         newPlayer.repeatMode = it.repeatMode
                         newPlayer.setMediaItems(it.mediaItems, it.currentIndex, it.positionMs)
-                        newPlayer.playWhenReady = it.playWhenReady
                         newPlayer.prepare()
+                        if (it.wasPlaying) {
+                            newPlayer.play()
+                        } else {
+                            newPlayer.pause()
+                        }
                     }
                     oldPlayer.release()
                 }
@@ -450,8 +510,12 @@ class PlaybackService : MediaLibraryService() {
                     newPlayer.shuffleModeEnabled = it.shuffleEnabled
                     newPlayer.repeatMode = it.repeatMode
                     newPlayer.setMediaItems(it.mediaItems, it.currentIndex, it.positionMs)
-                    newPlayer.playWhenReady = it.playWhenReady
                     newPlayer.prepare()
+                    if (it.wasPlaying) {
+                        newPlayer.play()
+                    } else {
+                        newPlayer.pause()
+                    }
                 }
             }
 
