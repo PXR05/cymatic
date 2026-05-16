@@ -36,6 +36,7 @@ object SettingsStore {
     private const val DEFAULT_LAST_SCAN_COUNT = 0L
     private const val DEFAULT_LAST_SCAN_DURATION_MS = 0L
     private const val DEFAULT_SCAN_ALL_MEDIA = true
+    private const val DEFAULT_USB_EXCLUSIVE = false
 
     private val THEME_KEY = stringPreferencesKey("THEME")
     private val TIMEOUT_MS_KEY = longPreferencesKey("TIMEOUT_MS")
@@ -48,6 +49,7 @@ object SettingsStore {
     private val LAST_SCAN_DURATION_MS_KEY = longPreferencesKey("LAST_SCAN_DURATION_MS")
     private val SCAN_DIRECTORIES_KEY = stringSetPreferencesKey("SCAN_DIRECTORIES")
     private val SCAN_ALL_MEDIA_KEY = booleanPreferencesKey("SCAN_ALL_MEDIA")
+    private val USB_EXCLUSIVE_KEY = booleanPreferencesKey("USB_EXCLUSIVE")
     private val EQ_PRESETS_KEY = stringPreferencesKey("EQ_PRESETS")
     private val EQ_SELECTED_PRESET_KEY = stringPreferencesKey("EQ_SELECTED_PRESET")
     private val EQ_GLOBAL_ENABLED_KEY = booleanPreferencesKey("EQ_GLOBAL_ENABLED")
@@ -130,6 +132,11 @@ object SettingsStore {
             prefs[SCAN_ALL_MEDIA_KEY] ?: DEFAULT_SCAN_ALL_MEDIA
         }
 
+    val usbExclusiveFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[USB_EXCLUSIVE_KEY] ?: DEFAULT_USB_EXCLUSIVE
+        }
+
     val currentTheme: String
         get() = _prefs.value?.get(THEME_KEY) ?: DEFAULT_THEME
 
@@ -162,6 +169,9 @@ object SettingsStore {
 
     val currentScanAllMedia: Boolean
         get() = _prefs.value?.get(SCAN_ALL_MEDIA_KEY) ?: DEFAULT_SCAN_ALL_MEDIA
+
+    val currentUsbExclusive: Boolean
+        get() = _prefs.value?.get(USB_EXCLUSIVE_KEY) ?: DEFAULT_USB_EXCLUSIVE
 
     private fun getEqPresetsList(prefs: Preferences): List<com.pxr.cymatic.data.model.EqPreset> {
         val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
@@ -311,6 +321,12 @@ object SettingsStore {
         }
     }
 
+    suspend fun setUsbExclusive(enabled: Boolean) {
+        store.edit { prefs ->
+            prefs[USB_EXCLUSIVE_KEY] = enabled
+        }
+    }
+
     suspend fun addScanDirectory(value: String) {
         store.edit { prefs ->
             val current = prefs[SCAN_DIRECTORIES_KEY] ?: emptySet()
@@ -402,4 +418,3 @@ object SettingsStore {
         return json.toString()
     }
 }
-

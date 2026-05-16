@@ -2,6 +2,7 @@ package com.pxr.cymatic
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -47,6 +48,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.decent.usbaudio.UsbAudioPermissionHelper
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.media.loadCachedAudioFiles
@@ -70,6 +72,7 @@ import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.USBSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
@@ -80,11 +83,24 @@ class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var isReady by mutableStateOf(false)
 
+    private fun handleUsbDeviceAttached(intent: Intent) {
+        if (SettingsStore.currentUsbExclusive) {
+            UsbAudioPermissionHelper.handleIntent(applicationContext, intent)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleUsbDeviceAttached(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition { !isReady }
+
+        handleUsbDeviceAttached(intent)
 
         enableEdgeToEdge()
 
@@ -214,6 +230,7 @@ class MainActivity : ComponentActivity() {
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() },
+                "setting/usb" to { USBSettingsScreen() },
                 "setting/version" to { VersionSettingsScreen() }
             )
 

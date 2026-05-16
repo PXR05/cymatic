@@ -10,12 +10,18 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioCapabilities
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import com.decent.usbaudio.media3.UsbAudioSink
 import com.pxr.cymatic.audio.EqAudioProcessor
-import com.pxr.cymatic.audio.EqRenderersFactory
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
 import com.pxr.cymatic.data.media.AudioRepository
@@ -30,20 +36,33 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@UnstableApi
 class PlaybackService : MediaLibraryService() {
+    private var currentUsbSink: UsbAudioSink? = null
+
     lateinit var player: ExoPlayer
         private set
     private lateinit var mediaLibrarySession: MediaLibrarySession
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val eqAudioProcessor = EqAudioProcessor()
     private lateinit var audioManager: AudioManager
     private var audioDeviceCallback: AudioDeviceCallback? = null
+    private lateinit var libraryCallback: AutoMediaLibraryCallback
+    private lateinit var sessionActivityPendingIntent: PendingIntent
+    private val playerRebuildMutex = kotlinx.coroutines.sync.Mutex()
+    private var activeRenderersMode: RenderersMode = RenderersMode.DEFAULT
+
+    private enum class RenderersMode {
+        USB,
+        EQ,
+        DEFAULT
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -54,59 +73,42 @@ class PlaybackService : MediaLibraryService() {
                 .build()
         )
 
-        val renderersFactory = EqRenderersFactory(this, eqAudioProcessor)
-        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-        player = ExoPlayer.Builder(this)
-            .setRenderersFactory(renderersFactory)
-            .build()
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         val audioRepository = AudioRepository.getInstance(this)
         val playlistRepository = PlaylistRepository.getInstance(this)
-        val libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
-
-        val mediaNotificationProvider = DefaultMediaNotificationProvider(this)
-            .apply {
-                setSmallIcon(R.mipmap.ic_launcher)
-            }
-        setMediaNotificationProvider(mediaNotificationProvider)
+        libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
-        val pendingIntent = PendingIntent.getActivity(
+        sessionActivityPendingIntent = PendingIntent.getActivity(
             this,
             0,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaLibrarySession = MediaLibrarySession.Builder(this, player, libraryCallback)
-            .setId("audio_session")
-            .setSessionActivity(pendingIntent)
-            .build()
+        activeRenderersMode = resolveRenderersMode(
+            SettingsStore.currentUsbExclusive,
+            SettingsStore.currentEqGlobalEnabled
+        )
+        player = buildPlayerForMode(activeRenderersMode)
+        mediaLibrarySession = buildMediaLibrarySession(player)
+        setupPlayerListeners(player)
 
-        player.addListener(object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                persistPlaybackState()
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                persistPlaybackState()
-            }
-
-            override fun onRepeatModeChanged(repeatMode: Int) {
-                persistPlaybackState()
-            }
-
-            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                persistPlaybackState()
-            }
-
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                persistPlaybackState()
-            }
-        })
+        serviceScope.launch {
+            SettingsStore.usbExclusiveFlow
+                .combine(SettingsStore.eqGlobalEnabledFlow) { usbExclusive, eqEnabled ->
+                    resolveRenderersMode(usbExclusive, eqEnabled)
+                }
+                .distinctUntilChanged()
+                .collect { mode ->
+                    if (mode != activeRenderersMode) {
+                        rebuildPlayerForMode(mode)
+                    }
+                }
+        }
 
         serviceScope.launch {
             restorePlaybackState()
@@ -165,6 +167,53 @@ class PlaybackService : MediaLibraryService() {
         mediaLibrarySession.release()
         player.release()
         super.onDestroy()
+    }
+
+    private fun createEqRenderersFactory(): DefaultRenderersFactory {
+        return object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableOffload: Boolean
+            ): AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(true)
+                    .setAudioProcessors(arrayOf(eqAudioProcessor))
+                    .build()
+            }
+        }
+    }
+
+    private fun createUsbRenderersFactory(): DefaultRenderersFactory {
+        val factory = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableOffload: Boolean
+            ): AudioSink {
+                val hasLibFlac = try {
+                    Class.forName("androidx.media3.decoder.flac.LibflacAudioRenderer")
+                    true
+                } catch (_: ClassNotFoundException) { false }
+
+                val useFloat = !hasLibFlac
+
+                val delegate = DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(useFloat)
+                    .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
+                    .build()
+
+                return UsbAudioSink(delegate, context).also {
+                    currentUsbSink = it
+                }
+            }
+        }
+
+        factory.setExtensionRendererMode(
+            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+        )
+
+        return factory
     }
 
     private fun registerAudioDeviceTracking() {
@@ -261,5 +310,166 @@ class PlaybackService : MediaLibraryService() {
             queueSource = queueSource,
             wasPlaying = player.playWhenReady
         )
+    }
+
+    private fun resolveRenderersMode(usbExclusive: Boolean, eqEnabled: Boolean): RenderersMode {
+        return when {
+            usbExclusive -> RenderersMode.USB
+            eqEnabled -> RenderersMode.EQ
+            else -> RenderersMode.DEFAULT
+        }
+    }
+
+    private fun buildPlayerForMode(mode: RenderersMode): ExoPlayer {
+        if (mode != RenderersMode.USB) {
+            currentUsbSink = null
+        }
+        val renderersFactory = when (mode) {
+            RenderersMode.USB -> createUsbRenderersFactory()
+            RenderersMode.EQ -> createEqRenderersFactory()
+            RenderersMode.DEFAULT -> DefaultRenderersFactory(this)
+        }
+        val loadControl = when (mode) {
+            RenderersMode.USB -> UsbAudioSink.wrapLoadControl(
+                DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(5000, 15000, 2000, 3000)
+                    .build()
+            ) { currentUsbSink?.isNativeEngineActive == true }
+            else -> DefaultLoadControl.Builder()
+                .setBufferDurationsMs(5000, 15000, 2000, 3000)
+                .build()
+        }
+        return ExoPlayer.Builder(this)
+            .setRenderersFactory(renderersFactory)
+            .setLoadControl(loadControl)
+            .build()
+            .also { newPlayer ->
+                if (mode == RenderersMode.USB) {
+                    currentUsbSink?.attachToPlayer(newPlayer)
+                }
+            }
+    }
+
+    private fun buildMediaLibrarySession(player: ExoPlayer): MediaLibrarySession {
+        return MediaLibrarySession.Builder(this, player, libraryCallback)
+            .setId("audio_session")
+            .setSessionActivity(sessionActivityPendingIntent)
+            .build()
+    }
+
+    private fun setupPlayerListeners(target: ExoPlayer) {
+        target.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                persistPlaybackState()
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                persistPlaybackState()
+            }
+
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                persistPlaybackState()
+            }
+
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                persistPlaybackState()
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                persistPlaybackState()
+            }
+        })
+    }
+
+    private data class PlayerSnapshot(
+        val mediaItems: List<MediaItem>,
+        val currentIndex: Int,
+        val positionMs: Long,
+        val playWhenReady: Boolean,
+        val shuffleEnabled: Boolean,
+        val repeatMode: Int
+    )
+
+    private fun captureSnapshot(target: ExoPlayer): PlayerSnapshot? {
+        if (target.mediaItemCount == 0) return null
+        val items = (0 until target.mediaItemCount).map { index ->
+            target.getMediaItemAt(index)
+        }
+        return PlayerSnapshot(
+            mediaItems = items,
+            currentIndex = target.currentMediaItemIndex.coerceAtLeast(0),
+            positionMs = target.currentPosition,
+            playWhenReady = target.playWhenReady,
+            shuffleEnabled = target.shuffleModeEnabled,
+            repeatMode = target.repeatMode
+        )
+    }
+
+    private suspend fun rebuildPlayerForMode(mode: RenderersMode) {
+        playerRebuildMutex.lock()
+        try {
+            val snapshot = withContext(Dispatchers.Main) {
+                captureSnapshot(player)
+            }
+            val oldPlayer = player
+            val oldSession = mediaLibrarySession
+
+            val newPlayer = buildPlayerForMode(mode)
+            setupPlayerListeners(newPlayer)
+
+            val sessionUpdated = withContext(Dispatchers.Main) {
+                trySetSessionPlayer(oldSession, newPlayer)
+            }
+
+            if (sessionUpdated) {
+                withContext(Dispatchers.Main) {
+                    snapshot?.let {
+                        newPlayer.shuffleModeEnabled = it.shuffleEnabled
+                        newPlayer.repeatMode = it.repeatMode
+                        newPlayer.setMediaItems(it.mediaItems, it.currentIndex, it.positionMs)
+                        newPlayer.playWhenReady = it.playWhenReady
+                        newPlayer.prepare()
+                    }
+                    oldPlayer.release()
+                }
+
+                player = newPlayer
+                activeRenderersMode = mode
+                return
+            }
+
+            withContext(Dispatchers.Main) {
+                oldSession.release()
+                oldPlayer.release()
+            }
+
+            val newSession = buildMediaLibrarySession(newPlayer)
+
+            withContext(Dispatchers.Main) {
+                snapshot?.let {
+                    newPlayer.shuffleModeEnabled = it.shuffleEnabled
+                    newPlayer.repeatMode = it.repeatMode
+                    newPlayer.setMediaItems(it.mediaItems, it.currentIndex, it.positionMs)
+                    newPlayer.playWhenReady = it.playWhenReady
+                    newPlayer.prepare()
+                }
+            }
+
+            mediaLibrarySession = newSession
+            player = newPlayer
+            activeRenderersMode = mode
+        } finally {
+            playerRebuildMutex.unlock()
+        }
+    }
+
+    private fun trySetSessionPlayer(session: MediaLibrarySession, newPlayer: ExoPlayer): Boolean {
+        return try {
+            val method = session.javaClass.getMethod("setPlayer", Player::class.java)
+            method.invoke(session, newPlayer)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 }

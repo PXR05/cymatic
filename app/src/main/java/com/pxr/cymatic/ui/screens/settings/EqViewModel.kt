@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 
 data class EqUiState(
     val eqEnabled: Boolean = false,
+    val usbExclusiveEnabled: Boolean = false,
     val presets: List<EqPreset> = emptyList(),
     val selectedPresetName: String = "Flat",
     val activePreset: EqPreset = EqPreset.defaultPreset(),
@@ -37,11 +38,18 @@ class EqViewModel : ViewModel() {
 
     val uiState: StateFlow<EqUiState> = combine(
         SettingsStore.eqGlobalEnabledFlow,
+        SettingsStore.usbExclusiveFlow,
         SettingsStore.eqPresetsFlow,
         SettingsStore.eqSelectedPresetFlow,
         SettingsStore.activeAudioDeviceFlow,
         SettingsStore.eqDevicePresetsFlow
-    ) { enabled, presets, globalSelectedName, activeDeviceKey, devicePresets ->
+    ) { values ->
+        val enabled = values[0] as Boolean
+        val usbExclusiveEnabled = values[1] as Boolean
+        val presets = values[2] as List<EqPreset>
+        val globalSelectedName = values[3] as String
+        val activeDeviceKey = values[4] as String
+        val devicePresets = values[5] as Map<String, String>
         val deviceSelectedName = devicePresets[activeDeviceKey]
         val selectedName = deviceSelectedName ?: globalSelectedName
         val active = presets.firstOrNull { it.name == selectedName }
@@ -49,6 +57,7 @@ class EqViewModel : ViewModel() {
             ?: EqPreset.defaultPreset()
         EqUiState(
             eqEnabled = enabled,
+            usbExclusiveEnabled = usbExclusiveEnabled,
             presets = presets,
             selectedPresetName = active.name,
             activePreset = active,
@@ -60,6 +69,7 @@ class EqViewModel : ViewModel() {
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = EqUiState(
             eqEnabled = SettingsStore.currentEqGlobalEnabled,
+            usbExclusiveEnabled = SettingsStore.currentUsbExclusive,
             presets = SettingsStore.currentEqPresets,
             selectedPresetName = initialActive.name,
             activePreset = initialActive,
@@ -76,6 +86,12 @@ class EqViewModel : ViewModel() {
     fun setEnabled(enabled: Boolean) {
         viewModelScope.launch {
             SettingsStore.setEqGlobalEnabled(enabled)
+        }
+    }
+
+    fun setUsbExclusive(enabled: Boolean) {
+        viewModelScope.launch {
+            SettingsStore.setUsbExclusive(enabled)
         }
     }
 

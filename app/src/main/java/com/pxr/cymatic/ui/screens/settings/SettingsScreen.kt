@@ -31,6 +31,10 @@ fun SettingsScreen(
                     onClick = { navController.navigate("setting/storage") }
                 ),
                 NavigationItem(
+                    label = "USB Mode",
+                    onClick = { navController.navigate("setting/usb") }
+                ),
+                NavigationItem(
                     label = "Version",
                     onClick = { navController.navigate("setting/version") }
                 ),
