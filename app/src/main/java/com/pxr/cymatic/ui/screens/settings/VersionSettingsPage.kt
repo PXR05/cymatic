@@ -173,14 +173,14 @@ fun VersionSettingsScreen(
                 }
             }
 
-            HorizontalDivider(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.secondary
-            )
-
             latestRelease?.let { release ->
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+
                 val isUpdateAvailable = isVersionNewer(release.versionName, currentVersion.name)
                 Text(
                     text = if (isUpdateAvailable) {

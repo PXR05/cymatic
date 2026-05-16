@@ -25,7 +25,7 @@ fun PixelConfirmDialog(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp,
                 fontFamily = fontFamily,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 24.dp)
             )
         },
         buttons = {
