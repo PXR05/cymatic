@@ -4,9 +4,9 @@ import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.data.model.FilterType
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.log10
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.tan
 import kotlin.math.pow
 
 data class BiquadCoefficients(
@@ -30,7 +30,7 @@ data class BiquadCoefficients(
                   2.0 * a2 * cos2W
                   
         val magnitudeSquared = num / den
-        return if (magnitudeSquared > 0) 10.0 * Math.log10(magnitudeSquared) else -100.0
+        return if (magnitudeSquared > 0) 10.0 * log10(magnitudeSquared) else -100.0
     }
 
     companion object {

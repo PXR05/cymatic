@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 fun PixelSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
     var barWidthPx by remember { mutableIntStateOf(0) }

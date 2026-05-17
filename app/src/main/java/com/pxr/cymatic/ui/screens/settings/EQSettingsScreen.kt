@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.R
-import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.BaseScreen
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
@@ -283,17 +282,6 @@ fun EQSettingsScreen(
                         )
                     }
                 }
-            }
-
-            if (SettingsStore.currentUsbExclusive) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "EQ is disabled in USB Exclusive mode.",
-                    fontFamily = fontFamily,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
-                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

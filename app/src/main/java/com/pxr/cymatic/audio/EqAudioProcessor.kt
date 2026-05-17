@@ -3,12 +3,14 @@ package com.pxr.cymatic.audio
 import android.util.Log
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.AudioProcessor.AudioFormat
+import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.EqBand
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.pow
 
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@UnstableApi
 class EqAudioProcessor : AudioProcessor {
 
     private data class FilterState(
@@ -37,7 +39,7 @@ class EqAudioProcessor : AudioProcessor {
     fun updateBands(preampDb: Float, bands: List<EqBand>, sampleRate: Int) {
         val sampleRateSafe = if (sampleRate > 0) sampleRate else 44100
         val coeffs = bands.map { BiquadCoefficients.from(it, sampleRateSafe) }
-        val preampLinear = Math.pow(10.0, preampDb / 20.0).toFloat()
+        val preampLinear = 10.0.pow(preampDb / 20.0).toFloat()
         pendingUpdate.set(FilterState(coeffs, preampLinear))
     }
 

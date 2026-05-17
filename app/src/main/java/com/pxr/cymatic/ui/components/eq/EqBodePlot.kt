@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.audio.BiquadCoefficients
 import com.pxr.cymatic.data.model.EqPreset
 import kotlin.math.log10
+import kotlin.math.pow
 
 @Composable
 fun EqBodePlot(
@@ -29,7 +30,6 @@ fun EqBodePlot(
 ) {
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
     val secondaryColor = MaterialTheme.colorScheme.secondary
-    val backgroundColor = MaterialTheme.colorScheme.background
 
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -157,7 +157,7 @@ fun EqBodePlot(
 
         for (i in 0..steps) {
             val fraction = i.toDouble() / steps
-            val freq = Math.pow(10.0, minLog + fraction * logRange)
+            val freq = 10.0.pow(minLog + fraction * logRange)
             
             var totalDb = preset.preamp.toDouble()
             for (bq in biquads) {

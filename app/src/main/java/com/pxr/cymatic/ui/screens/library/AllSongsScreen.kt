@@ -7,7 +7,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.ui.components.common.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.common.AudioFileList

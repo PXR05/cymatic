@@ -78,56 +78,9 @@ import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-//private const val TAG = "MainActivity"
-
 class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var isReady by mutableStateOf(false)
-
-//    private fun handleUsbDeviceAttached(intent: Intent) {
-//        if (SettingsStore.currentUsbExclusive) {
-//            handleUsbExclusiveIntent(intent)
-//        }
-//    }
-//
-//    private fun handleUsbExclusiveIntent(intent: Intent) {
-//        if (intent.action != UsbManager.ACTION_USB_DEVICE_ATTACHED) return
-//        val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
-//        if (device == null) {
-//            Log.w(TAG, "USB_DEVICE_ATTACHED intent received without device extra")
-//            return
-//        }
-//        Log.i(TAG, "USB_DEVICE_ATTACHED: ${device.productName}")
-//        ensureUsbExclusiveConnection(device)
-//    }
-//
-//    private fun ensureUsbExclusiveConnection(device: UsbDevice? = null) {
-//        if (!SettingsStore.currentUsbExclusive) return
-//        val usbAudioDevice = UsbAudioDevice.getInstance(applicationContext)
-//        val targetDevice = device ?: usbAudioDevice.findUsbAudioDevice() ?: return
-//        if (usbAudioDevice.hasPermission(targetDevice)) {
-//            val info = usbAudioDevice.openDevice(targetDevice)
-//            if (info != null) {
-//                Log.i(TAG, "USB audio device claimed: ${info.deviceName}")
-//                UsbConnectionStore.setConnection(info.connection)
-//            }
-//        } else {
-//            usbAudioDevice.requestPermission(targetDevice) { granted ->
-//                if (granted) {
-//                    val info = usbAudioDevice.openDevice(targetDevice)
-//                    if (info != null) {
-//                        Log.i(TAG, "USB audio device claimed after permission: ${info.deviceName}")
-//                        UsbConnectionStore.setConnection(info.connection)
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-//    override fun onNewIntent(intent: Intent) {
-//        super.onNewIntent(intent)
-//        handleUsbDeviceAttached(intent)
-//    }
 
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -135,9 +88,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition { !isReady }
-
-//        handleUsbDeviceAttached(intent)
-//        ensureUsbExclusiveConnection()
 
         enableEdgeToEdge()
 
@@ -267,7 +217,6 @@ class MainActivity : ComponentActivity() {
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() },
-//                "setting/usb" to { USBSettingsScreen() },
                 "setting/version" to { VersionSettingsScreen() }
             )
 
