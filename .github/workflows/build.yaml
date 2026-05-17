@@ -155,11 +155,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: signed-apk
+          path: signed-apk
 
       - name: Download release notes
         uses: actions/download-artifact@v4
         with:
           name: release-notes
+          path: .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
