@@ -46,9 +46,9 @@ dependencies {
         exclude(group = "com.intellij", module = "annotations")
     }
 
-    implementation(project(":decent-usb-audio-driver"))
-    implementation(project(":decent-usb-audio-wrapper-media3"))
-    implementation(project(":decent-media3-decoder-flac"))
+//    implementation(project(":decent-usb-audio-driver"))
+//    implementation(project(":decent-usb-audio-wrapper-media3"))
+//    implementation(project(":decent-media3-decoder-flac"))
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)

@@ -14,14 +14,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import com.decent.usbaudio.media3.UsbAudioSink
-import com.decent.usbaudio.media3.UsbAudioSinkConfig
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
@@ -41,11 +38,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
-    private var currentUsbSink: UsbAudioSink? = null
+//    private var currentUsbSink: UsbAudioSink? = null
 
     lateinit var player: ExoPlayer
         private set
@@ -57,7 +55,7 @@ class PlaybackService : MediaLibraryService() {
     private var audioDeviceCallback: AudioDeviceCallback? = null
     private lateinit var libraryCallback: AutoMediaLibraryCallback
     private lateinit var sessionActivityPendingIntent: PendingIntent
-    private val playerRebuildMutex = kotlinx.coroutines.sync.Mutex()
+    private val playerRebuildMutex = Mutex()
     private var activeRenderersMode: RenderersMode = RenderersMode.DEFAULT
     private var pendingExclusiveUntilPlay: Boolean = false
 
@@ -209,44 +207,44 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    private fun createUsbRenderersFactory(): DefaultRenderersFactory {
-        val factory = object : DefaultRenderersFactory(this) {
-            override fun buildAudioSink(
-                context: Context,
-                enableFloatOutput: Boolean,
-                enableOffload: Boolean
-            ): AudioSink {
-                val hasLibFlac = try {
-                    Class.forName("androidx.media3.decoder.flac.LibflacAudioRenderer")
-                    true
-                } catch (_: ClassNotFoundException) {
-                    false
-                }
-
-                val useFloat = !hasLibFlac
-
-                val delegate = DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(useFloat)
-                    .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
-                    .build()
-
-                val config = UsbAudioSinkConfig(
-                    bitPerfectEnabled = true,
-                    forceRouteToSpeaker = false
-                )
-
-                return UsbAudioSink(delegate, context, config).also {
-                    currentUsbSink = it
-                }
-            }
-        }
-
-        factory.setExtensionRendererMode(
-            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-        )
-
-        return factory
-    }
+//    private fun createUsbRenderersFactory(): DefaultRenderersFactory {
+//        val factory = object : DefaultRenderersFactory(this) {
+//            override fun buildAudioSink(
+//                context: Context,
+//                enableFloatOutput: Boolean,
+//                enableOffload: Boolean
+//            ): AudioSink {
+//                val hasLibFlac = try {
+//                    Class.forName("androidx.media3.decoder.flac.LibflacAudioRenderer")
+//                    true
+//                } catch (_: ClassNotFoundException) {
+//                    false
+//                }
+//
+//                val useFloat = !hasLibFlac
+//
+//                val delegate = DefaultAudioSink.Builder(context)
+//                    .setEnableFloatOutput(useFloat)
+//                    .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
+//                    .build()
+//
+//                val config = UsbAudioSinkConfig(
+//                    bitPerfectEnabled = true,
+//                    forceRouteToSpeaker = false
+//                )
+//
+//                return UsbAudioSink(delegate, context, config).also {
+//                    currentUsbSink = it
+//                }
+//            }
+//        }
+//
+//        factory.setExtensionRendererMode(
+//            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+//        )
+//
+//        return factory
+//    }
 
     private fun registerAudioDeviceTracking() {
         fun updateActiveDevice() {
@@ -373,20 +371,21 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun buildPlayerForMode(mode: RenderersMode): ExoPlayer {
-        if (mode != RenderersMode.USB) {
-            currentUsbSink = null
-        }
+//        if (mode != RenderersMode.USB) {
+//            currentUsbSink = null
+//        }
         val renderersFactory = when (mode) {
-            RenderersMode.USB -> createUsbRenderersFactory()
+//            RenderersMode.USB -> createUsbRenderersFactory()
             RenderersMode.EQ -> createEqRenderersFactory()
             RenderersMode.DEFAULT -> DefaultRenderersFactory(this)
+            else -> DefaultRenderersFactory(this)
         }
         val loadControl = when (mode) {
-            RenderersMode.USB -> UsbAudioSink.wrapLoadControl(
-                DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(5000, 15000, 2000, 3000)
-                    .build()
-            ) { currentUsbSink?.isNativeEngineActive == true }
+//            RenderersMode.USB -> UsbAudioSink.wrapLoadControl(
+//                DefaultLoadControl.Builder()
+//                    .setBufferDurationsMs(5000, 15000, 2000, 3000)
+//                    .build()
+//            ) { currentUsbSink?.isNativeEngineActive == true }
 
             else -> DefaultLoadControl.Builder()
                 .setBufferDurationsMs(5000, 15000, 2000, 3000)
@@ -396,11 +395,11 @@ class PlaybackService : MediaLibraryService() {
             .setRenderersFactory(renderersFactory)
             .setLoadControl(loadControl)
             .build()
-            .also { newPlayer ->
-                if (mode == RenderersMode.USB) {
-                    currentUsbSink?.attachToPlayer(newPlayer)
-                }
-            }
+//            .also { newPlayer ->
+//                if (mode == RenderersMode.USB) {
+//                    currentUsbSink?.attachToPlayer(newPlayer)
+//                }
+//            }
     }
 
     private fun buildMediaLibrarySession(player: ExoPlayer): MediaLibrarySession {
@@ -537,3 +536,4 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 }
+
