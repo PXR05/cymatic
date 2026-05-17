@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSourceBitmapLoader
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -22,6 +23,7 @@ import androidx.media3.session.MediaSession
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
+import com.pxr.cymatic.auto.SquareCropBitmapLoader
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.EqPreset
@@ -403,9 +405,11 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun buildMediaLibrarySession(player: ExoPlayer): MediaLibrarySession {
+        val bitmapLoader = SquareCropBitmapLoader(DataSourceBitmapLoader(this))
         return MediaLibrarySession.Builder(this, player, libraryCallback)
             .setId("audio_session")
             .setSessionActivity(sessionActivityPendingIntent)
+            .setBitmapLoader(bitmapLoader)
             .build()
     }
 

@@ -18,6 +18,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.library.albumDisplayName
@@ -45,6 +46,9 @@ class AutoMediaLibraryCallback(
         const val PREFIX_PLAYLIST = "PLAYLIST/"
         const val PREFIX_TRACK = "TRACK/"
     }
+
+    @Volatile
+    private var lastBrowsedParentId: String? = null
 
     override fun onConnect(
         session: MediaSession,
@@ -84,19 +88,25 @@ class AutoMediaLibraryCallback(
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = scope.future(Dispatchers.IO) {
         val items: List<MediaItem> = when {
             parentId == ROOT_ID -> buildRootChildren()
-            parentId == NODE_SONGS -> buildAllSongs()
+            parentId == NODE_SONGS -> {
+                lastBrowsedParentId = parentId
+                buildAllSongs()
+            }
             parentId == NODE_ALBUMS -> buildAlbumNodes()
             parentId == NODE_ARTISTS -> buildArtistNodes()
             parentId == NODE_PLAYLISTS -> buildPlaylistNodes()
             parentId.startsWith(PREFIX_ALBUM) -> {
+                lastBrowsedParentId = parentId
                 val albumName = parentId.removePrefix(PREFIX_ALBUM)
                 buildAlbumTracks(albumName)
             }
             parentId.startsWith(PREFIX_ARTIST) -> {
+                lastBrowsedParentId = parentId
                 val artistName = parentId.removePrefix(PREFIX_ARTIST)
                 buildArtistTracks(artistName)
             }
             parentId.startsWith(PREFIX_PLAYLIST) -> {
+                lastBrowsedParentId = parentId
                 val playlistId = parentId.removePrefix(PREFIX_PLAYLIST).toLongOrNull()
                 if (playlistId != null) buildPlaylistTracks(playlistId) else emptyList()
             }
@@ -124,6 +134,87 @@ class AutoMediaLibraryCallback(
         } else {
             LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         }
+    }
+
+    override fun onAddMediaItems(
+        mediaSession: MediaSession,
+        controller: ControllerInfo,
+        mediaItems: MutableList<MediaItem>
+    ): ListenableFuture<MutableList<MediaItem>> = scope.future(Dispatchers.IO) {
+        resolveMediaItems(mediaItems)
+    }
+
+    @SuppressLint("WrongConstant")
+    override fun onSetMediaItems(
+        mediaSession: MediaSession,
+        controller: ControllerInfo,
+        mediaItems: MutableList<MediaItem>,
+        startIndex: Int,
+        startPositionMs: Long
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = scope.future(Dispatchers.IO) {
+        if (mediaItems.size == 1) {
+            val clickedId = mediaItems[0].mediaId
+            val parentId = lastBrowsedParentId
+            if (parentId != null) {
+                val fullQueue = buildQueueForParent(parentId)
+                if (fullQueue.isNotEmpty()) {
+                    val idx = fullQueue.indexOfFirst { it.mediaId == clickedId }
+                    val safeIdx = if (idx >= 0) idx else 0
+                    return@future MediaSession.MediaItemsWithStartPosition(fullQueue.toMutableList(), safeIdx, startPositionMs)
+                }
+            }
+        }
+        val resolved = resolveMediaItems(mediaItems)
+        MediaSession.MediaItemsWithStartPosition(resolved, startIndex, startPositionMs)
+    }
+
+    private suspend fun buildQueueForParent(parentId: String): List<MediaItem> = when {
+        parentId == NODE_SONGS -> buildAllSongs()
+        parentId.startsWith(PREFIX_ALBUM) -> {
+            val albumName = parentId.removePrefix(PREFIX_ALBUM)
+            buildAlbumTracks(albumName)
+        }
+        parentId.startsWith(PREFIX_ARTIST) -> {
+            val artistName = parentId.removePrefix(PREFIX_ARTIST)
+            buildArtistTracks(artistName)
+        }
+        parentId.startsWith(PREFIX_PLAYLIST) -> {
+            val playlistId = parentId.removePrefix(PREFIX_PLAYLIST).toLongOrNull()
+            if (playlistId != null) buildPlaylistTracks(playlistId) else emptyList()
+        }
+        else -> emptyList()
+    }
+
+    private suspend fun resolveMediaItems(mediaItems: List<MediaItem>): MutableList<MediaItem> {
+        val idsToFetch = mediaItems
+            .filter { it.localConfiguration?.uri == null }
+            .mapNotNull { it.mediaId.toLongOrNull() }
+
+        val fetched: Map<Long, AudioFile> = if (idsToFetch.isNotEmpty()) {
+            repository.getAudioByIds(idsToFetch).associateBy { it.id }
+        } else {
+            emptyMap()
+        }
+
+        return mediaItems.map { item ->
+            if (item.localConfiguration?.uri != null) {
+                item
+            } else {
+                val trackId = item.mediaId.toLongOrNull()
+                val audio = trackId?.let { fetched[it] }
+                if (audio != null) {
+                    buildPlayableItem(
+                        id = audio.id,
+                        title = audio.metadata.title,
+                        artist = audio.metadata.artist,
+                        artworkUriStr = audio.metadata.artworkUri?.toString(),
+                        contentUriStr = audio.uri.toString()
+                    )
+                } else {
+                    item
+                }
+            }
+        }.toMutableList()
     }
 
     private fun buildRootChildren(): List<MediaItem> = listOf(
