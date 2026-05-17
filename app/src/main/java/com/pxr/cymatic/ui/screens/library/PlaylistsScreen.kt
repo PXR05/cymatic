@@ -23,6 +23,7 @@ import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.ui.components.common.BaseScreen
 import com.pxr.cymatic.ui.components.common.NavigationItem
 import com.pxr.cymatic.ui.components.common.NavigationList
+import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
 import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,7 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
 
     var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var newPlaylistName by remember { mutableStateOf("") }
 
     fun loadPlaylists() {
@@ -51,9 +53,13 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) { loadPlaylists() }
 
     val items = playlists.map { playlist ->
-        NavigationItem(playlist.name) {
-            navController.navigate("playlist/${playlist.id}")
-        }
+        NavigationItem(
+            playlist.name,
+            onClick = {
+                navController.navigate("playlist/${playlist.id}")
+            },
+            onLongClick = { selectedPlaylist = playlist }
+        )
     }
 
     BaseScreen(
@@ -102,6 +108,29 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
             onDismiss = {
                 newPlaylistName = ""
                 showCreateDialog = false
+            }
+        )
+    }
+
+    selectedPlaylist?.let { playlist ->
+        PlaylistContextMenu(
+            playlist = playlist,
+            onDismiss = { selectedPlaylist = null },
+            onRename = { playlistId, newName ->
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        PlaylistRepository.getInstance(context).renamePlaylist(playlistId, newName)
+                    }
+                    loadPlaylists()
+                }
+            },
+            onDelete = { playlistId ->
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        PlaylistRepository.getInstance(context).deletePlaylist(playlistId)
+                    }
+                    loadPlaylists()
+                }
             }
         )
     }

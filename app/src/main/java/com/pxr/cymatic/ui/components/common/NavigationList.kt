@@ -16,7 +16,8 @@ import androidx.compose.ui.unit.sp
 data class NavigationItem(
     val label: String,
     val subLabel: String? = null,
-    val onClick: () -> Unit
+    val onLongClick: () -> Unit = { },
+    val onClick: () -> Unit = { },
 )
 
 @Composable
@@ -40,6 +41,7 @@ fun NavigationList(
                     fontSize = 20.sp
                 ),
                 onClick = item.onClick,
+                onLongClick = item.onLongClick,
                 modifier = Modifier.height(
                     if (item.subLabel != null) 76.dp else 64.dp
                 )
