@@ -26,6 +26,7 @@ import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.store.PlaybackStore
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.playback.FadingPlayer
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import com.pxr.cymatic.playback.createMediaItem
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +43,7 @@ class PlaybackService : MediaLibraryService() {
 
     lateinit var player: ExoPlayer
         private set
+    private lateinit var fadingPlayer: FadingPlayer
     private lateinit var mediaLibrarySession: MediaLibrarySession
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -65,6 +67,8 @@ class PlaybackService : MediaLibraryService() {
             .setRenderersFactory(createEqRenderersFactory())
             .build()
 
+        fadingPlayer = FadingPlayer(player, serviceScope)
+
         val audioRepository = AudioRepository.getInstance(this)
         val playlistRepository = PlaylistRepository.getInstance(this)
         val libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
@@ -75,7 +79,7 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaLibrarySession = MediaLibrarySession.Builder(this, player, libraryCallback)
+        mediaLibrarySession = MediaLibrarySession.Builder(this, fadingPlayer, libraryCallback)
             .setId("audio_session")
             .setSessionActivity(pendingIntent)
             .build()
@@ -149,7 +153,7 @@ class PlaybackService : MediaLibraryService() {
         }
         audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
         mediaLibrarySession.release()
-        player.release()
+        fadingPlayer.release()
         super.onDestroy()
     }
 
