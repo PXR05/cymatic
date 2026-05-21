@@ -1,6 +1,7 @@
 package com.pxr.cymatic.audio
 
 import android.util.Log
+import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.AudioProcessor.AudioFormat
 import androidx.media3.common.util.UnstableApi
@@ -48,8 +49,8 @@ class EqAudioProcessor : AudioProcessor {
     }
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
-        return if (inputAudioFormat.encoding == androidx.media3.common.C.ENCODING_PCM_FLOAT || 
-                   inputAudioFormat.encoding == androidx.media3.common.C.ENCODING_PCM_16BIT) {
+        return if (inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT ||
+                   inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
             inputFormat = inputAudioFormat
             outputFormat = inputAudioFormat
             isActive = true
@@ -77,7 +78,7 @@ class EqAudioProcessor : AudioProcessor {
         val channelCount = inputFormat.channelCount
         val remainingBytes = inputBuffer.remaining()
         
-        val is16Bit = inputFormat.encoding == androidx.media3.common.C.ENCODING_PCM_16BIT
+        val is16Bit = inputFormat.encoding == C.ENCODING_PCM_16BIT
         val bytesPerSample = if (is16Bit) 2 else 4
         val sampleCount = remainingBytes / bytesPerSample
 

@@ -1,7 +1,5 @@
 package com.pxr.cymatic.ui.components.player
 
-import android.view.WindowManager
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,7 +26,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,7 +56,6 @@ fun PlayerBar(
     audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier
 ) {
-    val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val navController = LocalNavController.current
@@ -74,17 +69,8 @@ fun PlayerBar(
     val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
     val baseGap = 16.dp
 
-    var screenOff by remember { mutableStateOf(false) }
+    val hideArtwork by SettingsStore.hideArtworkFlow.collectAsState(initial = SettingsStore.currentHideArtwork)
     var showInfoDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(locked) {
-        if (!locked && screenOff) {
-            screenOff = false
-            activity?.window?.attributes = activity.window.attributes.apply {
-                screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-            }
-        }
-    }
 
     SongInfoDialog(
         mediaId = currentMediaId.toLong(),
@@ -99,18 +85,13 @@ fun PlayerBar(
                 onClick = {},
                 onDoubleClick = {
                     if (!locked) return@combinedClickable
-                    screenOff = !screenOff
-                    if (screenOff) {
-                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                        activity?.window?.attributes = activity.window.attributes.apply {
-                            screenBrightness = 0f
-                        }
-                    } else {
-                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                        activity?.window?.attributes = activity.window.attributes.apply {
-                            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-                        }
+                    val newValue = !hideArtwork
+                    scope.launch {
+                        SettingsStore.setHideArtwork(newValue)
                     }
+                    haptic.performHapticFeedback(
+                        if (newValue) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
+                    )
                 },
                 onLongClick = {
                     scope.launch {
@@ -174,7 +155,7 @@ fun PlayerBar(
                 )
             }
 
-            if (screenOff) {
+            if (hideArtwork) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -185,7 +166,6 @@ fun PlayerBar(
 
         Column(
             modifier = Modifier
-                .alpha(if (screenOff) 0.75f else 1f)
                 .then(
                     if (locked) {
                         Modifier.fillMaxSize()

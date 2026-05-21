@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.session.MediaController
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import kotlinx.coroutines.delay
@@ -109,7 +110,7 @@ fun rememberPlaybackState(
                 isShuffling = shuffleModeEnabled
             }
 
-            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 totalTracks = mediaController.mediaItemCount
                 currentIndex = mediaController.currentMediaItemIndex
             }

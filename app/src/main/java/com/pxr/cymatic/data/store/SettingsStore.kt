@@ -1,6 +1,7 @@
 package com.pxr.cymatic.data.store
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -26,28 +27,19 @@ object SettingsStore {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _prefs = MutableStateFlow<Preferences?>(null)
 
-    private const val DEFAULT_THEME = "system"
-    private const val DEFAULT_TIMEOUT_MS = 30_000L
-    private const val DEFAULT_CONTROLS_SELECT = ""
-    private const val DEFAULT_CONTROLS_FORWARD = ""
-    private const val DEFAULT_CONTROLS_BACKWARD = ""
     private const val DEFAULT_LOCKED = false
     private const val DEFAULT_LAST_SCAN_TIME_MS = 0L
     private const val DEFAULT_LAST_SCAN_COUNT = 0L
     private const val DEFAULT_LAST_SCAN_DURATION_MS = 0L
     private const val DEFAULT_SCAN_ALL_MEDIA = true
-
-    private val THEME_KEY = stringPreferencesKey("THEME")
-    private val TIMEOUT_MS_KEY = longPreferencesKey("TIMEOUT_MS")
-    private val CONTROLS_SELECT_KEY = stringPreferencesKey("CONTROLS_SELECT")
-    private val CONTROLS_FORWARD_KEY = stringPreferencesKey("CONTROLS_FORWARD")
-    private val CONTROLS_BACKWARD_KEY = stringPreferencesKey("CONTROLS_BACKWARD")
+    private const val DEFAULT_HIDE_ARTWORK = false
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
     private val LAST_SCAN_COUNT_KEY = longPreferencesKey("LAST_SCAN_COUNT")
     private val LAST_SCAN_DURATION_MS_KEY = longPreferencesKey("LAST_SCAN_DURATION_MS")
     private val SCAN_DIRECTORIES_KEY = stringSetPreferencesKey("SCAN_DIRECTORIES")
     private val SCAN_ALL_MEDIA_KEY = booleanPreferencesKey("SCAN_ALL_MEDIA")
+    private val HIDE_ARTWORK_KEY = booleanPreferencesKey("HIDE_ARTWORK")
     private val EQ_PRESETS_KEY = stringPreferencesKey("EQ_PRESETS")
     private val EQ_SELECTED_PRESET_KEY = stringPreferencesKey("EQ_SELECTED_PRESET")
     private val EQ_GLOBAL_ENABLED_KEY = booleanPreferencesKey("EQ_GLOBAL_ENABLED")
@@ -75,34 +67,14 @@ object SettingsStore {
             return dataStore
         }
 
-    val themeFlow: Flow<String>
-        get() = store.data.map { prefs ->
-            prefs[THEME_KEY] ?: DEFAULT_THEME
-        }
-
-    val timeoutMsFlow: Flow<Long>
-        get() = store.data.map { prefs ->
-            prefs[TIMEOUT_MS_KEY] ?: DEFAULT_TIMEOUT_MS
-        }
-
-    val controlsSelectFlow: Flow<String>
-        get() = store.data.map { prefs ->
-            prefs[CONTROLS_SELECT_KEY] ?: DEFAULT_CONTROLS_SELECT
-        }
-
-    val controlsForwardFlow: Flow<String>
-        get() = store.data.map { prefs ->
-            prefs[CONTROLS_FORWARD_KEY] ?: DEFAULT_CONTROLS_FORWARD
-        }
-
-    val controlsBackwardFlow: Flow<String>
-        get() = store.data.map { prefs ->
-            prefs[CONTROLS_BACKWARD_KEY] ?: DEFAULT_CONTROLS_BACKWARD
-        }
-
     val lockedFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[LOCKED_KEY] ?: DEFAULT_LOCKED
+        }
+
+    val hideArtworkFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[HIDE_ARTWORK_KEY] ?: DEFAULT_HIDE_ARTWORK
         }
 
     val lastScanTimeMsFlow: Flow<Long>
@@ -130,23 +102,11 @@ object SettingsStore {
             prefs[SCAN_ALL_MEDIA_KEY] ?: DEFAULT_SCAN_ALL_MEDIA
         }
 
-    val currentTheme: String
-        get() = _prefs.value?.get(THEME_KEY) ?: DEFAULT_THEME
-
-    val currentTimeoutMs: Long
-        get() = _prefs.value?.get(TIMEOUT_MS_KEY) ?: DEFAULT_TIMEOUT_MS
-
-    val currentControlsSelect: String
-        get() = _prefs.value?.get(CONTROLS_SELECT_KEY) ?: DEFAULT_CONTROLS_SELECT
-
-    val currentControlsForward: String
-        get() = _prefs.value?.get(CONTROLS_FORWARD_KEY) ?: DEFAULT_CONTROLS_FORWARD
-
-    val currentControlsBackward: String
-        get() = _prefs.value?.get(CONTROLS_BACKWARD_KEY) ?: DEFAULT_CONTROLS_BACKWARD
-
     val currentLocked: Boolean
         get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
+
+    val currentHideArtwork: Boolean
+        get() = _prefs.value?.get(HIDE_ARTWORK_KEY) ?: DEFAULT_HIDE_ARTWORK
 
     val currentLastScanTimeMs: Long
         get() = _prefs.value?.get(LAST_SCAN_TIME_MS_KEY) ?: DEFAULT_LAST_SCAN_TIME_MS
@@ -173,6 +133,7 @@ object SettingsStore {
             }
             if (list.isEmpty()) listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset()) else list
         } catch (e: Exception) {
+            Log.e("SettingsStore", "Failed to parse EQ presets: ${e.message}")
             listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
         }
     }
@@ -223,17 +184,9 @@ object SettingsStore {
             devicePresets[activeDevice] ?: globalPreset
         }
 
-    suspend fun getTheme(): String = themeFlow.first()
-
-    suspend fun getTimeoutMs(): Long = timeoutMsFlow.first()
-
-    suspend fun getControlsSelect(): String = controlsSelectFlow.first()
-
-    suspend fun getControlsForward(): String = controlsForwardFlow.first()
-
-    suspend fun getControlsBackward(): String = controlsBackwardFlow.first()
-
     suspend fun isLocked(): Boolean = lockedFlow.first()
+
+    suspend fun getHideArtwork(): Boolean = hideArtworkFlow.first()
 
     suspend fun getLastScanTimeMs(): Long = lastScanTimeMsFlow.first()
 
@@ -245,39 +198,15 @@ object SettingsStore {
 
     suspend fun getScanAllMedia(): Boolean = scanAllMediaFlow.first()
 
-    suspend fun setTheme(value: String) {
-        store.edit { prefs ->
-            prefs[THEME_KEY] = value
-        }
-    }
-
-    suspend fun setTimeoutMs(value: Long) {
-        store.edit { prefs ->
-            prefs[TIMEOUT_MS_KEY] = value
-        }
-    }
-
-    suspend fun setControlsSelect(value: String) {
-        store.edit { prefs ->
-            prefs[CONTROLS_SELECT_KEY] = value
-        }
-    }
-
-    suspend fun setControlsForward(value: String) {
-        store.edit { prefs ->
-            prefs[CONTROLS_FORWARD_KEY] = value
-        }
-    }
-
-    suspend fun setControlsBackward(value: String) {
-        store.edit { prefs ->
-            prefs[CONTROLS_BACKWARD_KEY] = value
-        }
-    }
-
     suspend fun setLocked(value: Boolean) {
         store.edit { prefs ->
             prefs[LOCKED_KEY] = value
+        }
+    }
+
+    suspend fun setHideArtwork(value: Boolean) {
+        store.edit { prefs ->
+            prefs[HIDE_ARTWORK_KEY] = value
         }
     }
 
