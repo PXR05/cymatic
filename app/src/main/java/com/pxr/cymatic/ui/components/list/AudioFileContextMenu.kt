@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.list
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
 import com.pxr.cymatic.ui.components.primitives.PixelDialog
 import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
 

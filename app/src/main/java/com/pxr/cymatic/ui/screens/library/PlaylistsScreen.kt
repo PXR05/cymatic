@@ -20,9 +20,9 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
-import com.pxr.cymatic.ui.components.common.BaseScreen
-import com.pxr.cymatic.ui.components.common.NavigationItem
-import com.pxr.cymatic.ui.components.common.NavigationList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
 import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -42,6 +42,17 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
     var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var newPlaylistName by remember { mutableStateOf("") }
 
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+
+    val filteredPlaylists = remember(playlists, searchQuery, isSearchActive) {
+        if (isSearchActive && searchQuery.isNotEmpty()) {
+            playlists.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        } else {
+            playlists
+        }
+    }
+
     fun loadPlaylists() {
         scope.launch {
             playlists = withContext(Dispatchers.IO) {
@@ -52,7 +63,7 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) { loadPlaylists() }
 
-    val items = playlists.map { playlist ->
+    val items = filteredPlaylists.map { playlist ->
         NavigationItem(
             playlist.name,
             onClick = {
@@ -66,6 +77,10 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
         title = "Playlists",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
+        searchQuery = searchQuery,
+        onSearchQueryChange = { searchQuery = it },
+        isSearchActive = isSearchActive,
+        onSearchActiveChange = { isSearchActive = it },
         actions = {
             Text(
                 text = "+",
@@ -78,7 +93,7 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
                         indication = null,
                         interactionSource = null
                     )
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(vertical = 16.dp)
             )
         }
     ) {

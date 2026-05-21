@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Notehead: 6x6 square -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,14h6v6H6z" />
+    <!-- Stem: 2x8 vertical line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,6h2v8h-2z" />
+    <!-- Flag Top: 4x2 horizontal line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,6h4v2h-4z" />
+    <!-- Flag Tail: 2x4 vertical line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,8h2v4h-2z" />
+</vector>

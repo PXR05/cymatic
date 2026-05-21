@@ -4,13 +4,8 @@
     android:height="32dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path android:fillColor="#FFFFFF" android:pathData="M18,6h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M18,10h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M18,14h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M6,6h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M6,10h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M6,14h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M10,8h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M10,12h4v4h-4z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M14,10h4v4h-4z" />
+    <!-- Single merged path to eliminate subpixel gaps between adjacent blocks -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,6h4v2h4v2h4v-4h4v12h-4v-4h-4v2h-4v2H6v-12z" />
 </vector>

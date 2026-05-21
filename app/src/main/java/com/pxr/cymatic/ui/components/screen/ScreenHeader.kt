@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

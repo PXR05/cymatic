@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import com.pxr.cymatic.R
-import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

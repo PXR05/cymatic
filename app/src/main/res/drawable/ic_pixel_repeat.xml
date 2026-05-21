@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Loop: Top Edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,6h8v2H8z" />
+    <!-- Loop: Bottom Edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,16h8v2H8z" />
+    <!-- Loop: Left Edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,10h2v4H4z" />
+    <!-- Loop: Right Edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,10h2v4h-2z" />
+
+    <!-- Loop: Corners -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,8h2v2H6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,8h2v2h-2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,14h2v2H6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,14h2v2h-2z" />
+
+    <!-- Arrowhead 1 (Top-Right, pointing right, hook style) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,2h2v2h-2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,4h2v6h-2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,6h2v2h-2z" />
+
+    <!-- Arrowhead 2 (Bottom-Left, pointing left, hook style) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,20h2v2H8z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,14h2v6H6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,16h2v2H4z" />
+</vector>

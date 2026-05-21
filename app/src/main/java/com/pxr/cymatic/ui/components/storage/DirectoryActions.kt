@@ -72,7 +72,7 @@ fun DirectoryActions(
         fontSize = 14.sp,
         textAlign = TextAlign.Center,
         color = if (!isRescanning) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .border(1.dp, MaterialTheme.colorScheme.secondary)
             .background(MaterialTheme.colorScheme.background)

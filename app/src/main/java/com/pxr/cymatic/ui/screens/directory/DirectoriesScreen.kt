@@ -5,9 +5,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.common.BaseScreen
-import com.pxr.cymatic.ui.components.common.NavigationItem
-import com.pxr.cymatic.ui.components.common.NavigationList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 import java.io.File
 import java.net.URLEncoder

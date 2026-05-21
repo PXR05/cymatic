@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Circle: Top edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,4h8v2H8z" />
+    <!-- Circle: Bottom edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,18h8v2H8z" />
+    <!-- Circle: Left vertical edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,8h2v8H4z" />
+    <!-- Circle: Right vertical edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,8h2v8h-2z" />
+    <!-- Circle Corners (Diagonals) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,6h2v2H6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,6h2v2h-2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,16h2v2H6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,16h2v2h-2z" />
+    <!-- Short Tail (Q style) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,18h2v2h-2z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,20h2v2h-2z" />
+</vector>

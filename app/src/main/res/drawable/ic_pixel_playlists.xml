@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Row 1: Bullet and Line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,4h2v2H4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,4h12v2H8z" />
+    <!-- Row 2: Bullet and Line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,10h2v2H4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,10h12v2H8z" />
+    <!-- Row 3: Bullet and Line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,16h2v2H4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,16h12v2H8z" />
+</vector>

@@ -18,19 +18,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
-import com.pxr.cymatic.ui.components.common.NavigationItem
-import com.pxr.cymatic.ui.components.common.NavigationList
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
 fun HomeScreen() {
     val navController = LocalNavController.current
     val items = listOf(
-        NavigationItem("All Songs") { navController.navigate("all_songs") },
-        NavigationItem("Artists") { navController.navigate("artists") },
-        NavigationItem("Albums") { navController.navigate("albums") },
-        NavigationItem("Playlists") { navController.navigate("playlists") },
-        NavigationItem("Settings") { navController.navigate("settings") }
+        NavigationItem(
+            label = "All Songs",
+            onClick = { navController.navigate("all_songs") }
+        ),
+        NavigationItem(
+            label = "Artists",
+            onClick = { navController.navigate("artists") }
+        ),
+        NavigationItem(
+            label = "Albums",
+            onClick = { navController.navigate("albums") }
+        ),
+        NavigationItem(
+            label = "Playlists",
+            onClick = { navController.navigate("playlists") }
+        ),
+        NavigationItem(
+            label = "Settings",
+            onClick = { navController.navigate("settings") }
+        )
     )
     val fontFamily = FontFamily(Font(R.font.pixel))
 
@@ -45,7 +60,9 @@ fun HomeScreen() {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(24.dp, 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp, 16.dp)
             ) {
                 Text(
                     text = "/",

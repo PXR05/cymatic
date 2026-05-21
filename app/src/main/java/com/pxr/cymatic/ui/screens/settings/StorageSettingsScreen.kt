@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.storage.DirectoryActions
 import com.pxr.cymatic.ui.components.storage.DirectoryBox
 import com.pxr.cymatic.ui.components.storage.StatusBento

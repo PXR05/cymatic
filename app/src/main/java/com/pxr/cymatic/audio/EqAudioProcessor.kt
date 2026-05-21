@@ -22,13 +22,14 @@ class EqAudioProcessor : AudioProcessor {
     private val pendingUpdate = AtomicReference<FilterState?>(null)
 
     private var activeCoeffs: List<BiquadCoefficients> = emptyList()
+    private var activeCoeffsFlat = FloatArray(0)
 
     private var preampLinear: Float = 1f
 
-    private var x1 = Array(0) { FloatArray(0) }
-    private var x2 = Array(0) { FloatArray(0) }
-    private var y1 = Array(0) { FloatArray(0) }
-    private var y2 = Array(0) { FloatArray(0) }
+    private var x1 = FloatArray(0)
+    private var x2 = FloatArray(0)
+    private var y1 = FloatArray(0)
+    private var y2 = FloatArray(0)
 
     private var inputFormat: AudioFormat = AudioFormat.NOT_SET
     private var outputFormat: AudioFormat = AudioFormat.NOT_SET
@@ -100,19 +101,26 @@ class EqAudioProcessor : AudioProcessor {
                 sample *= preampLinear
 
                 for (bandIndex in activeCoeffs.indices) {
-                    val c = activeCoeffs[bandIndex]
-                    val xn = sample.toDouble()
-                    val yn = (c.b0 * xn
-                            + c.b1 * x1[bandIndex][channelIndex]
-                            + c.b2 * x2[bandIndex][channelIndex]
-                            - c.a1 * y1[bandIndex][channelIndex]
-                            - c.a2 * y2[bandIndex][channelIndex])
+                    val coeffOffset = bandIndex * 5
+                    val b0 = activeCoeffsFlat[coeffOffset + 0]
+                    val b1 = activeCoeffsFlat[coeffOffset + 1]
+                    val b2 = activeCoeffsFlat[coeffOffset + 2]
+                    val a1 = activeCoeffsFlat[coeffOffset + 3]
+                    val a2 = activeCoeffsFlat[coeffOffset + 4]
 
-                    x2[bandIndex][channelIndex] = x1[bandIndex][channelIndex]
-                    x1[bandIndex][channelIndex] = xn.toFloat()
-                    y2[bandIndex][channelIndex] = y1[bandIndex][channelIndex]
-                    y1[bandIndex][channelIndex] = yn.toFloat()
-                    sample = yn.toFloat()
+                    val stateIndex = bandIndex * channelCount + channelIndex
+                    val x1Val = x1[stateIndex]
+                    val x2Val = x2[stateIndex]
+                    val y1Val = y1[stateIndex]
+                    val y2Val = y2[stateIndex]
+
+                    val yn = b0 * sample + b1 * x1Val + b2 * x2Val - a1 * y1Val - a2 * y2Val
+
+                    x2[stateIndex] = x1Val
+                    x1[stateIndex] = sample
+                    y2[stateIndex] = y1Val
+                    y1[stateIndex] = yn
+                    sample = yn
                 }
 
                 sample = sample.coerceIn(-1f, 1f)
@@ -130,19 +138,26 @@ class EqAudioProcessor : AudioProcessor {
                 sample *= preampLinear
 
                 for (bandIndex in activeCoeffs.indices) {
-                    val c = activeCoeffs[bandIndex]
-                    val xn = sample.toDouble()
-                    val yn = (c.b0 * xn
-                            + c.b1 * x1[bandIndex][channelIndex]
-                            + c.b2 * x2[bandIndex][channelIndex]
-                            - c.a1 * y1[bandIndex][channelIndex]
-                            - c.a2 * y2[bandIndex][channelIndex])
+                    val coeffOffset = bandIndex * 5
+                    val b0 = activeCoeffsFlat[coeffOffset + 0]
+                    val b1 = activeCoeffsFlat[coeffOffset + 1]
+                    val b2 = activeCoeffsFlat[coeffOffset + 2]
+                    val a1 = activeCoeffsFlat[coeffOffset + 3]
+                    val a2 = activeCoeffsFlat[coeffOffset + 4]
 
-                    x2[bandIndex][channelIndex] = x1[bandIndex][channelIndex]
-                    x1[bandIndex][channelIndex] = xn.toFloat()
-                    y2[bandIndex][channelIndex] = y1[bandIndex][channelIndex]
-                    y1[bandIndex][channelIndex] = yn.toFloat()
-                    sample = yn.toFloat()
+                    val stateIndex = bandIndex * channelCount + channelIndex
+                    val x1Val = x1[stateIndex]
+                    val x2Val = x2[stateIndex]
+                    val y1Val = y1[stateIndex]
+                    val y2Val = y2[stateIndex]
+
+                    val yn = b0 * sample + b1 * x1Val + b2 * x2Val - a1 * y1Val - a2 * y2Val
+
+                    x2[stateIndex] = x1Val
+                    x1[stateIndex] = sample
+                    y2[stateIndex] = y1Val
+                    y1[stateIndex] = yn
+                    sample = yn
                 }
 
                 sample = sample.coerceIn(-1f, 1f)
@@ -182,28 +197,41 @@ class EqAudioProcessor : AudioProcessor {
         outputFormat = AudioFormat.NOT_SET
         isActive = false
         activeCoeffs = emptyList()
+        activeCoeffsFlat = FloatArray(0)
         preampLinear = 1f
-        x1 = Array(0) { FloatArray(0) }
-        x2 = Array(0) { FloatArray(0) }
-        y1 = Array(0) { FloatArray(0) }
-        y2 = Array(0) { FloatArray(0) }
+        x1 = FloatArray(0)
+        x2 = FloatArray(0)
+        y1 = FloatArray(0)
+        y2 = FloatArray(0)
     }
 
     private fun resetDelayLines() {
         val bands = activeCoeffs.size
         val channels = if (inputFormat != AudioFormat.NOT_SET) inputFormat.channelCount else 2
-        if (x1.size != bands || (bands > 0 && x1[0].size != channels)) {
-            x1 = Array(bands) { FloatArray(channels) }
-            x2 = Array(bands) { FloatArray(channels) }
-            y1 = Array(bands) { FloatArray(channels) }
-            y2 = Array(bands) { FloatArray(channels) }
+        val size = bands * channels
+
+        if (activeCoeffsFlat.size != bands * 5) {
+            activeCoeffsFlat = FloatArray(bands * 5)
+        }
+        for (i in 0 until bands) {
+            val c = activeCoeffs[i]
+            activeCoeffsFlat[i * 5 + 0] = c.b0.toFloat()
+            activeCoeffsFlat[i * 5 + 1] = c.b1.toFloat()
+            activeCoeffsFlat[i * 5 + 2] = c.b2.toFloat()
+            activeCoeffsFlat[i * 5 + 3] = c.a1.toFloat()
+            activeCoeffsFlat[i * 5 + 4] = c.a2.toFloat()
+        }
+
+        if (x1.size != size) {
+            x1 = FloatArray(size)
+            x2 = FloatArray(size)
+            y1 = FloatArray(size)
+            y2 = FloatArray(size)
         } else {
-            for (i in 0 until bands) {
-                x1[i].fill(0f)
-                x2[i].fill(0f)
-                y1[i].fill(0f)
-                y2[i].fill(0f)
-            }
+            x1.fill(0f)
+            x2.fill(0f)
+            y1.fill(0f)
+            y2.fill(0f)
         }
     }
 }

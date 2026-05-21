@@ -12,10 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.playback.handleItemClick
-import com.pxr.cymatic.ui.components.common.AudioFileList
-import com.pxr.cymatic.ui.components.common.BaseScreen
-import com.pxr.cymatic.ui.components.common.NavigationItem
-import com.pxr.cymatic.ui.components.common.NavigationList
+import com.pxr.cymatic.ui.components.list.AudioFileList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import java.io.File
@@ -32,10 +32,6 @@ fun DirectoryScreen(
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
     val dirName = File(directory).name.substringAfterLast(':').ifEmpty { "/" }
-
-    // get items in path
-    // directories on top, then files
-    // directories use navigation list, files use audio file list
 
     val directories = remember(directory) {
         buildNavigationItems(context, navController, directory)

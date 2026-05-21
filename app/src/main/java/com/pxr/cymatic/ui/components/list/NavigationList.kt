@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.list
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 data class NavigationItem(
     val label: String,
     val subLabel: String? = null,
+    val icon: @Composable (() -> Unit)? = null,
     val onLongClick: () -> Unit = { },
     val onClick: () -> Unit = { },
 )
@@ -35,6 +36,7 @@ fun NavigationList(
             ListItem(
                 label = item.label,
                 subLabel = item.subLabel,
+                icon = item.icon,
                 trailing = ">",
                 trailingStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onBackground,

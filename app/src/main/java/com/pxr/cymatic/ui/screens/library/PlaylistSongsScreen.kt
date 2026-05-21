@@ -12,9 +12,9 @@ import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.playback.handleItemClick
-import com.pxr.cymatic.ui.components.common.AudioFileContextMenu
-import com.pxr.cymatic.ui.components.common.AudioFileList
-import com.pxr.cymatic.ui.components.common.BaseScreen
+import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
+import com.pxr.cymatic.ui.components.list.AudioFileList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController

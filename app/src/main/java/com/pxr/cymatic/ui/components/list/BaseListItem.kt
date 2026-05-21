@@ -1,9 +1,10 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.list
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +35,7 @@ fun ListItem(
     trailing: String? = null,
     trailingStyle: TextStyle = TextStyle.Default,
     isActive: Boolean = false,
+    icon: @Composable (() -> Unit)? = null,
     onClick: () -> Unit = { },
     onLongClick: () -> Unit = { }
 ) {
@@ -90,6 +92,11 @@ fun ListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        if (icon != null) {
+            Box(modifier = Modifier.padding(end = 16.dp)) {
+                icon()
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,

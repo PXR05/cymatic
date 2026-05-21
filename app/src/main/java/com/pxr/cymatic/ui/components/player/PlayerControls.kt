@@ -1,8 +1,11 @@
 package com.pxr.cymatic.ui.components.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,10 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -47,18 +48,18 @@ fun Controls(
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
     ) {
-        Text(
+        Icon(
+            painter = painterResource(R.drawable.ic_pixel_shuffle),
+            contentDescription = "Shuffle",
+            tint = shuffleColor,
             modifier = Modifier
-                .padding(16.dp)
+                .size(56.dp)
                 .clickable(
                     onClick = onClick["shuffle"] ?: {},
                     indication = null,
                     interactionSource = null
-                ),
-            text = "S",
-            color = shuffleColor,
-            fontSize = 16.sp,
-            fontFamily = fontFamily,
+                )
+                .padding(16.dp)
         )
 
         Icon(
@@ -99,26 +100,38 @@ fun Controls(
                     interactionSource = null
                 )
         )
-        Text(
+        Box(
+            contentAlignment = Alignment.BottomEnd,
             modifier = Modifier
-                .padding(16.dp)
+                .size(56.dp)
                 .clickable(
                     onClick = onClick["repeat"] ?: {},
                     indication = null,
                     interactionSource = null
-                ),
-            text = buildAnnotatedString {
-                append("R")
-                when (repeatMode) {
-                    Player.REPEAT_MODE_ONE -> withStyle(subscript) { append("1") }
-                    Player.REPEAT_MODE_ALL -> withStyle(subscript) { append("A") }
-                    else -> withStyle(subscript) { append("0") }
-                }
-            },
-            color = repeatColor,
-            fontSize = 16.sp,
-            fontFamily = fontFamily,
-        )
+                )
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_pixel_repeat),
+                contentDescription = "Repeat",
+                tint = repeatColor,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            )
+            if (repeatMode == Player.REPEAT_MODE_ONE) {
+                Text(
+                    text = "1",
+                    color = activeColor,
+                    fontSize = 10.sp,
+                    fontFamily = fontFamily,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 12.dp, end = 12.dp)
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(horizontal = 2.dp)
+                )
+            }
+        }
     }
 }
 

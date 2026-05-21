@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Head: 6x6 square -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9,4h6v6H9z" />
+    <!-- Neck: 2x2 square -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11,10h2v2h-2z" />
+    <!-- Shoulders top tier -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,12h10v2H7z" />
+    <!-- Shoulders middle tier -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,14h14v2H5z" />
+    <!-- Shoulders bottom tier / chest -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3,16h18v2H3z" />
+</vector>

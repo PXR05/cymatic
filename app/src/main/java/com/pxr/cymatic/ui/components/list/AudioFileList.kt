@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.common
+package com.pxr.cymatic.ui.components.list
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
