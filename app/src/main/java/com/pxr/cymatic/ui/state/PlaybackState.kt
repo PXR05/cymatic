@@ -113,6 +113,15 @@ fun rememberPlaybackState(
                 totalTracks = mediaController.mediaItemCount
                 currentIndex = mediaController.currentMediaItemIndex
             }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                currentPositionMs = mediaController.currentPosition
+                bufferedPositionMs = mediaController.bufferedPosition
+            }
         }
 
         mediaController.addListener(listener)
