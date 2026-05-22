@@ -2,6 +2,7 @@ package com.pxr.cymatic
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -142,19 +144,7 @@ class MainActivity : ComponentActivity() {
                 isReady = true
             }
 
-            LaunchedEffect(locked) {
-                val windowInsetsController =
-                    WindowCompat.getInsetsController(window, window.decorView)
-                if (locked) {
-                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
-                    windowInsetsController.systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                } else {
-                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
-                    windowInsetsController.systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
-                }
-            }
+
 
             LaunchedEffect(lastScanTimeMs) {
                 if (lastScanTimeMs <= 0L) return@LaunchedEffect
@@ -226,10 +216,29 @@ class MainActivity : ComponentActivity() {
                     LocalNavController provides navController
                 ) {
                     val playbackState = rememberPlaybackState(mediaController)
+                    val configuration = LocalConfiguration.current
+                    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+                    val hasPlayback = playbackState.currentMediaId != null && playbackState.totalTracks > 0
+                    val isDocked = isLandscape && hasPlayback
+                    val isPlayerExpanded = locked || isDocked
+
+                    LaunchedEffect(isPlayerExpanded) {
+                        val windowInsetsController =
+                            WindowCompat.getInsetsController(window, window.decorView)
+                        if (isPlayerExpanded) {
+                            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+                            windowInsetsController.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        } else {
+                            windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                            windowInsetsController.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+                        }
+                    }
 
                     Surface(modifier = Modifier.fillMaxSize()) {
                         Column {
-                            if (!locked) {
+                            if (!isPlayerExpanded) {
                                 NavHost(
                                     navController = navController,
                                     startDestination = "home",
@@ -254,7 +263,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             ) {
                                 if (playbackState.currentMediaId != null && playbackState.totalTracks > 0) {
-                                    if (!locked) {
+                                    if (!isPlayerExpanded) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -267,11 +276,12 @@ class MainActivity : ComponentActivity() {
 
                                     PlayerBar(
                                         audioFiles = audioFiles,
-                                        modifier = if (locked) Modifier.weight(1f) else Modifier
+                                        modifier = if (isPlayerExpanded) Modifier.weight(1f) else Modifier,
+                                        isDocked = isDocked
                                     )
                                 }
 
-                                if (!locked) {
+                                if (!isPlayerExpanded) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()

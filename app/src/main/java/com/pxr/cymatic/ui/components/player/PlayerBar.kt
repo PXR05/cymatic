@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +38,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -43,6 +48,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -54,7 +60,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlayerBar(
     audioFiles: List<AudioFile>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDocked: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -84,7 +91,7 @@ fun PlayerBar(
             .combinedClickable(
                 onClick = {},
                 onDoubleClick = {
-                    if (!locked) return@combinedClickable
+                    if (!locked && !isDocked) return@combinedClickable
                     val newValue = !hideArtwork
                     scope.launch {
                         SettingsStore.setHideArtwork(newValue)
@@ -103,7 +110,7 @@ fun PlayerBar(
                 interactionSource = null
             ),
     ) {
-        if (locked) {
+        if (locked || isDocked) {
             AsyncImage(
                 model = ImageRequest
                     .Builder(LocalContext.current)
@@ -114,7 +121,13 @@ fun PlayerBar(
                 contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.None,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .then(
+                        if (isDocked) {
+                            Modifier.fillMaxWidth().aspectRatio(1f)
+                        } else {
+                            Modifier.fillMaxHeight()
+                        }
+                    )
                     .blur(32.dp)
             )
 
@@ -134,25 +147,27 @@ fun PlayerBar(
                     )
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = ImageRequest
-                        .Builder(LocalContext.current)
-                        .data(metadata.artworkUri)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = metadata.album,
-                    contentScale = ContentScale.Crop,
-                    filterQuality = FilterQuality.High,
+            if (locked && !isDocked) {
+                Box(
                     modifier = Modifier
-                        .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                )
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = ImageRequest
+                            .Builder(LocalContext.current)
+                            .data(metadata.artworkUri)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = metadata.album,
+                        contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.High,
+                        modifier = Modifier
+                            .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                    )
+                }
             }
 
             if (hideArtwork) {
@@ -164,152 +179,345 @@ fun PlayerBar(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .then(
-                    if (locked) {
-                        Modifier.fillMaxSize()
-                    } else {
-                        Modifier.fillMaxWidth()
-                    }
-                ),
-            verticalArrangement = Arrangement.Bottom,
-        ) {
+        if (isDocked) {
+            val layoutDirection = LocalLayoutDirection.current
+            val safeDrawingPaddingValues = WindowInsets.safeDrawing.asPaddingValues()
+            val leftPadding = safeDrawingPaddingValues.calculateLeftPadding(layoutDirection)
+            val rightPadding = safeDrawingPaddingValues.calculateRightPadding(layoutDirection)
+            val maxHorizontalPadding = maxOf(leftPadding, rightPadding)
+            val topPadding = safeDrawingPaddingValues.calculateTopPadding()
+            val bottomPadding = safeDrawingPaddingValues.calculateBottomPadding()
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-            ) {
-                Text(
-                    text = "${playbackState.currentIndex + 1} of ${playbackState.totalTracks}",
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontSize = 14.sp,
-                    fontFamily = fontFamily,
-                    modifier = Modifier
-                        .padding(vertical = 2.dp)
-                        .clickable(
-                            onClick = {
-                                if (playbackState.queueSource != null && !locked) {
-                                    navController.navigate(
-                                        playbackState.queueSource + "?scrollId=${playbackState.currentMediaId}"
-                                    ) {
-                                        launchSingleTop = true
-                                    }
-                                }
-                            },
-                            indication = null,
-                            interactionSource = null
-                        )
-                )
-
-                FileInfo(
-                    metadata = metadata,
-                    modifier = Modifier.clickable(
-                        onClick = {
-                            if (!locked) {
-                                showInfoDialog = true
-                            }
-                        },
-                        indication = null,
-                        interactionSource = null
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(baseGap))
-
-            Row(
+                    .fillMaxSize()
+                    .padding(
+                        start = maxHorizontalPadding + 48.dp,
+                        end = maxHorizontalPadding + 48.dp,
+                        top = topPadding + 48.dp,
+                        bottom = bottomPadding + 48.dp
+                    ),
                 verticalAlignment = Alignment.Bottom,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                horizontalArrangement = Arrangement.spacedBy(48.dp)
             ) {
-                Info(
-                    metadata,
-                    titleSize = 20.sp,
-                    artistSize = 14.sp,
-                    gap = 2.dp,
-                    modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f)
-                )
-                if (locked) {
-                    if (playbackState.isShuffling || playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    if (playbackState.isShuffling) {
-                        Text(
-                            text = "SHUF",
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 14.sp,
-                            fontFamily = fontFamily,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-
-                    if (playbackState.repeatMode != Player.REPEAT_MODE_OFF) {
-                        Text(
-                            text = when (playbackState.repeatMode) {
-                                Player.REPEAT_MODE_ALL -> "ALL"
-                                Player.REPEAT_MODE_ONE -> "ONE"
-                                else -> ""
-                            },
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 14.sp,
-                            fontFamily = fontFamily,
-                            modifier = Modifier.padding(start = 8.dp)
+                if (!hideArtwork) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest
+                                .Builder(LocalContext.current)
+                                .data(metadata.artworkUri)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = metadata.album,
+                            contentScale = ContentScale.Crop,
+                            filterQuality = FilterQuality.High,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .aspectRatio(1f)
                         )
                     }
                 }
+
+                Column(
+                    modifier = Modifier.weight(if (hideArtwork) 1f else 1.2f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TrackQueueIndex(
+                            currentIndex = playbackState.currentIndex,
+                            totalTracks = playbackState.totalTracks,
+                            queueSource = playbackState.queueSource,
+                            currentMediaId = playbackState.currentMediaId,
+                            locked = locked,
+                            fontFamily = fontFamily,
+                            navController = navController
+                        )
+
+                        TrackFileInfo(
+                            metadata = metadata,
+                            locked = locked,
+                            onShowInfo = { showInfoDialog = true }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    TrackInfoAndStatus(
+                        metadata = metadata,
+                        isShuffling = playbackState.isShuffling,
+                        repeatMode = playbackState.repeatMode,
+                        locked = locked,
+                        fontFamily = fontFamily,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    TrackProgressBar(
+                        currentPosition = playbackState.currentPositionMs,
+                        durationMs = playbackState.durationMs ?: 0L,
+                        locked = locked,
+                        onSeek = { mediaController.seekTo(it) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    TrackControls(
+                        isPlaying = playbackState.isPlaying,
+                        isShuffling = playbackState.isShuffling,
+                        repeatMode = playbackState.repeatMode,
+                        locked = locked,
+                        mediaController = mediaController
+                    )
+                }
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .then(
+                        if (locked) {
+                            Modifier.fillMaxSize()
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
+                    ),
+                verticalArrangement = Arrangement.Bottom,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                ) {
+                    TrackQueueIndex(
+                        currentIndex = playbackState.currentIndex,
+                        totalTracks = playbackState.totalTracks,
+                        queueSource = playbackState.queueSource,
+                        currentMediaId = playbackState.currentMediaId,
+                        locked = locked,
+                        fontFamily = fontFamily,
+                        navController = navController
+                    )
 
-            Spacer(modifier = Modifier.height(baseGap * 1.5f))
+                    TrackFileInfo(
+                        metadata = metadata,
+                        locked = locked,
+                        onShowInfo = { showInfoDialog = true }
+                    )
+                }
 
-            ProgressBar(
-                currentPosition = playbackState.currentPositionMs,
-                durationMs = playbackState.durationMs ?: 0L,
-                onSeek = { targetMs ->
-                    if (locked) return@ProgressBar
-                    mediaController.seekTo(targetMs)
-                },
-                seekEnabled = !locked,
-                modifier = Modifier.padding(horizontal = 24.dp),
-                showNumber = false,
-            )
+                Spacer(modifier = Modifier.height(baseGap))
 
-            Spacer(modifier = Modifier.height(baseGap))
+                TrackInfoAndStatus(
+                    metadata = metadata,
+                    isShuffling = playbackState.isShuffling,
+                    repeatMode = playbackState.repeatMode,
+                    locked = locked,
+                    fontFamily = fontFamily,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                )
 
-            if (!locked) {
-                Controls(
+                Spacer(modifier = Modifier.height(baseGap * 1.5f))
+
+                TrackProgressBar(
+                    currentPosition = playbackState.currentPositionMs,
+                    durationMs = playbackState.durationMs ?: 0L,
+                    locked = locked,
+                    onSeek = { mediaController.seekTo(it) },
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+
+                Spacer(modifier = Modifier.height(baseGap))
+
+                TrackControls(
                     isPlaying = playbackState.isPlaying,
                     isShuffling = playbackState.isShuffling,
                     repeatMode = playbackState.repeatMode,
-                    onClick = mapOf(
-                        "shuffle" to {
-                            mediaController.shuffleModeEnabled = !playbackState.isShuffling
-                        },
-                        "previous" to { mediaController.seekToPrevious() },
-                        "play_pause" to {
-                            if (playbackState.isPlaying) mediaController.pause()
-                            else mediaController.play()
-                        },
-                        "next" to { mediaController.seekToNext() },
-                        "repeat" to {
-                            val newMode = when (playbackState.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                            mediaController.repeatMode = newMode
+                    locked = locked,
+                    mediaController = mediaController
+                )
+
+                Spacer(modifier = Modifier.height(baseGap * 1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackQueueIndex(
+    currentIndex: Int,
+    totalTracks: Int,
+    queueSource: String?,
+    currentMediaId: String?,
+    locked: Boolean,
+    fontFamily: FontFamily,
+    navController: androidx.navigation.NavController,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = "${currentIndex + 1} of $totalTracks",
+        color = MaterialTheme.colorScheme.secondary,
+        fontSize = 14.sp,
+        fontFamily = fontFamily,
+        modifier = modifier
+            .padding(vertical = 2.dp)
+            .clickable(
+                onClick = {
+                    if (queueSource != null && !locked) {
+                        navController.navigate(
+                            "$queueSource?scrollId=$currentMediaId"
+                        ) {
+                            launchSingleTop = true
                         }
-                    )
+                    }
+                },
+                indication = null,
+                interactionSource = null
+            )
+    )
+}
+
+@Composable
+private fun TrackFileInfo(
+    metadata: AudioMetadata,
+    locked: Boolean,
+    onShowInfo: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FileInfo(
+        metadata = metadata,
+        modifier = modifier.clickable(
+            onClick = {
+                if (!locked) {
+                    onShowInfo()
+                }
+            },
+            indication = null,
+            interactionSource = null
+        )
+    )
+}
+
+@Composable
+private fun TrackInfoAndStatus(
+    metadata: AudioMetadata,
+    isShuffling: Boolean,
+    repeatMode: Int,
+    locked: Boolean,
+    fontFamily: FontFamily,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        modifier = modifier
+    ) {
+        Info(
+            metadata,
+            titleSize = 20.sp,
+            artistSize = 14.sp,
+            gap = 2.dp,
+            modifier = Modifier
+                .height(48.dp)
+                .weight(1f)
+        )
+        if (locked) {
+            if (isShuffling || repeatMode != Player.REPEAT_MODE_OFF) {
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            if (isShuffling) {
+                Text(
+                    text = "SHUF",
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 14.sp,
+                    fontFamily = fontFamily,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(baseGap * 1f))
+            if (repeatMode != Player.REPEAT_MODE_OFF) {
+                Text(
+                    text = when (repeatMode) {
+                        Player.REPEAT_MODE_ALL -> "ALL"
+                        Player.REPEAT_MODE_ONE -> "ONE"
+                        else -> ""
+                    },
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 14.sp,
+                    fontFamily = fontFamily,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun TrackProgressBar(
+    currentPosition: Long,
+    durationMs: Long,
+    locked: Boolean,
+    onSeek: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ProgressBar(
+        currentPosition = currentPosition,
+        durationMs = durationMs,
+        onSeek = { targetMs ->
+            if (locked) return@ProgressBar
+            onSeek(targetMs)
+        },
+        seekEnabled = !locked,
+        modifier = modifier,
+        showNumber = false,
+    )
+}
+
+@Composable
+private fun TrackControls(
+    isPlaying: Boolean,
+    isShuffling: Boolean,
+    repeatMode: Int,
+    locked: Boolean,
+    mediaController: androidx.media3.session.MediaController
+) {
+    if (!locked) {
+        Controls(
+            isPlaying = isPlaying,
+            isShuffling = isShuffling,
+            repeatMode = repeatMode,
+            onClick = mapOf(
+                "shuffle" to {
+                    mediaController.shuffleModeEnabled = !isShuffling
+                },
+                "previous" to { mediaController.seekToPrevious() },
+                "play_pause" to {
+                    if (isPlaying) mediaController.pause()
+                    else mediaController.play()
+                },
+                "next" to { mediaController.seekToNext() },
+                "repeat" to {
+                    val newMode = when (repeatMode) {
+                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                        else -> Player.REPEAT_MODE_OFF
+                    }
+                    mediaController.repeatMode = newMode
+                }
+            )
+        )
     }
 }
