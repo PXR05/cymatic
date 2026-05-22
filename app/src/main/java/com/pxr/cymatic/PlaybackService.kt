@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -50,6 +52,7 @@ class PlaybackService : MediaLibraryService() {
     private val eqAudioProcessor = EqAudioProcessor()
     private lateinit var audioManager: AudioManager
     private var audioDeviceCallback: AudioDeviceCallback? = null
+    private var lastSavedPositionMs = -1L
 
     override fun onCreate() {
         super.onCreate()
@@ -116,8 +119,13 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             while (isActive) {
-                persistPlaybackState()
-                delay(5_000L)
+                delay(20_000L)
+                val shouldSave = withContext(Dispatchers.Main) {
+                    player.isPlaying && abs(player.currentPosition - lastSavedPositionMs) >= 20_000L
+                }
+                if (shouldSave) {
+                    persistPlaybackState()
+                }
             }
         }
 
@@ -181,16 +189,32 @@ class PlaybackService : MediaLibraryService() {
     ) {
         if (!enabled) {
             eqAudioProcessor.disable()
-            return
+        } else {
+            val preset = presets.firstOrNull { it.name == selectedName }
+                ?: presets.firstOrNull()
+                ?: EqPreset.defaultPreset()
+            val sampleRate = withContext(Dispatchers.Main) {
+                player.audioFormat?.sampleRate ?: 44100
+            }
+            Log.d("PlaybackService", "Applying EQ preset '${preset.name}' at ${sampleRate}Hz")
+            eqAudioProcessor.updateBands(preset.preamp, preset.bands, sampleRate)
         }
-        val preset = presets.firstOrNull { it.name == selectedName }
-            ?: presets.firstOrNull()
-            ?: EqPreset.defaultPreset()
-        val sampleRate = withContext(Dispatchers.Main) {
-            player.audioFormat?.sampleRate ?: 44100
+
+        withContext(Dispatchers.Main) {
+            val offloadMode = if (enabled) {
+                TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+            } else {
+                TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+            }
+            val audioOffloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                .setAudioOffloadMode(offloadMode)
+                .setIsGaplessSupportRequired(true)
+                .build()
+            player.trackSelectionParameters = player.trackSelectionParameters
+                .buildUpon()
+                .setAudioOffloadPreferences(audioOffloadPreferences)
+                .build()
         }
-        Log.d("PlaybackService", "Applying EQ preset '${preset.name}' at ${sampleRate}Hz")
-        eqAudioProcessor.updateBands(preset.preamp, preset.bands, sampleRate)
     }
 
     // --- Audio device tracking ---
@@ -221,7 +245,13 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             try {
                 val state = withContext(Dispatchers.Main) { buildPersistedState() }
-                if (state == null) PlaybackStore.clear() else PlaybackStore.saveState(state)
+                if (state == null) {
+                    PlaybackStore.clear()
+                    lastSavedPositionMs = -1L
+                } else {
+                    PlaybackStore.saveState(state)
+                    lastSavedPositionMs = state.positionMs
+                }
             } catch (e: Exception) {
                 Log.e("PlaybackService", "Failed to persist playback state", e)
             }
@@ -264,7 +294,7 @@ class PlaybackService : MediaLibraryService() {
     private fun buildPersistedState(): PlaybackStore.PersistedPlaybackState? {
         val queueIds: MutableList<Long> = mutableListOf()
         for (i in 0 until player.mediaItemCount) {
-            val mediaId = player.getMediaItemAt(i).mediaId ?: continue
+            val mediaId = player.getMediaItemAt(i).mediaId
             val id = mediaId.toLongOrNull() ?: continue
             queueIds.add(id)
         }

@@ -73,10 +73,7 @@ fun StorageSettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             DirectoryActions(
-                directories = directories,
-                modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .height(32.dp)
+                directories = directories
             )
 
             Spacer(modifier = Modifier.height(16.dp))

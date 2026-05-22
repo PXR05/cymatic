@@ -6,6 +6,8 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.AudioProcessor.AudioFormat
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.EqBand
+import com.pxr.cymatic.data.model.FilterType
+import com.pxr.cymatic.data.store.SettingsStore
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
@@ -40,7 +42,14 @@ class EqAudioProcessor : AudioProcessor {
 
     fun updateBands(preampDb: Float, bands: List<EqBand>, sampleRate: Int) {
         val sampleRateSafe = if (sampleRate > 0) sampleRate else 44100
-        val coeffs = bands.map { BiquadCoefficients.from(it, sampleRateSafe) }
+        val activeBands = bands.filter { band ->
+            band.enabled && !(
+                    (band.type == FilterType.PEAKING ||
+                            band.type == FilterType.LOW_SHELF ||
+                            band.type == FilterType.HIGH_SHELF) && band.gain == 0.0f
+                    )
+        }
+        val coeffs = activeBands.map { BiquadCoefficients.from(it, sampleRateSafe) }
         val preampLinear = 10.0.pow(preampDb / 20.0).toFloat()
         pendingUpdate.set(FilterState(coeffs, preampLinear))
     }
@@ -51,7 +60,7 @@ class EqAudioProcessor : AudioProcessor {
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
         return if (inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT ||
-                   inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
+            inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
             inputFormat = inputAudioFormat
             outputFormat = inputAudioFormat
             isActive = true
@@ -64,7 +73,7 @@ class EqAudioProcessor : AudioProcessor {
         }
     }
 
-    override fun isActive(): Boolean = isActive
+    override fun isActive(): Boolean = isActive && SettingsStore.currentEqGlobalEnabled
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         pendingUpdate.getAndSet(null)?.let { update ->
@@ -78,8 +87,18 @@ class EqAudioProcessor : AudioProcessor {
 
         val channelCount = inputFormat.channelCount
         val remainingBytes = inputBuffer.remaining()
-        
         val is16Bit = inputFormat.encoding == C.ENCODING_PCM_16BIT
+
+        if (activeCoeffs.isEmpty() && preampLinear == 1.0f) {
+            if (outputBuffer.capacity() < remainingBytes) {
+                outputBuffer = ByteBuffer.allocateDirect(remainingBytes).order(ByteOrder.nativeOrder())
+            }
+            outputBuffer.clear()
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
+            return
+        }
+
         val bytesPerSample = if (is16Bit) 2 else 4
         val sampleCount = remainingBytes / bytesPerSample
 
@@ -88,43 +107,57 @@ class EqAudioProcessor : AudioProcessor {
         }
         outputBuffer.clear()
 
+        val coeffsFlat = activeCoeffsFlat
+        val stateX1 = x1
+        val stateX2 = x2
+        val stateY1 = y1
+        val stateY2 = y2
+        val bandsCount = activeCoeffs.size
+
         var sampleIndex = 0
-        
+        var channelIndex = 0
+
         if (is16Bit) {
             val inputShorts = inputBuffer.asShortBuffer()
             val outputShorts = outputBuffer.asShortBuffer()
-            
-            while (sampleIndex < sampleCount) {
-                val channelIndex = sampleIndex % channelCount
-                var sample = inputShorts.get().toFloat() / 32768f
 
+            while (sampleIndex < sampleCount) {
+                var sample = inputShorts.get().toFloat() / 32768f
                 sample *= preampLinear
 
-                for (bandIndex in activeCoeffs.indices) {
-                    val coeffOffset = bandIndex * 5
-                    val b0 = activeCoeffsFlat[coeffOffset + 0]
-                    val b1 = activeCoeffsFlat[coeffOffset + 1]
-                    val b2 = activeCoeffsFlat[coeffOffset + 2]
-                    val a1 = activeCoeffsFlat[coeffOffset + 3]
-                    val a2 = activeCoeffsFlat[coeffOffset + 4]
+                var stateIndex = channelIndex
+                var coeffOffset = 0
+                for (bandIndex in 0 until bandsCount) {
+                    val b0 = coeffsFlat[coeffOffset]
+                    val b1 = coeffsFlat[coeffOffset + 1]
+                    val b2 = coeffsFlat[coeffOffset + 2]
+                    val a1 = coeffsFlat[coeffOffset + 3]
+                    val a2 = coeffsFlat[coeffOffset + 4]
 
-                    val stateIndex = bandIndex * channelCount + channelIndex
-                    val x1Val = x1[stateIndex]
-                    val x2Val = x2[stateIndex]
-                    val y1Val = y1[stateIndex]
-                    val y2Val = y2[stateIndex]
+                    val x1Val = stateX1[stateIndex]
+                    val x2Val = stateX2[stateIndex]
+                    val y1Val = stateY1[stateIndex]
+                    val y2Val = stateY2[stateIndex]
 
                     val yn = b0 * sample + b1 * x1Val + b2 * x2Val - a1 * y1Val - a2 * y2Val
 
-                    x2[stateIndex] = x1Val
-                    x1[stateIndex] = sample
-                    y2[stateIndex] = y1Val
-                    y1[stateIndex] = yn
+                    stateX2[stateIndex] = x1Val
+                    stateX1[stateIndex] = sample
+                    stateY2[stateIndex] = y1Val
+                    stateY1[stateIndex] = yn
                     sample = yn
+
+                    stateIndex += channelCount
+                    coeffOffset += 5
                 }
 
                 sample = sample.coerceIn(-1f, 1f)
                 outputShorts.put((sample * 32767f).toInt().toShort())
+
+                channelIndex++
+                if (channelIndex >= channelCount) {
+                    channelIndex = 0
+                }
                 sampleIndex++
             }
         } else {
@@ -132,36 +165,42 @@ class EqAudioProcessor : AudioProcessor {
             val outputFloats = outputBuffer.asFloatBuffer()
 
             while (sampleIndex < sampleCount) {
-                val channelIndex = sampleIndex % channelCount
                 var sample = inputFloats.get()
-
                 sample *= preampLinear
 
-                for (bandIndex in activeCoeffs.indices) {
-                    val coeffOffset = bandIndex * 5
-                    val b0 = activeCoeffsFlat[coeffOffset + 0]
-                    val b1 = activeCoeffsFlat[coeffOffset + 1]
-                    val b2 = activeCoeffsFlat[coeffOffset + 2]
-                    val a1 = activeCoeffsFlat[coeffOffset + 3]
-                    val a2 = activeCoeffsFlat[coeffOffset + 4]
+                var stateIndex = channelIndex
+                var coeffOffset = 0
+                for (bandIndex in 0 until bandsCount) {
+                    val b0 = coeffsFlat[coeffOffset]
+                    val b1 = coeffsFlat[coeffOffset + 1]
+                    val b2 = coeffsFlat[coeffOffset + 2]
+                    val a1 = coeffsFlat[coeffOffset + 3]
+                    val a2 = coeffsFlat[coeffOffset + 4]
 
-                    val stateIndex = bandIndex * channelCount + channelIndex
-                    val x1Val = x1[stateIndex]
-                    val x2Val = x2[stateIndex]
-                    val y1Val = y1[stateIndex]
-                    val y2Val = y2[stateIndex]
+                    val x1Val = stateX1[stateIndex]
+                    val x2Val = stateX2[stateIndex]
+                    val y1Val = stateY1[stateIndex]
+                    val y2Val = stateY2[stateIndex]
 
                     val yn = b0 * sample + b1 * x1Val + b2 * x2Val - a1 * y1Val - a2 * y2Val
 
-                    x2[stateIndex] = x1Val
-                    x1[stateIndex] = sample
-                    y2[stateIndex] = y1Val
-                    y1[stateIndex] = yn
+                    stateX2[stateIndex] = x1Val
+                    stateX1[stateIndex] = sample
+                    stateY2[stateIndex] = y1Val
+                    stateY1[stateIndex] = yn
                     sample = yn
+
+                    stateIndex += channelCount
+                    coeffOffset += 5
                 }
 
                 sample = sample.coerceIn(-1f, 1f)
                 outputFloats.put(sample)
+
+                channelIndex++
+                if (channelIndex >= channelCount) {
+                    channelIndex = 0
+                }
                 sampleIndex++
             }
         }
