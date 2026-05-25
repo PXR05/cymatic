@@ -55,8 +55,7 @@ fun ScreenHeader(
             modifier = Modifier
                 .weight(1f)
                 .padding(
-                    bottom = 16.dp,
-                    top = if (isTitleCJK) 20.dp else 16.dp
+                    vertical = 16.dp
                 )
         )
         actions()

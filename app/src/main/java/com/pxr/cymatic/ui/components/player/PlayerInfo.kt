@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -142,9 +141,6 @@ fun Info(
             style = titleFontStyle,
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(
-                    top = if (isTitleCJK) 6.dp else 0.dp,
-                )
         )
 
         Text(
@@ -154,10 +150,6 @@ fun Info(
             style = artistFontStyle,
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(
-                    top = if (isArtistCJK) 2.5.dp else 0.dp,
-                    bottom = if (isArtistCJK) 1.dp else 0.dp
-                ),
         )
     }
 }

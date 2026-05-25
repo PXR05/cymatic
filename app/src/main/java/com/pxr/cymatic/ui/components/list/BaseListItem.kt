@@ -97,9 +97,6 @@ fun ListItem(
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 style = labelFontStyle,
-                modifier = Modifier.padding(
-                    top = if (isLabelCJK) 6.dp else 0.dp
-                )
             )
             if (subLabel != null) {
                 Text(
@@ -107,11 +104,7 @@ fun ListItem(
                     color = secondaryLabelColor,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
-                    style = subLabelFontStyle,
-                    modifier = Modifier.padding(
-                        top = if (isSubLabelCJK) 2.dp else 0.dp,
-                        bottom = if (isSubLabelCJK) 1.dp else 0.dp
-                    )
+                    style = subLabelFontStyle
                 )
             }
         }

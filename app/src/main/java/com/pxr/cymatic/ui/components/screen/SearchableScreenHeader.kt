@@ -23,7 +23,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -159,8 +158,7 @@ fun SearchableScreenHeader(
                 modifier = Modifier
                     .weight(1f)
                     .padding(
-                        bottom = 16.dp,
-                        top = if (isTitleCJK) 20.dp else 16.dp
+                        vertical = 16.dp
                     )
             )
 
