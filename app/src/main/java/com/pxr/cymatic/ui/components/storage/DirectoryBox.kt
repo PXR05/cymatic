@@ -29,14 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.primitives.PixelConfirmDialog
 import kotlinx.coroutines.launch
@@ -50,7 +46,6 @@ fun DirectoryBox(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var pendingDeleteUri by remember { mutableStateOf<String?>(null) }
@@ -73,7 +68,6 @@ fun DirectoryBox(
 
     if (showDeleteConfirm && pendingDeleteUri != null) {
         PixelConfirmDialog(
-            fontFamily = fontFamily,
             message = "Remove \"${formatDirectoryLabel(pendingDeleteUri ?: "")}\"?",
             onConfirm = {
                 onRemove(pendingDeleteUri!!)
@@ -136,7 +130,6 @@ fun DirectoryBox(
         ) {
             Text(
                 text = "+ Add Directory",
-                fontFamily = fontFamily,
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.secondary,
@@ -163,8 +156,6 @@ private fun DirectoryRow(
     isActive: Boolean = false,
     onAction: (() -> Unit)?,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -173,7 +164,6 @@ private fun DirectoryRow(
         if (actionLabel.isNotEmpty()) {
             Text(
                 text = actionLabel,
-                fontFamily = fontFamily,
                 fontSize = 16.sp,
                 color = if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
@@ -196,17 +186,19 @@ private fun DirectoryRow(
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
         )
 
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(horizontal = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 16.dp)
+        ) {
             Text(
                 text = title,
-                style = TextStyle(fontFamily = fontFamily, fontSize = 14.sp),
+                fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = subtitle,
-                style = TextStyle(fontFamily = fontFamily, fontSize = 12.sp),
+                fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.secondary
             )
         }

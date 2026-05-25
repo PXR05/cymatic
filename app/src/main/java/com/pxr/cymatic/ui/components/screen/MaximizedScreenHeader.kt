@@ -13,12 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
 import kotlinx.coroutines.launch
 
@@ -28,7 +25,6 @@ fun MaximizedScreenHeader(
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     Row(
         modifier = modifier,
@@ -42,7 +38,6 @@ fun MaximizedScreenHeader(
                 text = "/",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
-                fontFamily = fontFamily,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .padding(end = 24.dp)
@@ -51,7 +46,6 @@ fun MaximizedScreenHeader(
                 text = "Cymatic",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
-                fontFamily = fontFamily,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -59,7 +53,6 @@ fun MaximizedScreenHeader(
             text = "LOCKED",
             color = MaterialTheme.colorScheme.background,
             fontSize = 14.sp,
-            fontFamily = fontFamily,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.onBackground)

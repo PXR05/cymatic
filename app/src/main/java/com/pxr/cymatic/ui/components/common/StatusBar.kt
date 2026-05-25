@@ -29,13 +29,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.store.SettingsStore
 import kotlinx.coroutines.launch
@@ -46,7 +43,6 @@ fun StatusBar(
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val audioManager = remember(context) {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
@@ -162,7 +158,6 @@ fun StatusBar(
         Text(
             text = "[${activeDevice.type}] ${activeDevice.label}",
             color = MaterialTheme.colorScheme.secondary,
-            fontFamily = fontFamily,
             fontSize = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -179,7 +174,6 @@ fun StatusBar(
         Text(
             text = if (isMuted) "MUTED" else "${(audioVolume / maxAudioVolume.toFloat() * 100).toInt()}%",
             color = MaterialTheme.colorScheme.secondary,
-            fontFamily = fontFamily,
             fontSize = 14.sp,
             modifier = Modifier
                 .padding(vertical = 8.dp)
@@ -193,7 +187,7 @@ fun StatusBar(
                             )
                             if (audioManager.isStreamMute(AudioManager.STREAM_MUSIC) || audioManager.getStreamVolume(
                                     AudioManager.STREAM_MUSIC
-                                ) == 0
+                                 ) == 0
                             ) {
                                 Toast.makeText(
                                     context,

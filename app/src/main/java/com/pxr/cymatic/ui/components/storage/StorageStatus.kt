@@ -15,12 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
 import java.time.Instant
 import java.time.ZoneId
@@ -31,7 +27,6 @@ import java.util.Locale
 fun StatusBento(
     modifier: Modifier = Modifier,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = SettingsStore.currentLastScanTimeMs)
     val lastScanCount by SettingsStore.lastScanCountFlow.collectAsState(initial = SettingsStore.currentLastScanCount)
     val lastScanDurationMs by SettingsStore.lastScanDurationMsFlow.collectAsState(initial = SettingsStore.currentLastScanDurationMs)
@@ -43,26 +38,23 @@ fun StatusBento(
     ) {
         StatusRow(
             label = "Last Scan",
-            value = formatScanTime(lastScanTimeMs),
-            fontFamily = fontFamily
+            value = formatScanTime(lastScanTimeMs)
         )
         Spacer(modifier = Modifier.height(8.dp))
         StatusRow(
             label = "Files Scanned",
-            value = formatScanCount(lastScanTimeMs, lastScanCount),
-            fontFamily = fontFamily
+            value = formatScanCount(lastScanTimeMs, lastScanCount)
         )
         Spacer(modifier = Modifier.height(8.dp))
         StatusRow(
             label = "Scan Duration",
-            value = formatScanDuration(lastScanTimeMs, lastScanDurationMs),
-            fontFamily = fontFamily
+            value = formatScanDuration(lastScanTimeMs, lastScanDurationMs)
         )
     }
 }
 
 @Composable
-private fun StatusRow(label: String, value: String, fontFamily: FontFamily) {
+private fun StatusRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -70,12 +62,12 @@ private fun StatusRow(label: String, value: String, fontFamily: FontFamily) {
     ) {
         Text(
             text = label,
-            style = TextStyle(fontFamily = fontFamily, fontSize = 14.sp),
+            fontSize = 14.sp,
             color = MaterialTheme.colorScheme.secondary
         )
         Text(
             text = value,
-            style = TextStyle(fontFamily = fontFamily, fontSize = 14.sp),
+            fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
     }

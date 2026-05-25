@@ -39,14 +39,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.data.store.SettingsStore
@@ -72,7 +69,6 @@ fun PlayerBar(
     val metadata =
         audioFiles.find { audioFile -> audioFile.id.toString() == currentMediaId }?.metadata
             ?: return
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
     val baseGap = 16.dp
 
@@ -238,7 +234,6 @@ fun PlayerBar(
                             queueSource = playbackState.queueSource,
                             currentMediaId = playbackState.currentMediaId,
                             locked = locked,
-                            fontFamily = fontFamily,
                             navController = navController
                         )
 
@@ -256,7 +251,6 @@ fun PlayerBar(
                         isShuffling = playbackState.isShuffling,
                         repeatMode = playbackState.repeatMode,
                         locked = locked,
-                        fontFamily = fontFamily,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -306,7 +300,6 @@ fun PlayerBar(
                         queueSource = playbackState.queueSource,
                         currentMediaId = playbackState.currentMediaId,
                         locked = locked,
-                        fontFamily = fontFamily,
                         navController = navController
                     )
 
@@ -324,7 +317,6 @@ fun PlayerBar(
                     isShuffling = playbackState.isShuffling,
                     repeatMode = playbackState.repeatMode,
                     locked = locked,
-                    fontFamily = fontFamily,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
@@ -363,7 +355,6 @@ private fun TrackQueueIndex(
     queueSource: String?,
     currentMediaId: String?,
     locked: Boolean,
-    fontFamily: FontFamily,
     navController: androidx.navigation.NavController,
     modifier: Modifier = Modifier
 ) {
@@ -371,7 +362,6 @@ private fun TrackQueueIndex(
         text = "${currentIndex + 1} of $totalTracks",
         color = MaterialTheme.colorScheme.secondary,
         fontSize = 14.sp,
-        fontFamily = fontFamily,
         modifier = modifier
             .padding(vertical = 2.dp)
             .clickable(
@@ -417,7 +407,6 @@ private fun TrackInfoAndStatus(
     isShuffling: Boolean,
     repeatMode: Int,
     locked: Boolean,
-    fontFamily: FontFamily,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -443,7 +432,6 @@ private fun TrackInfoAndStatus(
                     text = "SHUF",
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 14.sp,
-                    fontFamily = fontFamily,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
@@ -457,7 +445,6 @@ private fun TrackInfoAndStatus(
                     },
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 14.sp,
-                    fontFamily = fontFamily,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }

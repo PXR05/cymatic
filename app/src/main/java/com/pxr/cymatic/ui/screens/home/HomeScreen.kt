@@ -12,12 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -47,7 +44,6 @@ fun HomeScreen() {
             onClick = { navController.navigate("settings") }
         )
     )
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
@@ -68,7 +64,6 @@ fun HomeScreen() {
                     text = "/",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 24.sp,
-                    fontFamily = fontFamily,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .padding(end = 24.dp)
@@ -77,7 +72,6 @@ fun HomeScreen() {
                     text = "Cymatic",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
-                    fontFamily = fontFamily,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -89,5 +83,3 @@ fun HomeScreen() {
         }
     }
 }
-
-

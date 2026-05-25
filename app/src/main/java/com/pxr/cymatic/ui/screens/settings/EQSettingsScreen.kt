@@ -34,13 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
@@ -59,7 +56,6 @@ fun EQSettingsScreen(
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     val state by viewModel.uiState.collectAsState()
     val livePreset by viewModel.livePreset.collectAsState()
@@ -96,9 +92,9 @@ fun EQSettingsScreen(
             }
         }
     }
+
     if (showAddDialog) {
         PixelInputDialog(
-            fontFamily = fontFamily,
             title = "New Preset",
             hint = "Preset name",
             value = dialogInput,
@@ -114,7 +110,6 @@ fun EQSettingsScreen(
 
     if (showRenameDialog) {
         PixelInputDialog(
-            fontFamily = fontFamily,
             title = "Rename Preset",
             hint = "New name",
             value = dialogInput,
@@ -130,7 +125,6 @@ fun EQSettingsScreen(
 
     if (showDeleteConfirm) {
         PixelConfirmDialog(
-            fontFamily = fontFamily,
             message = "Delete \"${state.selectedPresetName}\"?",
             onConfirm = {
                 viewModel.deletePreset(state.selectedPresetName)
@@ -156,7 +150,6 @@ fun EQSettingsScreen(
             ) {
                 Text(
                     text = if (state.eqEnabled) "I" else "O",
-                    fontFamily = fontFamily,
                     fontSize = 14.sp,
                     color = if (state.eqEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
@@ -177,7 +170,6 @@ fun EQSettingsScreen(
                 ) {
                     Text(
                         text = state.selectedPresetName,
-                        fontFamily = fontFamily,
                         fontSize = 16.sp,
                         maxLines = 1,
                         modifier = Modifier
@@ -197,7 +189,6 @@ fun EQSettingsScreen(
                         state.presets.forEach { preset ->
                             PixelDropdownMenuItem(
                                 text = preset.name,
-                                fontFamily = fontFamily,
                                 onClick = {
                                     viewModel.selectPreset(preset.name)
                                     showPresetDropdown = false
@@ -210,7 +201,6 @@ fun EQSettingsScreen(
                 Box {
                     Text(
                         text = ":",
-                        fontFamily = fontFamily,
                         fontSize = 16.sp,
                         modifier = Modifier
                             .border(1.dp, MaterialTheme.colorScheme.secondary)
@@ -228,7 +218,6 @@ fun EQSettingsScreen(
                     ) {
                         PixelDropdownMenuItem(
                             text = "New",
-                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = ""
@@ -237,7 +226,6 @@ fun EQSettingsScreen(
                         )
                         PixelDropdownMenuItem(
                             text = "Rename",
-                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = state.selectedPresetName
@@ -246,7 +234,6 @@ fun EQSettingsScreen(
                         )
                         PixelDropdownMenuItem(
                             text = "Delete",
-                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 showDeleteConfirm = true
@@ -254,7 +241,6 @@ fun EQSettingsScreen(
                         )
                         PixelDropdownMenuItem(
                             text = "Import",
-                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -266,7 +252,6 @@ fun EQSettingsScreen(
                         )
                         PixelDropdownMenuItem(
                             text = "Export",
-                            fontFamily = fontFamily,
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -288,7 +273,6 @@ fun EQSettingsScreen(
 
             Text(
                 text = "Graph",
-                fontFamily = fontFamily,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -297,7 +281,6 @@ fun EQSettingsScreen(
 
             EqBodePlot(
                 preset = activePreset,
-                fontFamily = fontFamily,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16 / 9f)
@@ -312,13 +295,11 @@ fun EQSettingsScreen(
             ) {
                 Text(
                     text = "Pre-amp",
-                    fontFamily = fontFamily,
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = "${"%.1f".format(activePreset.preamp)} dB",
-                    fontFamily = fontFamily,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
@@ -337,7 +318,6 @@ fun EQSettingsScreen(
 
             Text(
                 text = "Bands",
-                fontFamily = fontFamily,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.onBackground,
             )
@@ -351,7 +331,6 @@ fun EQSettingsScreen(
             ) {
                 activePreset.bands.forEachIndexed { index, band ->
                     EqBandRow(
-                        fontFamily = fontFamily,
                         index = index,
                         band = band,
                         isExpanded = expandedBandIndex == index,
@@ -387,7 +366,6 @@ fun EQSettingsScreen(
                     ) {
                         Text(
                             text = "+ Add Band",
-                            fontFamily = fontFamily,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.secondary,

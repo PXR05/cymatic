@@ -3,32 +3,35 @@ package com.pxr.cymatic.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 
-// Set of Material typography styles to start with
+val PixelFontFamily = FontFamily(
+    FallbackFont(
+        primaryResId = R.font.pixel,
+        fallbackResId = R.font.pixel_cjk,
+        weight = FontWeight.Normal,
+        style = FontStyle.Normal
+    )
+)
+
+private val defaultTypography = Typography()
+
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = PixelFontFamily),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = PixelFontFamily),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = PixelFontFamily),
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = PixelFontFamily),
+    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = PixelFontFamily),
+    headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = PixelFontFamily),
+    titleLarge = defaultTypography.titleLarge.copy(fontFamily = PixelFontFamily),
+    titleMedium = defaultTypography.titleMedium.copy(fontFamily = PixelFontFamily),
+    titleSmall = defaultTypography.titleSmall.copy(fontFamily = PixelFontFamily),
+    bodyLarge = defaultTypography.bodyLarge.copy(fontFamily = PixelFontFamily),
+    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = PixelFontFamily),
+    bodySmall = defaultTypography.bodySmall.copy(fontFamily = PixelFontFamily),
+    labelLarge = defaultTypography.labelLarge.copy(fontFamily = PixelFontFamily),
+    labelMedium = defaultTypography.labelMedium.copy(fontFamily = PixelFontFamily),
+    labelSmall = defaultTypography.labelSmall.copy(fontFamily = PixelFontFamily)
 )

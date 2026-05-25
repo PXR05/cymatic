@@ -24,8 +24,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -43,8 +41,6 @@ fun SearchableScreenHeader(
     onSearchQueryChange: (String) -> Unit,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
     val isTitleCJK = title.contains(cjkRegex)
     
@@ -73,7 +69,6 @@ fun SearchableScreenHeader(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = fontFamily,
                 modifier = Modifier
                     .clickable(
                         onClick = {
@@ -89,11 +84,10 @@ fun SearchableScreenHeader(
             BasicTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                textStyle = TextStyle(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    fontFamily = fontFamily
                 ),
                 singleLine = true,
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
@@ -110,7 +104,6 @@ fun SearchableScreenHeader(
                             color = MaterialTheme.colorScheme.secondary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = fontFamily
                         )
                     }
                     innerTextField()
@@ -127,7 +120,6 @@ fun SearchableScreenHeader(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    fontFamily = fontFamily,
                     modifier = Modifier
                         .clickable(
                             onClick = {
@@ -150,7 +142,6 @@ fun SearchableScreenHeader(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = fontFamily,
                 modifier = Modifier
                     .clickable(
                         onClick = onBackClick,
@@ -164,7 +155,6 @@ fun SearchableScreenHeader(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = if (isTitleCJK) cjkFontFamily else fontFamily,
                 letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
                 modifier = Modifier
                     .weight(1f)

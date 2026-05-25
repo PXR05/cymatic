@@ -8,15 +8,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.ui.components.primitives.PixelDialog
 import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
@@ -29,15 +26,12 @@ fun PlaylistContextMenu(
     onRename: (playlistId: Long, newName: String) -> Unit,
     onDelete: (playlistId: Long) -> Unit,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var renameValue by remember { mutableStateOf(playlist.name) }
 
     if (showRenameDialog) {
         PixelInputDialog(
-            fontFamily = fontFamily,
             title = "Rename Playlist",
             hint = "Playlist name",
             value = renameValue,
@@ -68,7 +62,6 @@ fun PlaylistContextMenu(
                     text = "This will permanently delete the playlist.",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 14.sp,
-                    fontFamily = fontFamily,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             },
@@ -131,7 +124,6 @@ private fun PlaylistContextMenuAction(
         text = label,
         color = MaterialTheme.colorScheme.onBackground,
         fontSize = 16.sp,
-        fontFamily = FontFamily(Font(R.font.pixel)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(

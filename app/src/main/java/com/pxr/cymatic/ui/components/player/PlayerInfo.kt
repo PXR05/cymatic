@@ -14,8 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -23,7 +21,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 
@@ -118,22 +115,18 @@ fun Info(
     artistSize: TextUnit = 14.sp,
     gap: Dp = 4.dp,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
     val title = metadata.title ?: "Unknown Title"
     val artist = metadata.artist ?: "Unknown Artist"
     val isTitleCJK = title.contains(cjkRegex)
     val isArtistCJK = artist.contains(cjkRegex)
-    val titleFontStyle = TextStyle(
+    val titleFontStyle = MaterialTheme.typography.bodyLarge.copy(
         fontSize = titleSize,
         letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
-        fontFamily = if (isTitleCJK) cjkFontFamily else fontFamily,
     )
-    val artistFontStyle = TextStyle(
+    val artistFontStyle = MaterialTheme.typography.bodyMedium.copy(
         fontSize = artistSize,
         letterSpacing = if (isArtistCJK) 1.5.sp else 0.sp,
-        fontFamily = if (isArtistCJK) cjkFontFamily else fontFamily,
     )
 
     Column(

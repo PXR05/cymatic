@@ -28,12 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import kotlin.math.roundToLong
 
 @SuppressLint("DefaultLocale")
@@ -46,7 +42,6 @@ fun ProgressBar(
     seekEnabled: Boolean = true,
     showNumber: Boolean = true
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val density = LocalDensity.current
     var barWidthPx by remember { mutableIntStateOf(0) }
     var isDragging by remember { mutableStateOf(false) }
@@ -130,11 +125,8 @@ fun ProgressBar(
                             val seconds = totalSeconds % 60
                             String.format("%d:%02d", minutes, seconds)
                         },
-                        style = TextStyle(
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 14.sp,
-                            fontFamily = fontFamily,
-                        )
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 14.sp,
                     )
 
                     Text(
@@ -144,11 +136,8 @@ fun ProgressBar(
                             val seconds = totalSeconds % 60
                             String.format("%d:%02d", minutes, seconds)
                         },
-                        style = TextStyle(
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 14.sp,
-                            fontFamily = fontFamily,
-                        )
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 14.sp,
                     )
                 }
             }

@@ -14,14 +14,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.FilterType
 
 @Composable
 fun FilterTypeSelector(
-    fontFamily: FontFamily,
     selected: FilterType,
     onSelect: (FilterType) -> Unit
 ) {
@@ -30,7 +28,6 @@ fun FilterTypeSelector(
     Box {
         Text(
             text = selected.displayName,
-            fontFamily = fontFamily,
             fontSize = 13.sp,
             modifier = Modifier
                 .border(1.dp, MaterialTheme.colorScheme.secondary)
@@ -46,7 +43,6 @@ fun FilterTypeSelector(
             FilterType.entries.forEach { type ->
                 PixelDropdownMenuItem(
                     text = type.displayName,
-                    fontFamily = fontFamily,
                     onClick = { onSelect(type); expanded = false }
                 )
             }

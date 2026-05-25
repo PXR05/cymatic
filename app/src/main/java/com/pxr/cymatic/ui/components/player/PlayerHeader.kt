@@ -11,18 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
 fun Header(
     queueSource: String,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val navController = LocalNavController.current
 
     Row(
@@ -34,7 +30,6 @@ fun Header(
             text = "<",
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 24.sp,
-            fontFamily = fontFamily,
             modifier = Modifier
                 .padding(24.dp)
                 .clickable(
@@ -48,18 +43,14 @@ fun Header(
             text = queueSource,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 20.sp,
-            fontFamily = fontFamily
         )
 
         Text(
             text = "<",
             color = Color.Transparent,
             fontSize = 24.sp,
-            fontFamily = fontFamily,
             modifier = Modifier
                 .padding(24.dp)
         )
     }
 }
-
-

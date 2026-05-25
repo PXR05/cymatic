@@ -17,8 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -36,7 +34,6 @@ fun Controls(
     val inactiveColor = MaterialTheme.colorScheme.secondary
     val shuffleColor = if (isShuffling) activeColor else inactiveColor
     val repeatColor = if (repeatMode == Player.REPEAT_MODE_OFF) inactiveColor else activeColor
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val subscript = SpanStyle(
         fontSize = 10.sp
     )
@@ -123,7 +120,6 @@ fun Controls(
                     text = "1",
                     color = activeColor,
                     fontSize = 10.sp,
-                    fontFamily = fontFamily,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(bottom = 12.dp, end = 12.dp)
@@ -134,5 +130,3 @@ fun Controls(
         }
     }
 }
-
-

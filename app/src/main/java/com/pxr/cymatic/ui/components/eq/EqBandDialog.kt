@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
@@ -24,7 +23,6 @@ import com.pxr.cymatic.ui.components.primitives.PixelSlider
 @SuppressLint("DefaultLocale")
 @Composable
 fun EqBandDialog(
-    fontFamily: FontFamily,
     index: Int,
     band: EqBand,
     onDismiss: () -> Unit,
@@ -44,12 +42,11 @@ fun EqBandDialog(
             ) {
                 Text(
                     "Type",
-                    fontFamily = fontFamily,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                FilterTypeSelector(fontFamily = fontFamily, selected = band.type) { newType ->
+                FilterTypeSelector(selected = band.type) { newType ->
                     onBandChange(band.copy(type = newType))
                 }
 
@@ -57,7 +54,7 @@ fun EqBandDialog(
 
                 Text(
                     String.format("Frequency: %.0f Hz", band.frequency),
-                    fontFamily = fontFamily, fontSize = 12.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 PixelSlider(
@@ -71,7 +68,7 @@ fun EqBandDialog(
 
                 Text(
                     String.format("Gain: %.1f dB", band.gain),
-                    fontFamily = fontFamily, fontSize = 12.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 PixelSlider(
@@ -85,7 +82,7 @@ fun EqBandDialog(
 
                 Text(
                     String.format("Q: %.2f", band.q),
-                    fontFamily = fontFamily, fontSize = 12.sp,
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 PixelSlider(
@@ -99,7 +96,6 @@ fun EqBandDialog(
 
                 Text(
                     text = "Remove Band",
-                    fontFamily = fontFamily,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier

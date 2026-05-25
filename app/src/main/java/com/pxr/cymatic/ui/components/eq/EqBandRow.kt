@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
@@ -26,7 +25,6 @@ import com.pxr.cymatic.data.model.EqBand
 @SuppressLint("DefaultLocale")
 @Composable
 fun EqBandRow(
-    fontFamily: FontFamily,
     index: Int,
     band: EqBand,
     isExpanded: Boolean,
@@ -44,7 +42,6 @@ fun EqBandRow(
         ) {
             Text(
                 text = if (band.enabled) "I" else "O",
-                fontFamily = fontFamily,
                 fontSize = 16.sp,
                 color = if (band.enabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
@@ -69,13 +66,11 @@ fun EqBandRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Band ${index + 1} (${band.type.displayName})",
-                    fontFamily = fontFamily,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
                     text = formatBandSummary(band),
-                    fontFamily = fontFamily,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -83,7 +78,6 @@ fun EqBandRow(
 
             Text(
                 text = ">",
-                fontFamily = fontFamily,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(20.dp)
@@ -92,7 +86,6 @@ fun EqBandRow(
 
         if (isExpanded) {
             EqBandDialog(
-                fontFamily = fontFamily,
                 index = index,
                 band = band,
                 onDismiss = onToggleExpand,
@@ -105,7 +98,6 @@ fun EqBandRow(
         }
     }
 }
-
 
 @SuppressLint("DefaultLocale")
 private fun formatBandSummary(band: EqBand): String {

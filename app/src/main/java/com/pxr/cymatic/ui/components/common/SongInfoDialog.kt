@@ -22,13 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import kotlinx.coroutines.Dispatchers
@@ -61,8 +58,6 @@ fun SongInfoDialog(
         }
     }
 
-    val fontFamily = FontFamily(Font(R.font.pixel))
-
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -83,7 +78,6 @@ fun SongInfoDialog(
                 text = "Song Information",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
-                fontFamily = fontFamily,
             )
 
             if (audioFile != null) {
@@ -134,7 +128,6 @@ fun SongInfoDialog(
                     text = "Loading...",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
-                    fontFamily = fontFamily,
                 )
             }
         }
@@ -146,11 +139,7 @@ private fun InfoItem(
     label: String,
     value: String,
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
-
-    val valueFontFamily = if (value.contains(cjkRegex)) cjkFontFamily else fontFamily
     val letterSpacing = if (value.contains(cjkRegex)) 1.5.sp else 0.sp
 
     Row(
@@ -160,14 +149,12 @@ private fun InfoItem(
             text = label,
             color = MaterialTheme.colorScheme.secondary,
             fontSize = 14.sp,
-            fontFamily = fontFamily,
             modifier = Modifier.width(120.dp)
         )
         Text(
             text = value,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
-            fontFamily = valueFontFamily,
             letterSpacing = letterSpacing,
             modifier = Modifier
                 .weight(1f)

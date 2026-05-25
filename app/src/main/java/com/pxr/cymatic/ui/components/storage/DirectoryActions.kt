@@ -17,12 +17,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.store.SettingsStore
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +36,6 @@ fun DirectoryActions(
     val scope = rememberCoroutineScope()
     var isRescanning by remember { mutableStateOf(false) }
     val scanAllMedia by SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     fun rescanDirectories() {
         if (isRescanning) return
@@ -68,7 +64,6 @@ fun DirectoryActions(
 
     Text(
         text = "Rescan",
-        fontFamily = fontFamily,
         fontSize = 14.sp,
         textAlign = TextAlign.Center,
         color = if (!isRescanning) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,

@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,11 +24,11 @@ import kotlin.math.pow
 @Composable
 fun EqBodePlot(
     preset: EqPreset,
-    fontFamily: FontFamily,
     modifier: Modifier = Modifier
 ) {
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
     val secondaryColor = MaterialTheme.colorScheme.secondary
+    val labelTextStyle = MaterialTheme.typography.bodySmall
 
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -109,7 +108,9 @@ fun EqBodePlot(
                 val label = labeledXTicks[tick]!!
                 val textLayoutResult = textMeasurer.measure(
                     text = label,
-                    style = TextStyle(color = secondaryColor, fontSize = 10.sp, fontFamily = fontFamily)
+                    style = labelTextStyle.copy(
+                        color = secondaryColor, fontSize = 10.sp
+                    )
                 )
                 
                 val textWidth = textLayoutResult.size.width
@@ -142,7 +143,7 @@ fun EqBodePlot(
                 val label = labeledYTicks[tick]!!
                 val textLayoutResult = textMeasurer.measure(
                     text = label,
-                    style = TextStyle(color = secondaryColor, fontSize = 10.sp, fontFamily = fontFamily)
+                    style = labelTextStyle.copy(color = secondaryColor, fontSize = 10.sp)
                 )
                 drawText(
                     textLayoutResult = textLayoutResult,

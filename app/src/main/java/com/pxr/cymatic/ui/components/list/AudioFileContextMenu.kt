@@ -12,11 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
 import com.pxr.cymatic.ui.components.primitives.PixelDialog
@@ -94,7 +91,6 @@ private fun ContextMenuAction(
         text = label,
         color = MaterialTheme.colorScheme.onBackground,
         fontSize = 16.sp,
-        fontFamily = FontFamily(Font(R.font.pixel)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(

@@ -11,7 +11,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -49,14 +48,12 @@ fun PixelDropdownMenu(
 fun PixelDropdownMenuItem(
     text: String,
     onClick: () -> Unit,
-    fontFamily: FontFamily,
     modifier: Modifier = Modifier
 ) {
     DropdownMenuItem(
         text = {
             Text(
                 text = text,
-                fontFamily = fontFamily,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )

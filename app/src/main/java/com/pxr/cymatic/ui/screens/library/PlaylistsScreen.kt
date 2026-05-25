@@ -13,11 +13,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -35,7 +32,6 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
     val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -86,7 +82,6 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
                 text = "+",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
-                fontFamily = fontFamily,
                 modifier = Modifier
                     .clickable(
                         onClick = { showCreateDialog = true },
@@ -102,7 +97,6 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
 
     if (showCreateDialog) {
         PixelInputDialog(
-            fontFamily = fontFamily,
             title = "New Playlist",
             hint = "Playlist name",
             value = newPlaylistName,

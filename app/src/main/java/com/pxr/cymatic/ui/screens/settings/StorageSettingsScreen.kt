@@ -1,7 +1,6 @@
 package com.pxr.cymatic.ui.screens.settings
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,11 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.storage.DirectoryActions
@@ -37,7 +33,6 @@ fun StorageSettingsScreen(
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val directories by SettingsStore.scanDirectoriesFlow.collectAsState(initial = SettingsStore.currentScanDirectories)
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     BaseScreen(
         title = "Storage",
@@ -53,7 +48,6 @@ fun StorageSettingsScreen(
             Text(
                 text = "Status",
                 fontSize = 20.sp,
-                fontFamily = fontFamily,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
@@ -66,7 +60,6 @@ fun StorageSettingsScreen(
             Text(
                 text = "Directories",
                 fontSize = 20.sp,
-                fontFamily = fontFamily,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 

@@ -9,13 +9,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
 fun PixelInputDialog(
-    fontFamily: FontFamily,
     title: String,
     hint: String,
     value: String,
@@ -30,10 +28,9 @@ fun PixelInputDialog(
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text(hint, fontFamily = fontFamily, fontSize = 14.sp) },
+                placeholder = { Text(hint, fontSize = 14.sp) },
                 singleLine = true,
-                textStyle = TextStyle(
-                    fontFamily = fontFamily,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 ),
@@ -53,7 +50,7 @@ fun PixelInputDialog(
                 text = "Cancel",
                 onClick = onDismiss
             )
-            PixelDialogDivider(fontFamily = fontFamily)
+            PixelDialogDivider()
             PixelDialogButton(
                 text = "OK",
                 onClick = onConfirm

@@ -31,12 +31,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
-import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +62,6 @@ fun VersionSettingsScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val fontFamily = FontFamily(Font(R.font.pixel))
     val sharpCorners = RoundedCornerShape(0.dp)
     val currentVersion = remember { getCurrentVersion(context) }
 
@@ -129,8 +125,7 @@ fun VersionSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Current version: ${currentVersion.name} (${currentVersion.code})",
-                fontFamily = fontFamily
+                text = "Current version: ${currentVersion.name} (${currentVersion.code})"
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -153,8 +148,7 @@ fun VersionSettingsScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Check updates",
-                        fontFamily = fontFamily
+                        text = "Check updates"
                     )
                 }
 
@@ -165,8 +159,7 @@ fun VersionSettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "GitHub",
-                            fontFamily = fontFamily
+                            text = "GitHub"
                         )
 
                     }
@@ -187,8 +180,7 @@ fun VersionSettingsScreen(
                         "Update available: ${release.versionName}"
                     } else {
                         "You are on the latest version."
-                    },
-                    fontFamily = fontFamily
+                    }
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,8 +190,7 @@ fun VersionSettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = if (showChangelog) "Hide changelog" else "Show changelog",
-                            fontFamily = fontFamily
+                            text = if (showChangelog) "Hide changelog" else "Show changelog"
                         )
                     }
 
@@ -216,8 +207,7 @@ fun VersionSettingsScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "Download",
-                                fontFamily = fontFamily
+                                text = "Download"
                             )
 
                         }
@@ -226,8 +216,7 @@ fun VersionSettingsScreen(
 
                 if (downloadId != null) {
                     Text(
-                        text = "Download status: $downloadStatus",
-                        fontFamily = fontFamily
+                        text = "Download status: $downloadStatus"
                     )
                 }
 
@@ -238,15 +227,13 @@ fun VersionSettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Install update",
-                            fontFamily = fontFamily
+                            text = "Install update"
                         )
 
                     }
                 } else if (release.apkUrl == null) {
                     Text(
-                        text = "No APK asset found in latest release.",
-                        fontFamily = fontFamily,
+                        text = "No APK asset found in latest release."
                     )
                 }
 
@@ -257,7 +244,6 @@ fun VersionSettingsScreen(
 
                     Text(
                         text = normalizedChangelog.ifBlank { "No changelog provided." },
-                        fontFamily = fontFamily,
                         modifier = Modifier
                             .border(1.dp, MaterialTheme.colorScheme.secondary)
                             .padding(16.dp)
@@ -268,8 +254,7 @@ fun VersionSettingsScreen(
             errorMessage?.let {
                 Text(
                     text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    fontFamily = fontFamily
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }

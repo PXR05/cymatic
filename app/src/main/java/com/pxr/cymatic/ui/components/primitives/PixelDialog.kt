@@ -19,15 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.pxr.cymatic.R
 
 @Composable
 fun PixelDialog(
@@ -38,10 +35,6 @@ fun PixelDialog(
     content: @Composable ColumnScope.() -> Unit,
     buttons: @Composable RowScope.() -> Unit
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
-    val cjkFontFamily = FontFamily(Font(R.font.pixel_cjk))
-    val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
-    val isTitleCJK = title.contains(cjkRegex)
     val density = LocalDensity.current
     val window = LocalWindowInfo.current
     val dialogWidth = with(window) { (containerSize.width * widthRatio) }
@@ -73,8 +66,6 @@ fun PixelDialog(
                     fontSize = 20.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontFamily = if (isTitleCJK) cjkFontFamily else fontFamily,
-                    letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
@@ -101,12 +92,10 @@ fun RowScope.PixelDialogButton(
     color: Color? = null,
     weight: Float = 1f
 ) {
-    val fontFamily = FontFamily(Font(R.font.pixel))
     Text(
         text = text,
         color = color ?: MaterialTheme.colorScheme.onBackground,
         fontSize = 16.sp,
-        fontFamily = fontFamily,
         textAlign = TextAlign.Center,
         modifier = modifier
             .weight(weight)
@@ -119,11 +108,10 @@ fun RowScope.PixelDialogButton(
 }
 
 @Composable
-fun PixelDialogDivider(fontFamily: FontFamily) {
+fun PixelDialogDivider() {
     Text(
         text = "|",
         color = MaterialTheme.colorScheme.onBackground,
-        fontSize = 16.sp,
-        fontFamily = fontFamily,
+        fontSize = 16.sp
     )
 }

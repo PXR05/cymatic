@@ -27,11 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.ui.components.primitives.PixelDialog
@@ -47,7 +44,6 @@ fun AddToPlaylistDialog(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val fontFamily = FontFamily(Font(R.font.pixel))
 
     var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
     var memberIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
@@ -75,7 +71,6 @@ fun AddToPlaylistDialog(
                     text = "No playlists yet.",
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 14.sp,
-                    fontFamily = fontFamily,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             } else {
@@ -92,7 +87,6 @@ fun AddToPlaylistDialog(
                         PlaylistToggleRow(
                             playlistName = playlist.name,
                             isMember = isMember,
-                            fontFamily = fontFamily,
                             onToggle = {
                                 scope.launch {
                                     val repo = PlaylistRepository.getInstance(context)
@@ -136,7 +130,6 @@ fun AddToPlaylistDialog(
 private fun PlaylistToggleRow(
     playlistName: String,
     isMember: Boolean,
-    fontFamily: FontFamily,
     onToggle: () -> Unit,
 ) {
     Row(
@@ -152,7 +145,6 @@ private fun PlaylistToggleRow(
     ) {
         Text(
             text = if (isMember) "I" else "O",
-            fontFamily = fontFamily,
             fontSize = 16.sp,
             color = if (isMember) MaterialTheme.colorScheme.background
                     else MaterialTheme.colorScheme.onBackground,
@@ -175,7 +167,6 @@ private fun PlaylistToggleRow(
 
         Text(
             text = playlistName,
-            fontFamily = fontFamily,
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onBackground,
         )
