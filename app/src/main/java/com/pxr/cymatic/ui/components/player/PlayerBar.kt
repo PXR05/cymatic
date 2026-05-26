@@ -51,15 +51,21 @@ import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
+import com.pxr.cymatic.MainViewModel
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlayerBar(
-    audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier,
     isDocked: Boolean = false
 ) {
+    val activity = LocalContext.current as ComponentActivity
+    val mainViewModel: MainViewModel = viewModel(activity)
+    val audioFiles by mainViewModel.audioFiles.collectAsState()
+
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val navController = LocalNavController.current

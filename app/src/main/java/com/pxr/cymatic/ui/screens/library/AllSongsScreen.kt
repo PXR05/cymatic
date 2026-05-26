@@ -1,12 +1,10 @@
 package com.pxr.cymatic.ui.screens.library
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.pxr.cymatic.data.model.AudioFile
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileList
@@ -17,43 +15,24 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
 fun AllSongsScreen(
-    audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier,
-    scrollTargetId: Long? = null
+    scrollTargetId: Long? = null,
+    viewModel: AllSongsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val queueSource = "all_songs"
 
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-
-    val filteredAudioFiles = remember(audioFiles, searchQuery, isSearchActive) {
-        if (isSearchActive && searchQuery.isNotEmpty()) {
-            audioFiles.filter { audioFile ->
-                val title = audioFile.metadata.title.orEmpty()
-                val artist = audioFile.metadata.artist.orEmpty()
-                val album = audioFile.metadata.album.orEmpty()
-                title.contains(searchQuery, ignoreCase = true) ||
-                        artist.contains(searchQuery, ignoreCase = true) ||
-                        album.contains(searchQuery, ignoreCase = true)
-            }
-        } else {
-            audioFiles
-        }
-    }
-
-    var contextMenuFile by remember { mutableStateOf<AudioFile?>(null) }
-    var infoDialogId by remember { mutableStateOf<Long?>(null) }
+    val filteredAudioFiles by viewModel.filteredAudioFiles.collectAsState()
 
     BaseScreen(
         title = "All Songs",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        isSearchActive = isSearchActive,
-        onSearchActiveChange = { isSearchActive = it }
+        searchQuery = viewModel.searchQuery,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
+        isSearchActive = viewModel.isSearchActive,
+        onSearchActiveChange = viewModel::onSearchActiveChange
     ) {
         AudioFileList(
             audioFiles = filteredAudioFiles,
@@ -68,14 +47,14 @@ fun AllSongsScreen(
                     )
                 }
             },
-            onItemLongClick = { audioFile -> contextMenuFile = audioFile }
+            onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
         )
     }
 
-    contextMenuFile?.let { audioFile ->
+    viewModel.contextMenuFile?.let { audioFile ->
         AudioFileContextMenu(
             audioFile = audioFile,
-            onDismiss = { contextMenuFile = null },
+            onDismiss = { viewModel.contextMenuFile = null },
             onPlay = { file ->
                 mediaController?.let {
                     handleItemClick(
@@ -86,17 +65,15 @@ fun AllSongsScreen(
                     )
                 }
             },
-            onTrackInfo = { file -> infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
         )
     }
 
-    infoDialogId?.let { id ->
+    viewModel.infoDialogId?.let { id ->
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null }
         )
     }
 }
-
-

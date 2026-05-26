@@ -5,59 +5,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.data.media.Playlist
-import com.pxr.cymatic.data.media.PlaylistRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
 import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
-fun PlaylistsScreen(modifier: Modifier = Modifier) {
+fun PlaylistsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: PlaylistsViewModel = viewModel()
+) {
     val navController = LocalNavController.current
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
-    var newPlaylistName by remember { mutableStateOf("") }
-
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearchActive by remember { mutableStateOf(false) }
-
-    val filteredPlaylists = remember(playlists, searchQuery, isSearchActive) {
-        if (isSearchActive && searchQuery.isNotEmpty()) {
-            playlists.filter { it.name.contains(searchQuery, ignoreCase = true) }
-        } else {
-            playlists
-        }
-    }
-
-    fun loadPlaylists() {
-        scope.launch {
-            playlists = withContext(Dispatchers.IO) {
-                PlaylistRepository.getInstance(context).getPlaylists()
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) { loadPlaylists() }
+    val filteredPlaylists by viewModel.filteredPlaylists.collectAsState()
 
     val items = filteredPlaylists.map { playlist ->
         NavigationItem(
@@ -65,7 +33,7 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
             onClick = {
                 navController.navigate("playlist/${playlist.id}")
             },
-            onLongClick = { selectedPlaylist = playlist }
+            onLongClick = { viewModel.selectedPlaylist = playlist }
         )
     }
 
@@ -73,10 +41,10 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
         title = "Playlists",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        isSearchActive = isSearchActive,
-        onSearchActiveChange = { isSearchActive = it },
+        searchQuery = viewModel.searchQuery,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
+        isSearchActive = viewModel.isSearchActive,
+        onSearchActiveChange = viewModel::onSearchActiveChange,
         actions = {
             Text(
                 text = "+",
@@ -84,7 +52,7 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
                 fontSize = 24.sp,
                 modifier = Modifier
                     .clickable(
-                        onClick = { showCreateDialog = true },
+                        onClick = { viewModel.showCreateDialog = true },
                         indication = null,
                         interactionSource = null
                     )
@@ -95,51 +63,33 @@ fun PlaylistsScreen(modifier: Modifier = Modifier) {
         NavigationList(items = items)
     }
 
-    if (showCreateDialog) {
+    if (viewModel.showCreateDialog) {
         PixelInputDialog(
             title = "New Playlist",
             hint = "Playlist name",
-            value = newPlaylistName,
-            onValueChange = { newPlaylistName = it },
+            value = viewModel.newPlaylistName,
+            onValueChange = { viewModel.newPlaylistName = it },
             onConfirm = {
-                val name = newPlaylistName.trim()
-                if (name.isNotEmpty()) {
-                    scope.launch {
-                        withContext(Dispatchers.IO) {
-                            PlaylistRepository.getInstance(context).createPlaylist(name)
-                        }
-                        newPlaylistName = ""
-                        showCreateDialog = false
-                        loadPlaylists()
-                    }
-                }
+                viewModel.createPlaylist(viewModel.newPlaylistName)
+                viewModel.newPlaylistName = ""
+                viewModel.showCreateDialog = false
             },
             onDismiss = {
-                newPlaylistName = ""
-                showCreateDialog = false
+                viewModel.newPlaylistName = ""
+                viewModel.showCreateDialog = false
             }
         )
     }
 
-    selectedPlaylist?.let { playlist ->
+    viewModel.selectedPlaylist?.let { playlist ->
         PlaylistContextMenu(
             playlist = playlist,
-            onDismiss = { selectedPlaylist = null },
+            onDismiss = { viewModel.selectedPlaylist = null },
             onRename = { playlistId, newName ->
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        PlaylistRepository.getInstance(context).renamePlaylist(playlistId, newName)
-                    }
-                    loadPlaylists()
-                }
+                viewModel.renamePlaylist(playlistId, newName)
             },
             onDelete = { playlistId ->
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        PlaylistRepository.getInstance(context).deletePlaylist(playlistId)
-                    }
-                    loadPlaylists()
-                }
+                viewModel.deletePlaylist(playlistId)
             }
         )
     }

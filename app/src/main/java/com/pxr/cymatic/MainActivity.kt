@@ -53,8 +53,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import com.pxr.cymatic.data.media.loadCachedAudioFiles
-import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.StatusBar
@@ -77,8 +75,9 @@ import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.pxr.cymatic.ui.screens.directory.DirectoriesScreen
+import com.pxr.cymatic.ui.screens.directory.DirectoryScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -121,34 +120,21 @@ class MainActivity : ComponentActivity() {
             MediaController.Builder(audioAttributionContext, sessionToken).buildAsync()
 
         setContent {
+            val mainViewModel: MainViewModel = viewModel()
+            val isReadyState by mainViewModel.isReady.collectAsState()
+            
+            LaunchedEffect(isReadyState) {
+                isReady = isReadyState
+            }
+            
             val context = LocalContext.current
             val navController = rememberNavController()
             var mediaController by remember { mutableStateOf<MediaController?>(null) }
-            var audioFiles by remember { mutableStateOf(emptyList<AudioFile>()) }
+            val audioFiles by mainViewModel.audioFiles.collectAsState()
             val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
-            val lastScanTimeMs by SettingsStore.lastScanTimeMsFlow.collectAsState(initial = SettingsStore.currentLastScanTimeMs)
 
             LaunchedEffect(Unit) {
-                val start = System.currentTimeMillis()
-                val scanDirectories = SettingsStore.getScanDirectories()
-                val scanAllMedia = SettingsStore.getScanAllMedia()
-                audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
-                audioFiles = withContext(Dispatchers.IO) {
-                    syncAudioFilesToDb(context, scanDirectories, scanAllMedia)
-                }
-                val end = System.currentTimeMillis()
-                SettingsStore.setLastScanTimeMs(end)
-                SettingsStore.setLastScanCount(audioFiles.size.toLong())
-                SettingsStore.setLastScanDurationMs(end - start)
-                Log.d("MainActivity", "Loaded ${audioFiles.size} audio files in ${end - start} ms")
-                isReady = true
-            }
-
-
-
-            LaunchedEffect(lastScanTimeMs) {
-                if (lastScanTimeMs <= 0L) return@LaunchedEffect
-                audioFiles = withContext(Dispatchers.IO) { loadCachedAudioFiles(context) }
+                mainViewModel.performInitialScan()
             }
 
             DisposableEffect(Unit) {
@@ -169,29 +155,26 @@ class MainActivity : ComponentActivity() {
                 "all_songs?scrollId={scrollId}" to { entry ->
                     val scrollId = entry.arguments?.getString("scrollId")
                     AllSongsScreen(
-                        audioFiles,
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "artists" to { ArtistsScreen(audioFiles) },
+                "artists" to { ArtistsScreen() },
                 "artist/{artistName}?scrollId={scrollId}" to { entry ->
                     val rawName = entry.arguments?.getString("artistName")
                     val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
                     val scrollId = entry.arguments?.getString("scrollId")
                     ArtistSongsScreen(
                         artistName = artistName,
-                        audioFiles = audioFiles,
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "albums" to { AlbumsScreen(audioFiles) },
+                "albums" to { AlbumsScreen() },
                 "album/{albumName}?scrollId={scrollId}" to { entry ->
                     val rawName = entry.arguments?.getString("albumName")
                     val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
                     val scrollId = entry.arguments?.getString("scrollId")
                     AlbumSongsScreen(
                         albumName = albumName,
-                        audioFiles = audioFiles,
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
@@ -207,7 +190,17 @@ class MainActivity : ComponentActivity() {
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() },
-                "setting/version" to { VersionSettingsScreen() }
+                "setting/version" to { VersionSettingsScreen() },
+                "directories" to { DirectoriesScreen() },
+                "directory/{directory}?scrollId={scrollId}" to { entry ->
+                    val rawDir = entry.arguments?.getString("directory")
+                    val directory = rawDir?.let(Uri::decode) ?: ""
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    DirectoryScreen(
+                        directory = directory,
+                        scrollTargetId = scrollId?.toLongOrNull()
+                    )
+                }
             )
 
             CymaticTheme {
@@ -275,7 +268,6 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     PlayerBar(
-                                        audioFiles = audioFiles,
                                         modifier = if (isPlayerExpanded) Modifier.weight(1f) else Modifier,
                                         isDocked = isDocked
                                     )

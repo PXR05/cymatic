@@ -2,12 +2,11 @@ package com.pxr.cymatic.ui.screens.library
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.pxr.cymatic.data.model.AudioFile
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileList
@@ -19,17 +18,19 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 @Composable
 fun ArtistSongsScreen(
     artistName: String,
-    audioFiles: List<AudioFile>,
     modifier: Modifier = Modifier,
-    scrollTargetId: Long? = null
+    scrollTargetId: Long? = null,
+    viewModel: ArtistSongsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
-    val filteredFiles = filterByArtist(audioFiles, artistName)
     val queueSource = "artist/${Uri.encode(artistName)}"
 
-    var contextMenuFile by remember { mutableStateOf<AudioFile?>(null) }
-    var infoDialogId by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(artistName) {
+        viewModel.loadArtistSongs(artistName)
+    }
+
+    val filteredFiles by viewModel.songs.collectAsState()
 
     BaseScreen(
         title = artistName,
@@ -49,14 +50,14 @@ fun ArtistSongsScreen(
                     )
                 }
             },
-            onItemLongClick = { audioFile -> contextMenuFile = audioFile }
+            onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
         )
     }
 
-    contextMenuFile?.let { audioFile ->
+    viewModel.contextMenuFile?.let { audioFile ->
         AudioFileContextMenu(
             audioFile = audioFile,
-            onDismiss = { contextMenuFile = null },
+            onDismiss = { viewModel.contextMenuFile = null },
             onPlay = { file ->
                 mediaController?.let {
                     handleItemClick(
@@ -67,17 +68,15 @@ fun ArtistSongsScreen(
                     )
                 }
             },
-            onTrackInfo = { file -> infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
         )
     }
 
-    infoDialogId?.let { id ->
+    viewModel.infoDialogId?.let { id ->
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null }
         )
     }
 }
-
-
