@@ -33,8 +33,10 @@ object SettingsStore {
     private const val DEFAULT_LAST_SCAN_DURATION_MS = 0L
     private const val DEFAULT_SCAN_ALL_MEDIA = true
     private const val DEFAULT_HIDE_ARTWORK = false
+    private const val DEFAULT_FADE_ENABLED = true
     private const val DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT = false
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
+    private val FADE_ENABLED_KEY = booleanPreferencesKey("FADE_ENABLED")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
     private val LAST_SCAN_COUNT_KEY = longPreferencesKey("LAST_SCAN_COUNT")
     private val LAST_SCAN_DURATION_MS_KEY = longPreferencesKey("LAST_SCAN_DURATION_MS")
@@ -109,6 +111,11 @@ object SettingsStore {
             prefs[RESUME_ON_BLUETOOTH_RECONNECT_KEY] ?: DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT
         }
 
+    val fadeEnabledFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[FADE_ENABLED_KEY] ?: DEFAULT_FADE_ENABLED
+        }
+
     val currentLocked: Boolean
         get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
 
@@ -132,6 +139,9 @@ object SettingsStore {
 
     val currentResumeOnBluetoothReconnect: Boolean
         get() = _prefs.value?.get(RESUME_ON_BLUETOOTH_RECONNECT_KEY) ?: DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT
+
+    val currentFadeEnabled: Boolean
+        get() = _prefs.value?.get(FADE_ENABLED_KEY) ?: DEFAULT_FADE_ENABLED
 
     private fun getEqPresetsList(prefs: Preferences): List<com.pxr.cymatic.data.model.EqPreset> {
         val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
@@ -253,6 +263,12 @@ object SettingsStore {
     suspend fun setResumeOnBluetoothReconnect(value: Boolean) {
         store.edit { prefs ->
             prefs[RESUME_ON_BLUETOOTH_RECONNECT_KEY] = value
+        }
+    }
+
+    suspend fun setFadeEnabled(value: Boolean) {
+        store.edit { prefs ->
+            prefs[FADE_ENABLED_KEY] = value
         }
     }
 

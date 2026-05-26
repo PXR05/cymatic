@@ -9,6 +9,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import com.pxr.cymatic.data.store.SettingsStore
+
 @UnstableApi
 class FadingPlayer(
     private val player: Player,
@@ -29,6 +31,11 @@ class FadingPlayer(
 
     override fun setPlayWhenReady(playWhenReady: Boolean) {
         fadeJob?.cancel()
+        if (!SettingsStore.currentFadeEnabled) {
+            player.volume = 1.0f
+            super.setPlayWhenReady(playWhenReady)
+            return
+        }
         if (playWhenReady) {
             // Fade-in
             if (!player.playWhenReady) {

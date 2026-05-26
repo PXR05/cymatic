@@ -3,7 +3,6 @@ package com.pxr.cymatic.ui.screens.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +38,9 @@ fun PlaybackSettingsScreen(
     val scope = rememberCoroutineScope()
     val resumeOnBt by SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
         initial = SettingsStore.currentResumeOnBluetoothReconnect
+    )
+    val fadeEnabled by SettingsStore.fadeEnabledFlow.collectAsState(
+        initial = SettingsStore.currentFadeEnabled
     )
 
     BaseScreen(
@@ -103,6 +105,65 @@ fun PlaybackSettingsScreen(
                     )
                     Text(
                         text = "Play music when Bluetooth connects",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Audio Transitions",
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .clickable(
+                        onClick = {
+                            scope.launch {
+                                SettingsStore.setFadeEnabled(!fadeEnabled)
+                            }
+                        },
+                        indication = null,
+                        interactionSource = null
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (fadeEnabled) "I" else "O",
+                    fontSize = 16.sp,
+                    color = if (fadeEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .background(if (fadeEnabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
+                        .padding(28.dp, 20.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(64.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.secondary)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = "Fade In / Out",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Smoothly fade audio",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
