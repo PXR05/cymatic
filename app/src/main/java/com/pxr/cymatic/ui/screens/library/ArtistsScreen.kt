@@ -1,23 +1,28 @@
 package com.pxr.cymatic.ui.screens.library
 
 import android.Manifest
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.components.list.NavigationItem
-import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.ui.components.common.PermissionDeniedState
-import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 fun ArtistsScreen(
@@ -41,7 +46,7 @@ fun ArtistsScreen(
 
     val items = uiState.artists.map { artistName ->
         NavigationItem(artistName) {
-            navController.navigate("artist/${Uri.encode(artistName)}")
+            navController.navigate(Screen.ArtistSongs.createRoute(artistName))
         }
     }
 
@@ -86,7 +91,7 @@ fun ArtistsScreen(
                     message = "Cymatic did not find any artists. Scanned music will appear here.",
                     iconText = "( ! )",
                     actionLabel = "GO TO STORAGE",
-                    onActionClick = { navController.navigate("setting/storage") }
+                    onActionClick = { navController.navigate(Screen.StorageSettings.route) }
                 )
             }
         } else {

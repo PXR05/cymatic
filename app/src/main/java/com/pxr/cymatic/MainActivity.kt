@@ -57,8 +57,7 @@ import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.ui.screens.directory.DirectoriesScreen
-import com.pxr.cymatic.ui.screens.directory.DirectoryScreen
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.library.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.AlbumsScreen
@@ -120,7 +119,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val mainViewModel: MainViewModel = viewModel()
             val isReadyState by mainViewModel.isReady.collectAsState()
-            
+
             LaunchedEffect(isReadyState) {
                 isReady = isReadyState
             }
@@ -147,15 +146,15 @@ class MainActivity : ComponentActivity() {
             }
 
             val routes: Map<String, @Composable (NavBackStackEntry) -> Unit> = mapOf(
-                "home" to { HomeScreen() },
-                "all_songs?scrollId={scrollId}" to { entry ->
+                Screen.Home.route to { HomeScreen() },
+                Screen.AllSongs.route to { entry ->
                     val scrollId = entry.arguments?.getString("scrollId")
                     AllSongsScreen(
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "artists" to { ArtistsScreen() },
-                "artist/{artistName}?scrollId={scrollId}" to { entry ->
+                Screen.Artists.route to { ArtistsScreen() },
+                Screen.ArtistSongs.route to { entry ->
                     val rawName = entry.arguments?.getString("artistName")
                     val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
                     val scrollId = entry.arguments?.getString("scrollId")
@@ -164,8 +163,8 @@ class MainActivity : ComponentActivity() {
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "albums" to { AlbumsScreen() },
-                "album/{albumName}?scrollId={scrollId}" to { entry ->
+                Screen.Albums.route to { AlbumsScreen() },
+                Screen.AlbumSongs.route to { entry ->
                     val rawName = entry.arguments?.getString("albumName")
                     val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
                     val scrollId = entry.arguments?.getString("scrollId")
@@ -174,8 +173,8 @@ class MainActivity : ComponentActivity() {
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "playlists" to { PlaylistsScreen() },
-                "playlist/{playlistId}?scrollId={scrollId}" to { entry ->
+                Screen.Playlists.route to { PlaylistsScreen() },
+                Screen.PlaylistSongs.route to { entry ->
                     val playlistId = entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
                     val scrollId = entry.arguments?.getString("scrollId")
                     PlaylistSongsScreen(
@@ -183,21 +182,11 @@ class MainActivity : ComponentActivity() {
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                "settings" to { SettingsScreen() },
-                "setting/eq" to { EQSettingsScreen() },
-                "setting/playback" to { PlaybackSettingsScreen() },
-                "setting/storage" to { StorageSettingsScreen() },
-                "setting/version" to { VersionSettingsScreen() },
-                "directories" to { DirectoriesScreen() },
-                "directory/{directory}?scrollId={scrollId}" to { entry ->
-                    val rawDir = entry.arguments?.getString("directory")
-                    val directory = rawDir?.let(Uri::decode) ?: ""
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    DirectoryScreen(
-                        directory = directory,
-                        scrollTargetId = scrollId?.toLongOrNull()
-                    )
-                }
+                Screen.Settings.route to { SettingsScreen() },
+                Screen.EQSettings.route to { EQSettingsScreen() },
+                Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
+                Screen.StorageSettings.route to { StorageSettingsScreen() },
+                Screen.VersionSettings.route to { VersionSettingsScreen() },
             )
 
             CymaticTheme {
@@ -231,7 +220,7 @@ class MainActivity : ComponentActivity() {
                             if (!isPlayerExpanded) {
                                 NavHost(
                                     navController = navController,
-                                    startDestination = "home",
+                                    startDestination = Screen.Home.route,
                                     enterTransition = { EnterTransition.None },
                                     exitTransition = { ExitTransition.None },
                                     popEnterTransition = { EnterTransition.None },

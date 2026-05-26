@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @Composable
@@ -25,23 +26,23 @@ fun HomeScreen() {
     val items = listOf(
         NavigationItem(
             label = "All Songs",
-            onClick = { navController.navigate("all_songs") }
+            onClick = { navController.navigate(Screen.AllSongs.createRoute()) }
         ),
         NavigationItem(
             label = "Artists",
-            onClick = { navController.navigate("artists") }
+            onClick = { navController.navigate(Screen.Artists.route) }
         ),
         NavigationItem(
             label = "Albums",
-            onClick = { navController.navigate("albums") }
+            onClick = { navController.navigate(Screen.Albums.route) }
         ),
         NavigationItem(
             label = "Playlists",
-            onClick = { navController.navigate("playlists") }
+            onClick = { navController.navigate(Screen.Playlists.route) }
         ),
         NavigationItem(
             label = "Settings",
-            onClick = { navController.navigate("settings") }
+            onClick = { navController.navigate(Screen.Settings.route) }
         )
     )
 

@@ -20,6 +20,7 @@ import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 fun PlaylistsScreen(
@@ -34,7 +35,7 @@ fun PlaylistsScreen(
         NavigationItem(
             playlist.name,
             onClick = {
-                navController.navigate("playlist/${playlist.id}")
+                navController.navigate(Screen.PlaylistSongs.createRoute(playlist.id))
             },
             onLongClick = { viewModel.selectedPlaylist = playlist }
         )

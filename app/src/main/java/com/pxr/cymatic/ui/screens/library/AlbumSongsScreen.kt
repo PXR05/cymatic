@@ -1,7 +1,6 @@
 package com.pxr.cymatic.ui.screens.library
 
 import android.Manifest
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +26,7 @@ import com.pxr.cymatic.ui.components.list.AudioFileList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 fun AlbumSongsScreen(
@@ -38,7 +38,7 @@ fun AlbumSongsScreen(
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
-    val queueSource = "album/${Uri.encode(albumName)}"
+    val queueSource = Screen.AlbumSongs.createRoute(albumName)
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(

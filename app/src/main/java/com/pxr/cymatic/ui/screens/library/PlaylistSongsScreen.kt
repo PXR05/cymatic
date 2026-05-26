@@ -1,18 +1,22 @@
 package com.pxr.cymatic.ui.screens.library
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.ui.components.common.EmptyState
+import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.components.common.SongInfoDialog
-import com.pxr.cymatic.ui.components.common.LoadingState
-import com.pxr.cymatic.ui.components.common.EmptyState
-import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 fun PlaylistSongsScreen(
@@ -29,7 +33,7 @@ fun PlaylistSongsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    val queueSource = "playlist/$playlistId"
+    val queueSource = Screen.PlaylistSongs.createRoute(playlistId)
 
     LaunchedEffect(playlistId) {
         viewModel.loadPlaylist(playlistId)
@@ -53,7 +57,7 @@ fun PlaylistSongsScreen(
                 message = "Add tracks to this playlist from the context menu in the All Songs list.",
                 iconText = "( ! )",
                 actionLabel = "GO TO ALL SONGS",
-                onActionClick = { navController.navigate("all_songs") }
+                onActionClick = { navController.navigate(Screen.AllSongs.createRoute()) }
             )
         } else {
             AudioFileList(

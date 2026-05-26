@@ -7,6 +7,7 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 fun SettingsScreen(
@@ -23,19 +24,19 @@ fun SettingsScreen(
             items = listOf(
                 NavigationItem(
                     label = "Equalizer",
-                    onClick = { navController.navigate("setting/eq") }
+                    onClick = { navController.navigate(Screen.EQSettings.route) }
                 ),
                 NavigationItem(
                     label = "Playback",
-                    onClick = { navController.navigate("setting/playback") }
+                    onClick = { navController.navigate(Screen.PlaybackSettings.route) }
                 ),
                 NavigationItem(
                     label = "Storage",
-                    onClick = { navController.navigate("setting/storage") }
+                    onClick = { navController.navigate(Screen.StorageSettings.route) }
                 ),
                 NavigationItem(
                     label = "Version",
-                    onClick = { navController.navigate("setting/version") }
+                    onClick = { navController.navigate(Screen.VersionSettings.route) }
                 ),
             )
         )
