@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
         PlaylistItemEntity::class
     ],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class CymaticDatabase : RoomDatabase() {
     abstract fun audioDao(): AudioDao
@@ -29,7 +29,6 @@ abstract class CymaticDatabase : RoomDatabase() {
                     CymaticDatabase::class.java,
                     "audio_store.db"
                 )
-                    .fallbackToDestructiveMigration(true)
                     .build()
                     .also { instance = it }
             }
