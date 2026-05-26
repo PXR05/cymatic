@@ -42,6 +42,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pxr.cymatic.data.model.AudioFile
@@ -354,7 +356,7 @@ private fun TrackQueueIndex(
     queueSource: String?,
     currentMediaId: String?,
     locked: Boolean,
-    navController: androidx.navigation.NavController,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
     Text(
@@ -478,7 +480,7 @@ private fun TrackControls(
     isShuffling: Boolean,
     repeatMode: Int,
     locked: Boolean,
-    mediaController: androidx.media3.session.MediaController
+    mediaController: MediaController
 ) {
     if (!locked) {
         Controls(

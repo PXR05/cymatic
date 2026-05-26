@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pxr.cymatic.data.model.EqPreset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 private val Context.dataStore by preferencesDataStore("settings")
 
@@ -146,26 +148,26 @@ object SettingsStore {
     val currentFadeEnabled: Boolean
         get() = _prefs.value?.get(FADE_ENABLED_KEY) ?: DEFAULT_FADE_ENABLED
 
-    private fun getEqPresetsList(prefs: Preferences): List<com.pxr.cymatic.data.model.EqPreset> {
+    private fun getEqPresetsList(prefs: Preferences): List<EqPreset> {
         val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
         return try {
-            val array = org.json.JSONArray(jsonStr)
-            val list = mutableListOf<com.pxr.cymatic.data.model.EqPreset>()
+            val array = JSONArray(jsonStr)
+            val list = mutableListOf<EqPreset>()
             for (i in 0 until array.length()) {
-                com.pxr.cymatic.data.model.EqPreset.fromJson(array.getJSONObject(i).toString())?.let { list.add(it) }
+                EqPreset.fromJson(array.getJSONObject(i).toString())?.let { list.add(it) }
             }
-            if (list.isEmpty()) listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset()) else list
+            if (list.isEmpty()) listOf(EqPreset.defaultPreset()) else list
         } catch (e: Exception) {
             Log.e("SettingsStore", "Failed to parse EQ presets: ${e.message}")
-            listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
+            listOf(EqPreset.defaultPreset())
         }
     }
 
-    val eqPresetsFlow: Flow<List<com.pxr.cymatic.data.model.EqPreset>>
+    val eqPresetsFlow: Flow<List<EqPreset>>
         get() = store.data.map { prefs -> getEqPresetsList(prefs) }
 
-    val currentEqPresets: List<com.pxr.cymatic.data.model.EqPreset>
-        get() = _prefs.value?.let { getEqPresetsList(it) } ?: listOf(com.pxr.cymatic.data.model.EqPreset.defaultPreset())
+    val currentEqPresets: List<EqPreset>
+        get() = _prefs.value?.let { getEqPresetsList(it) } ?: listOf(EqPreset.defaultPreset())
 
     val eqSelectedPresetFlow: Flow<String>
         get() = store.data.map { prefs ->
@@ -289,9 +291,9 @@ object SettingsStore {
         }
     }
 
-    suspend fun setEqPresets(presets: List<com.pxr.cymatic.data.model.EqPreset>) {
+    suspend fun setEqPresets(presets: List<EqPreset>) {
         store.edit { prefs ->
-            val array = org.json.JSONArray()
+            val array = JSONArray()
             presets.forEach { array.put(it.toJson()) }
             prefs[EQ_PRESETS_KEY] = array.toString()
         }

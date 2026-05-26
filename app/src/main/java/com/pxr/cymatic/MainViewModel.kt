@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.store.SettingsStore
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val scanAllMedia = SettingsStore.getScanAllMedia()
 
             val syncedFiles = withContext(Dispatchers.IO) {
-                com.pxr.cymatic.data.media.PlaylistRepository.getInstance(context).getPlaylists()
+                PlaylistRepository.getInstance(context).getPlaylists()
                 syncAudioFilesToDb(context, scanDirectories, scanAllMedia)
             }
             
