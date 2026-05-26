@@ -134,6 +134,9 @@ object SettingsStore {
     val currentScanDirectories: List<String>
         get() = (_prefs.value?.get(SCAN_DIRECTORIES_KEY) ?: emptySet()).sorted()
 
+    val currentScanDirectoriesNullable: List<String>?
+        get() = _prefs.value?.let { prefs -> (prefs[SCAN_DIRECTORIES_KEY] ?: emptySet()).sorted() }
+
     val currentScanAllMedia: Boolean
         get() = _prefs.value?.get(SCAN_ALL_MEDIA_KEY) ?: DEFAULT_SCAN_ALL_MEDIA
 

@@ -16,10 +16,22 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+data class ArtistsState(
+    val isLoading: Boolean = true,
+    val artists: List<String> = emptyList(),
+    val errorMessage: String? = null
+)
+
 class ArtistsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private val _artists = MutableStateFlow<List<String>>(emptyList())
+    private val initialArtists = repository.getCachedAudio()?.let { songs ->
+        songs.map(::artistDisplayName).distinct().sortedBy { it.lowercase() }
+    }
+
+    private val _artists = MutableStateFlow<List<String>?>(initialArtists)
+    private val _isLoading = MutableStateFlow(initialArtists == null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
 
     var searchQuery by mutableStateOf("")
         private set
@@ -29,20 +41,34 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
     private val _searchQueryFlow = MutableStateFlow("")
     private val _isSearchActiveFlow = MutableStateFlow(false)
 
-    val filteredArtists: StateFlow<List<String>> = combine(
+    val uiState: StateFlow<ArtistsState> = combine(
         _artists,
+        _isLoading,
+        _errorMessage,
         _searchQueryFlow,
         _isSearchActiveFlow
-    ) { artists, query, active ->
-        if (active && query.isNotEmpty()) {
-            artists.filter { it.contains(query, ignoreCase = true) }
+    ) { raw, loading, error, query, active ->
+        val filtered = if (raw != null) {
+            if (active && query.isNotEmpty()) {
+                raw.filter { it.contains(query, ignoreCase = true) }
+            } else {
+                raw
+            }
         } else {
-            artists
+            emptyList()
         }
+        ArtistsState(
+            isLoading = loading && raw == null,
+            artists = filtered,
+            errorMessage = error
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = ArtistsState(
+            isLoading = initialArtists == null,
+            artists = initialArtists.orEmpty()
+        )
     )
 
     init {
@@ -53,13 +79,21 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun loadArtists() {
+    fun loadArtists() {
         viewModelScope.launch(Dispatchers.IO) {
-            val songs = repository.getAllAudio()
-            _artists.value = songs
-                .map(::artistDisplayName)
-                .distinct()
-                .sortedBy { it.lowercase() }
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val songs = repository.getAllAudio()
+                _artists.value = songs
+                    .map(::artistDisplayName)
+                    .distinct()
+                    .sortedBy { it.lowercase() }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to load artists"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

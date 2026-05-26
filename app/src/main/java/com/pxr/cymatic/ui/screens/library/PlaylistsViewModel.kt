@@ -16,10 +16,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+data class PlaylistsState(
+    val isLoading: Boolean = true,
+    val playlists: List<Playlist> = emptyList(),
+    val errorMessage: String? = null
+)
+
 class PlaylistsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PlaylistRepository.getInstance(application)
 
-    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    private val _playlists = MutableStateFlow<List<Playlist>?>(repository.getCachedPlaylists())
+    private val _isLoading = MutableStateFlow(repository.getCachedPlaylists() == null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
 
     var searchQuery by mutableStateOf("")
         private set
@@ -33,20 +41,34 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
     var selectedPlaylist by mutableStateOf<Playlist?>(null)
     var newPlaylistName by mutableStateOf("")
 
-    val filteredPlaylists: StateFlow<List<Playlist>> = combine(
+    val uiState: StateFlow<PlaylistsState> = combine(
         _playlists,
+        _isLoading,
+        _errorMessage,
         _searchQueryFlow,
         _isSearchActiveFlow
-    ) { playlists, query, active ->
-        if (active && query.isNotEmpty()) {
-            playlists.filter { it.name.contains(query, ignoreCase = true) }
+    ) { raw, loading, error, query, active ->
+        val filtered = if (raw != null) {
+            if (active && query.isNotEmpty()) {
+                raw.filter { it.name.contains(query, ignoreCase = true) }
+            } else {
+                raw
+            }
         } else {
-            playlists
+            emptyList()
         }
+        PlaylistsState(
+            isLoading = loading && raw == null,
+            playlists = filtered,
+            errorMessage = error
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = PlaylistsState(
+            isLoading = repository.getCachedPlaylists() == null,
+            playlists = repository.getCachedPlaylists().orEmpty()
+        )
     )
 
     init {
@@ -55,7 +77,15 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun loadPlaylists() {
         viewModelScope.launch(Dispatchers.IO) {
-            _playlists.value = repository.getPlaylists()
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                _playlists.value = repository.getPlaylists()
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to load playlists"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

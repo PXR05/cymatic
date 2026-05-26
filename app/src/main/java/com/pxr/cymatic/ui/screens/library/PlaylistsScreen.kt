@@ -15,6 +15,9 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
+import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.ui.components.common.EmptyState
+import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
 
@@ -25,9 +28,9 @@ fun PlaylistsScreen(
 ) {
     val navController = LocalNavController.current
 
-    val filteredPlaylists by viewModel.filteredPlaylists.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    val items = filteredPlaylists.map { playlist ->
+    val items = uiState.playlists.map { playlist ->
         NavigationItem(
             playlist.name,
             onClick = {
@@ -60,7 +63,30 @@ fun PlaylistsScreen(
             )
         }
     ) {
-        NavigationList(items = items)
+        if (uiState.errorMessage != null) {
+            ErrorState(
+                message = uiState.errorMessage ?: "Unknown error",
+                onRetry = { viewModel.loadPlaylists() }
+            )
+        } else if (uiState.isLoading) {
+            LoadingState()
+        } else if (uiState.playlists.isEmpty()) {
+            if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
+                EmptyState(
+                    title = "No Matches Found",
+                    message = "No playlists match '${viewModel.searchQuery}'",
+                    iconText = "( ? )"
+                )
+            } else {
+                EmptyState(
+                    title = "No Playlists",
+                    message = "Tap the '+' icon on the top right to create your first playlist.",
+                    iconText = "( ! )"
+                )
+            }
+        } else {
+            NavigationList(items = items)
+        }
     }
 
     if (viewModel.showCreateDialog) {

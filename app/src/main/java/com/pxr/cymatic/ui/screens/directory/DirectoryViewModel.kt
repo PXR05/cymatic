@@ -7,6 +7,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
@@ -23,8 +24,12 @@ data class DirectoryItem(
     val path: String
 )
 
-class DirectoryViewModel(application: Application) : AndroidViewModel(application) {
+class DirectoryViewModel(
+    application: Application,
+    savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
+    private val directory: String = Uri.decode(savedStateHandle.get<String>("directory").orEmpty())
 
     private val _directories = MutableStateFlow<List<DirectoryItem>>(emptyList())
     val directories: StateFlow<List<DirectoryItem>> = _directories
@@ -32,33 +37,47 @@ class DirectoryViewModel(application: Application) : AndroidViewModel(applicatio
     private val _files = MutableStateFlow<List<AudioFile>>(emptyList())
     val files: StateFlow<List<AudioFile>> = _files
 
-    private var currentDirectory: String? = null
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
 
     init {
+        if (directory.isNotEmpty()) {
+            loadDirectory(directory)
+        }
         viewModelScope.launch {
             SettingsStore.lastScanTimeMsFlow.collect {
-                currentDirectory?.let { loadDirectory(it) }
+                loadDirectory(directory)
             }
         }
     }
 
     fun loadDirectory(directory: String) {
-        currentDirectory = directory
         viewModelScope.launch {
-            val context = getApplication<Application>()
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val context = getApplication<Application>()
 
-            val dirs = withContext(Dispatchers.IO) {
-                buildNavigationItems(context, directory)
-            }
-            _directories.value = dirs
+                val dirs = withContext(Dispatchers.IO) {
+                    buildNavigationItems(context, directory)
+                }
+                _directories.value = dirs
 
-            val allAudio = withContext(Dispatchers.IO) {
-                repository.getAllAudio()
+                val allAudio = withContext(Dispatchers.IO) {
+                    repository.getAllAudio()
+                }
+                val filteredFiles = withContext(Dispatchers.IO) {
+                    buildAudioFilesForDirectory(context, directory, allAudio)
+                }
+                _files.value = filteredFiles
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to load directory"
+            } finally {
+                _isLoading.value = false
             }
-            val filteredFiles = withContext(Dispatchers.IO) {
-                buildAudioFilesForDirectory(context, directory, allAudio)
-            }
-            _files.value = filteredFiles
         }
     }
 

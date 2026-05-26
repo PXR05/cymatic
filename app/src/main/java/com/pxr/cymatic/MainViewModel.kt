@@ -24,6 +24,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val scanAllMedia = SettingsStore.getScanAllMedia()
 
             val syncedFiles = withContext(Dispatchers.IO) {
+                com.pxr.cymatic.data.media.PlaylistRepository.getInstance(context).getPlaylists()
                 syncAudioFilesToDb(context, scanDirectories, scanAllMedia)
             }
             

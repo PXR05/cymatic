@@ -17,10 +17,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+data class AllSongsState(
+    val isLoading: Boolean = true,
+    val songs: List<AudioFile> = emptyList(),
+    val errorMessage: String? = null
+)
+
 class AllSongsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>>(emptyList())
+    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>?>(repository.getCachedAudio())
+    private val _isLoading = MutableStateFlow(repository.getCachedAudio() == null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
 
     var searchQuery by mutableStateOf("")
         private set
@@ -33,27 +41,41 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
     var contextMenuFile by mutableStateOf<AudioFile?>(null)
     var infoDialogId by mutableStateOf<Long?>(null)
 
-    val filteredAudioFiles: StateFlow<List<AudioFile>> = combine(
+    val uiState: StateFlow<AllSongsState> = combine(
         _rawAudioFiles,
+        _isLoading,
+        _errorMessage,
         _searchQueryFlow,
         _isSearchActiveFlow
-    ) { files, query, active ->
-        if (active && query.isNotEmpty()) {
-            files.filter { file ->
-                val title = file.metadata.title.orEmpty()
-                val artist = file.metadata.artist.orEmpty()
-                val album = file.metadata.album.orEmpty()
-                title.contains(query, ignoreCase = true) ||
-                        artist.contains(query, ignoreCase = true) ||
-                        album.contains(query, ignoreCase = true)
+    ) { raw, loading, error, query, active ->
+        val filtered = if (raw != null) {
+            if (active && query.isNotEmpty()) {
+                raw.filter { file ->
+                    val title = file.metadata.title.orEmpty()
+                    val artist = file.metadata.artist.orEmpty()
+                    val album = file.metadata.album.orEmpty()
+                    title.contains(query, ignoreCase = true) ||
+                            artist.contains(query, ignoreCase = true) ||
+                            album.contains(query, ignoreCase = true)
+                }
+            } else {
+                raw
             }
         } else {
-            files
+            emptyList()
         }
+        AllSongsState(
+            isLoading = loading && raw == null,
+            songs = filtered,
+            errorMessage = error
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = AllSongsState(
+            isLoading = repository.getCachedAudio() == null,
+            songs = repository.getCachedAudio().orEmpty()
+        )
     )
 
     init {
@@ -64,9 +86,17 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun loadAudioFiles() {
+    fun loadAudioFiles() {
         viewModelScope.launch(Dispatchers.IO) {
-            _rawAudioFiles.value = repository.getAllAudio()
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                _rawAudioFiles.value = repository.getAllAudio()
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Failed to load audio files"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 

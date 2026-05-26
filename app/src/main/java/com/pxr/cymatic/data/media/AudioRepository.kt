@@ -6,11 +6,33 @@ import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 class AudioRepository private constructor(
     private val audioDao: AudioDao
 ) {
+    @Volatile
+    private var cachedAudio: List<AudioFile>? = null
+    private val cacheMutex = Mutex()
+
     suspend fun getAllAudio(): List<AudioFile> {
-        return audioDao.getAllAudio().map { it.toAudioFile() }
+        val cached = cachedAudio
+        if (cached != null) return cached
+        return cacheMutex.withLock {
+            val doubleChecked = cachedAudio
+            if (doubleChecked != null) {
+                doubleChecked
+            } else {
+                val dbList = audioDao.getAllAudio().map { it.toAudioFile() }
+                cachedAudio = dbList
+                dbList
+            }
+        }
+    }
+
+    fun getCachedAudio(): List<AudioFile>? {
+        return cachedAudio
     }
 
     suspend fun getAudioIndex(): Map<Long, AudioIndexEntry> {
@@ -19,11 +41,17 @@ class AudioRepository private constructor(
 
     suspend fun upsertAudio(records: List<AudioEntity>) {
         audioDao.upsertAudio(records)
+        cacheMutex.withLock {
+            cachedAudio = null
+        }
     }
 
     suspend fun deleteByIds(ids: Collection<Long>) {
         if (ids.isNotEmpty()) {
             audioDao.deleteByIds(ids)
+            cacheMutex.withLock {
+                cachedAudio = null
+            }
         }
     }
 
@@ -34,8 +62,14 @@ class AudioRepository private constructor(
     }
 
     companion object {
+        @Volatile
+        private var instance: AudioRepository? = null
+
         fun getInstance(context: Context): AudioRepository {
-            return AudioRepository(CymaticDatabase.getInstance(context).audioDao())
+            return instance ?: synchronized(this) {
+                instance ?: AudioRepository(CymaticDatabase.getInstance(context).audioDao())
+                    .also { instance = it }
+            }
         }
     }
 }
