@@ -8,7 +8,6 @@ import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.locals.LocalNavController
 
-@Preview
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier
@@ -25,6 +24,10 @@ fun SettingsScreen(
                 NavigationItem(
                     label = "Equalizer",
                     onClick = { navController.navigate("setting/eq") }
+                ),
+                NavigationItem(
+                    label = "Playback",
+                    onClick = { navController.navigate("setting/playback") }
                 ),
                 NavigationItem(
                     label = "Storage",

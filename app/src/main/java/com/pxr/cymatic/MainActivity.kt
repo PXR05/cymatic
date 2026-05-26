@@ -6,7 +6,6 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -44,6 +43,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -53,12 +53,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.screens.directory.DirectoriesScreen
+import com.pxr.cymatic.ui.screens.directory.DirectoryScreen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.library.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.AlbumsScreen
@@ -70,14 +71,12 @@ import com.pxr.cymatic.ui.screens.library.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.ui.theme.CymaticTheme
-import com.pxr.cymatic.ui.screens.directory.DirectoriesScreen
-import com.pxr.cymatic.ui.screens.directory.DirectoryScreen
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -189,6 +188,7 @@ class MainActivity : ComponentActivity() {
                 },
                 "settings" to { SettingsScreen() },
                 "setting/eq" to { EQSettingsScreen() },
+                "setting/playback" to { PlaybackSettingsScreen() },
                 "setting/storage" to { StorageSettingsScreen() },
                 "setting/version" to { VersionSettingsScreen() },
                 "directories" to { DirectoriesScreen() },

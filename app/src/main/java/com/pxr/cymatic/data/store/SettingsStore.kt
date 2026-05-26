@@ -33,6 +33,7 @@ object SettingsStore {
     private const val DEFAULT_LAST_SCAN_DURATION_MS = 0L
     private const val DEFAULT_SCAN_ALL_MEDIA = true
     private const val DEFAULT_HIDE_ARTWORK = false
+    private const val DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT = false
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
     private val LAST_SCAN_COUNT_KEY = longPreferencesKey("LAST_SCAN_COUNT")
@@ -45,6 +46,7 @@ object SettingsStore {
     private val EQ_GLOBAL_ENABLED_KEY = booleanPreferencesKey("EQ_GLOBAL_ENABLED")
     private val EQ_ACTIVE_AUDIO_DEVICE_KEY = stringPreferencesKey("EQ_ACTIVE_AUDIO_DEVICE")
     private val EQ_DEVICE_PRESETS_KEY = stringPreferencesKey("EQ_DEVICE_PRESETS")
+    private val RESUME_ON_BLUETOOTH_RECONNECT_KEY = booleanPreferencesKey("RESUME_ON_BLUETOOTH_RECONNECT")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
@@ -102,6 +104,11 @@ object SettingsStore {
             prefs[SCAN_ALL_MEDIA_KEY] ?: DEFAULT_SCAN_ALL_MEDIA
         }
 
+    val resumeOnBluetoothReconnectFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[RESUME_ON_BLUETOOTH_RECONNECT_KEY] ?: DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT
+        }
+
     val currentLocked: Boolean
         get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
 
@@ -122,6 +129,9 @@ object SettingsStore {
 
     val currentScanAllMedia: Boolean
         get() = _prefs.value?.get(SCAN_ALL_MEDIA_KEY) ?: DEFAULT_SCAN_ALL_MEDIA
+
+    val currentResumeOnBluetoothReconnect: Boolean
+        get() = _prefs.value?.get(RESUME_ON_BLUETOOTH_RECONNECT_KEY) ?: DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT
 
     private fun getEqPresetsList(prefs: Preferences): List<com.pxr.cymatic.data.model.EqPreset> {
         val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
@@ -237,6 +247,12 @@ object SettingsStore {
     suspend fun setScanAllMedia(value: Boolean) {
         store.edit { prefs ->
             prefs[SCAN_ALL_MEDIA_KEY] = value
+        }
+    }
+
+    suspend fun setResumeOnBluetoothReconnect(value: Boolean) {
+        store.edit { prefs ->
+            prefs[RESUME_ON_BLUETOOTH_RECONNECT_KEY] = value
         }
     }
 

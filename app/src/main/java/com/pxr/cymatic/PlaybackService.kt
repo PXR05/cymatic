@@ -12,6 +12,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
@@ -66,8 +68,15 @@ class PlaybackService : MediaLibraryService() {
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+
         player = ExoPlayer.Builder(this)
             .setRenderersFactory(createEqRenderersFactory())
+            .setAudioAttributes(audioAttributes, true)
+            .setHandleAudioBecomingNoisy(true)
             .build()
 
         fadingPlayer = FadingPlayer(player, serviceScope)
@@ -243,6 +252,23 @@ class PlaybackService : MediaLibraryService() {
         audioDeviceCallback = object : AudioDeviceCallback() {
             override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
                 updateActiveDevice()
+                val hasBluetooth = addedDevices.any { device ->
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                            device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                }
+                if (hasBluetooth) {
+                    serviceScope.launch {
+                        if (SettingsStore.currentResumeOnBluetoothReconnect) {
+                            delay(500L)
+                            withContext(Dispatchers.Main) {
+                                if (player.mediaItemCount > 0 && !player.isPlaying) {
+                                    player.play()
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
