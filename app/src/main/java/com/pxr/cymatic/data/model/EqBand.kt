@@ -40,16 +40,9 @@ data class EqBand(
         private const val STATE_ON = "ON"
         private const val STATE_OFF = "OFF"
 
-        /**
-         * Parse a single Equalizer APO filter line into an [EqBand].
-         * Expected format: "Filter N: ON|OFF <type> Fc <freq> Hz [Gain <gain> dB] [Q <q>]"
-         * Returns null if the line cannot be parsed.
-         */
         fun fromApoLine(line: String, id: Int): EqBand? {
             return try {
-                // Normalize whitespace
                 val tokens = line.trim().split("\\s+".toRegex())
-                // Minimum: Filter N: ON TYPE Fc FREQ Hz  -> 8 tokens
                 if (tokens.size < 8) return null
 
                 val stateToken = tokens[2].uppercase()
@@ -58,10 +51,8 @@ data class EqBand(
                 val typeToken = tokens[3]
                 val filterType = FilterType.fromApoName(typeToken)
 
-                // tokens[4] == "Fc", tokens[5] == freq, tokens[6] == "Hz"
                 val frequency = tokens[5].toFloatOrNull() ?: return null
 
-                // Optional: "Gain <gain> dB Q <q>"
                 var gain = 0f
                 var q = 1f
                 val gainIndex = tokens.indexOfFirst { it.equals("Gain", ignoreCase = true) }

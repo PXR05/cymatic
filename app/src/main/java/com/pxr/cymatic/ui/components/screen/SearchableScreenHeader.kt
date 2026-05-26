@@ -62,7 +62,6 @@ fun SearchableScreenHeader(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
         ) {
-            // Close search button (rendered as retro "<")
             Text(
                 text = "<",
                 color = MaterialTheme.colorScheme.onBackground,

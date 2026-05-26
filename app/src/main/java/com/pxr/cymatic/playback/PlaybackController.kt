@@ -1,10 +1,12 @@
 package com.pxr.cymatic.playback
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.data.model.AudioMetadata
 
 const val QUEUE_SOURCE_KEY = "queue_source"
 
@@ -13,6 +15,10 @@ fun createMediaItem(audioFile: AudioFile, queueSource: String? = null): MediaIte
         if (!queueSource.isNullOrBlank()) {
             putString(QUEUE_SOURCE_KEY, queueSource)
         }
+        audioFile.metadata.duration?.let { putLong("duration", it) }
+        audioFile.metadata.bitRate?.let { putLong("bit_rate", it) }
+        audioFile.metadata.sampleRate?.let { putLong("sample_rate", it) }
+        audioFile.metadata.format?.let { putString("format", it) }
     }
 
     val mediaMetadata = MediaMetadata.Builder()
@@ -31,6 +37,21 @@ fun createMediaItem(audioFile: AudioFile, queueSource: String? = null): MediaIte
         .setUri(audioFile.uri)
         .setMediaMetadata(mediaMetadata)
         .build()
+}
+
+fun MediaItem.toAudioMetadata(): AudioMetadata {
+    val meta = mediaMetadata
+    val extras = meta.extras
+    return AudioMetadata(
+        title = meta.title?.toString(),
+        artist = meta.artist?.toString(),
+        album = meta.albumTitle?.toString(),
+        duration = if (extras != null && extras.containsKey("duration")) extras.getLong("duration") else null,
+        bitRate = if (extras != null && extras.containsKey("bit_rate")) extras.getLong("bit_rate") else null,
+        sampleRate = if (extras != null && extras.containsKey("sample_rate")) extras.getLong("sample_rate") else null,
+        format = extras?.getString("format"),
+        artworkUri = meta.artworkUri
+    )
 }
 
 fun handleItemClick(

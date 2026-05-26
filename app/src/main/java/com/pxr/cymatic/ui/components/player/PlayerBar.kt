@@ -51,9 +51,7 @@ import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
-import com.pxr.cymatic.MainViewModel
-import androidx.activity.ComponentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.playback.toAudioMetadata
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -62,19 +60,14 @@ fun PlayerBar(
     modifier: Modifier = Modifier,
     isDocked: Boolean = false
 ) {
-    val activity = LocalContext.current as ComponentActivity
-    val mainViewModel: MainViewModel = viewModel(activity)
-    val audioFiles by mainViewModel.audioFiles.collectAsState()
-
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
     val currentMediaId = playbackState.currentMediaId ?: return
-    val metadata =
-        audioFiles.find { audioFile -> audioFile.id.toString() == currentMediaId }?.metadata
-            ?: return
+    val currentMediaItem = mediaController.currentMediaItem ?: return
+    val metadata = currentMediaItem.toAudioMetadata()
     val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
     val baseGap = 16.dp
 

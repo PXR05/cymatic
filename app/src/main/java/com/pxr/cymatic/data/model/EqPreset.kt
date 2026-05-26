@@ -97,12 +97,6 @@ data class EqPreset(
             return EqPreset(name, 0f, bands)
         }
 
-        /**
-         * Serialize this preset to Equalizer APO .txt format.
-         * Example output:
-         *   Preamp: -3.5 dB
-         *   Filter 1: ON PK Fc 1000 Hz Gain 3.0 dB Q 1.0
-         */
         fun EqPreset.toApoString(): String {
             val sb = StringBuilder()
             sb.appendLine(String.format(Locale.US, "Preamp: %.1f dB", preamp))
@@ -112,14 +106,6 @@ data class EqPreset(
             return sb.toString().trimEnd()
         }
 
-        /**
-         * Parse an Equalizer APO .txt string into an [EqPreset].
-         * Lines that cannot be parsed are silently skipped.
-         *
-         * Supported filter line format:
-         *   Filter N: ON|OFF <type> Fc <freq> Hz Gain <gain> dB Q <q>
-         *   Filter N: ON|OFF <type> Fc <freq> Hz              (for LP/HP/BP/NO/AP — gain & Q optional)
-         */
         fun fromApoString(text: String, name: String): EqPreset? {
             return try {
                 var preamp = 0f
