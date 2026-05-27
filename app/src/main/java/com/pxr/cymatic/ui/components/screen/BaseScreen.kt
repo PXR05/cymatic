@@ -14,6 +14,7 @@ fun BaseScreen(
     title: String,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onTitleClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
@@ -33,6 +34,7 @@ fun BaseScreen(
                 SearchableScreenHeader(
                     title = title,
                     onBackClick = onBackClick,
+                    onTitleClick = onTitleClick,
                     isSearchActive = isSearchActive,
                     onSearchActiveChange = onSearchActiveChange,
                     searchQuery = searchQuery,
@@ -43,6 +45,7 @@ fun BaseScreen(
                 ScreenHeader(
                     title = title,
                     onBackClick = onBackClick,
+                    onTitleClick = onTitleClick,
                     actions = actions
                 )
             }

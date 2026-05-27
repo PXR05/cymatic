@@ -46,4 +46,6 @@ sealed class Screen(val route: String) {
     object StorageSettings : Screen("setting/storage")
 
     object VersionSettings : Screen("setting/version")
+
+    object Queue : Screen("queue")
 }

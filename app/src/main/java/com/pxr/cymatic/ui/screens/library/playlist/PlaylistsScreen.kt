@@ -19,8 +19,10 @@ import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
+import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.playback.createMediaItem
 
 @Composable
 fun PlaylistsScreen(
@@ -28,6 +30,7 @@ fun PlaylistsScreen(
     viewModel: PlaylistsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
+    val mediaController = LocalMediaController.current
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -112,6 +115,55 @@ fun PlaylistsScreen(
         PlaylistContextMenu(
             playlist = playlist,
             onDismiss = { viewModel.selectedPlaylist = null },
+            onPlay = {
+                mediaController?.let { controller ->
+                    viewModel.getPlaylistSongs(playlist.id) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            controller.setMediaItems(mediaItems, 0, 0L)
+                            controller.prepare()
+                            controller.play()
+                        }
+                    }
+                }
+            },
+            onPlayNext = {
+                mediaController?.let { controller ->
+                    viewModel.getPlaylistSongs(playlist.id) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            val currentIndex = controller.currentMediaItemIndex
+                            val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(mediaItems)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(targetIndex, mediaItems)
+                            }
+                        }
+                    }
+                }
+            },
+            onAddToQueue = {
+                mediaController?.let { controller ->
+                    viewModel.getPlaylistSongs(playlist.id) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(mediaItems)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(mediaItems)
+                            }
+                        }
+                    }
+                }
+            },
             onRename = { playlistId, newName ->
                 viewModel.renamePlaylist(playlistId, newName)
             },

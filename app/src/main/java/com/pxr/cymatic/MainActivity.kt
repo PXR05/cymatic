@@ -62,6 +62,7 @@ import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
+import com.pxr.cymatic.ui.screens.library.QueueScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
@@ -187,6 +188,7 @@ class MainActivity : ComponentActivity() {
                 Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
                 Screen.StorageSettings.route to { StorageSettingsScreen() },
                 Screen.VersionSettings.route to { VersionSettingsScreen() },
+                Screen.Queue.route to { QueueScreen() },
             )
 
             CymaticTheme {

@@ -14,13 +14,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
+import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -54,6 +62,7 @@ fun ArtistSongsScreen(
         viewModel.loadArtistSongs(artistName)
     }
 
+    var showHeaderMenu by remember { mutableStateOf(false) }
     val filteredFiles by viewModel.songs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -61,6 +70,7 @@ fun ArtistSongsScreen(
     BaseScreen(
         title = artistName,
         onBackClick = { navController.popBackStack() },
+        onTitleClick = { showHeaderMenu = true },
         modifier = modifier
     ) {
         if (!hasPermission) {
@@ -121,7 +131,74 @@ fun ArtistSongsScreen(
                     )
                 }
             },
+            onPlayNext = { file ->
+                mediaController?.let { controller ->
+                    val currentIndex = controller.currentMediaItemIndex
+                    val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                    val item = createMediaItem(file, queueSource)
+                    if (controller.mediaItemCount == 0) {
+                        controller.setMediaItem(item)
+                        controller.prepare()
+                        controller.play()
+                    } else {
+                        controller.addMediaItem(targetIndex, item)
+                    }
+                }
+            },
+            onAddToQueue = { file ->
+                mediaController?.let { controller ->
+                    val item = createMediaItem(file, queueSource)
+                    if (controller.mediaItemCount == 0) {
+                        controller.setMediaItem(item)
+                        controller.prepare()
+                        controller.play()
+                    } else {
+                        controller.addMediaItem(item)
+                    }
+                }
+            },
             onTrackInfo = { file -> viewModel.infoDialogId = file.id }
+        )
+    }
+
+    if (showHeaderMenu && filteredFiles.isNotEmpty()) {
+        AlbumArtistContextMenu(
+            title = artistName,
+            onDismiss = { showHeaderMenu = false },
+            onPlay = {
+                mediaController?.let { controller ->
+                    val items = filteredFiles.map { createMediaItem(it, queueSource) }
+                    controller.setMediaItems(items, 0, 0L)
+                    controller.prepare()
+                    controller.play()
+                }
+            },
+            onPlayNext = {
+                mediaController?.let { controller ->
+                    val items = filteredFiles.map { createMediaItem(it, queueSource) }
+                    val currentIndex = controller.currentMediaItemIndex
+                    val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                    if (controller.mediaItemCount == 0) {
+                        controller.setMediaItems(items)
+                        controller.prepare()
+                        controller.play()
+                    } else {
+                        controller.addMediaItems(targetIndex, items)
+                    }
+                }
+            },
+            onAddToQueue = {
+                mediaController?.let { controller ->
+                    val items = filteredFiles.map { createMediaItem(it, queueSource) }
+                    if (controller.mediaItemCount == 0) {
+                        controller.setMediaItems(items)
+                        controller.prepare()
+                        controller.play()
+                    } else {
+                        controller.addMediaItems(items)
+                    }
+                }
+            }
         )
     }
 

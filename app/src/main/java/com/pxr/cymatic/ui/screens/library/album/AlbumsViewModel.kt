@@ -107,4 +107,12 @@ class AlbumsViewModel(application: Application) : AndroidViewModel(application) 
         isSearchActive = active
         _isSearchActiveFlow.value = active
     }
+
+    fun getSongsForAlbum(albumName: String, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val all = repository.getAllAudio()
+            val filtered = com.pxr.cymatic.ui.screens.library.filterByAlbum(all, albumName)
+            onResult(filtered)
+        }
+    }
 }

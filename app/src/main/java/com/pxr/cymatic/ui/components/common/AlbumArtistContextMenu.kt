@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.components.list
+package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -7,42 +7,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 
 @Composable
-fun AudioFileContextMenu(
-    audioFile: AudioFile,
+fun AlbumArtistContextMenu(
+    title: String,
     onDismiss: () -> Unit,
-    onPlay: (AudioFile) -> Unit,
-    onPlayNext: (AudioFile) -> Unit,
-    onAddToQueue: (AudioFile) -> Unit,
-    onTrackInfo: (AudioFile) -> Unit,
+    onPlay: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit
 ) {
-    val title = audioFile.metadata.title ?: "Unknown Title"
-
-    var showPlaylistPicker by remember { mutableStateOf(false) }
-
-    if (showPlaylistPicker) {
-        AddToPlaylistDialog(
-            audioId = audioFile.id,
-            onDismiss = {
-                showPlaylistPicker = false
-                onDismiss()
-            }
-        )
-        return
-    }
-
     CymaticDialog(
         title = title,
         onDismissRequest = onDismiss,
@@ -57,32 +35,21 @@ fun AudioFileContextMenu(
                 ContextMenuAction(
                     label = "Play",
                     onClick = {
-                        onPlay(audioFile)
+                        onPlay()
                         onDismiss()
                     }
                 )
                 ContextMenuAction(
                     label = "Play Next",
                     onClick = {
-                        onPlayNext(audioFile)
+                        onPlayNext()
                         onDismiss()
                     }
                 )
                 ContextMenuAction(
                     label = "Add to Queue",
                     onClick = {
-                        onAddToQueue(audioFile)
-                        onDismiss()
-                    }
-                )
-                ContextMenuAction(
-                    label = "Add to Playlist",
-                    onClick = { showPlaylistPicker = true }
-                )
-                ContextMenuAction(
-                    label = "Track Info",
-                    onClick = {
-                        onTrackInfo(audioFile)
+                        onAddToQueue()
                         onDismiss()
                     }
                 )

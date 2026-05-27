@@ -19,6 +19,7 @@ fun ScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
     onBackClick: () -> Unit,
+    onTitleClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
@@ -51,6 +52,17 @@ fun ScreenHeader(
                 .weight(1f)
                 .padding(
                     vertical = 16.dp
+                )
+                .then(
+                    if (onTitleClick != null) {
+                        Modifier.clickable(
+                            onClick = onTitleClick,
+                            indication = null,
+                            interactionSource = null
+                        )
+                    } else {
+                        Modifier
+                    }
                 )
         )
         actions()

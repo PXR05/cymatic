@@ -123,4 +123,11 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
             loadPlaylists()
         }
     }
+
+    fun getPlaylistSongs(playlistId: Long, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val songs = repository.getPlaylistAudio(playlistId)
+            onResult(songs)
+        }
+    }
 }

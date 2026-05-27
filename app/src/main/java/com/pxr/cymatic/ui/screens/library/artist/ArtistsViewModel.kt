@@ -107,4 +107,12 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
         isSearchActive = active
         _isSearchActiveFlow.value = active
     }
+
+    fun getSongsForArtist(artistName: String, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val all = repository.getAllAudio()
+            val filtered = com.pxr.cymatic.ui.screens.library.filterByArtist(all, artistName)
+            onResult(filtered)
+        }
+    }
 }

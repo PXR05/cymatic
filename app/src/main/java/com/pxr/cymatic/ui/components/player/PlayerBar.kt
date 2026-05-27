@@ -52,6 +52,7 @@ import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import com.pxr.cymatic.playback.toAudioMetadata
 import kotlinx.coroutines.launch
@@ -367,10 +368,8 @@ private fun TrackQueueIndex(
             .padding(vertical = 2.dp)
             .clickable(
                 onClick = {
-                    if (queueSource != null && !locked) {
-                        navController.navigate(
-                            "$queueSource?scrollId=$currentMediaId"
-                        ) {
+                    if (!locked) {
+                        navController.navigate(Screen.Queue.route) {
                             launchSingleTop = true
                         }
                     }

@@ -23,6 +23,9 @@ import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 fun PlaylistContextMenu(
     playlist: Playlist,
     onDismiss: () -> Unit,
+    onPlay: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
     onRename: (playlistId: Long, newName: String) -> Unit,
     onDelete: (playlistId: Long) -> Unit,
 ) {
@@ -95,6 +98,27 @@ fun PlaylistContextMenu(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
+                PlaylistContextMenuAction(
+                    label = "Play",
+                    onClick = {
+                        onPlay()
+                        onDismiss()
+                    }
+                )
+                PlaylistContextMenuAction(
+                    label = "Play Next",
+                    onClick = {
+                        onPlayNext()
+                        onDismiss()
+                    }
+                )
+                PlaylistContextMenuAction(
+                    label = "Add to Queue",
+                    onClick = {
+                        onAddToQueue()
+                        onDismiss()
+                    }
+                )
                 PlaylistContextMenuAction(
                     label = "Rename",
                     onClick = { showRenameDialog = true }

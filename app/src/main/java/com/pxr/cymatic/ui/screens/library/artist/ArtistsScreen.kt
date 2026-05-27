@@ -18,11 +18,14 @@ import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
+import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.playback.createMediaItem
 
 @Composable
 fun ArtistsScreen(
@@ -30,6 +33,7 @@ fun ArtistsScreen(
     viewModel: ArtistsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
+    val mediaController = LocalMediaController.current
     val context = LocalContext.current
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
@@ -42,12 +46,17 @@ fun ArtistsScreen(
         }
     }
 
+    var selectedArtist by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
     val items = uiState.artists.map { artistName ->
-        NavigationItem(artistName) {
-            navController.navigate(Screen.ArtistSongs.createRoute(artistName))
-        }
+        NavigationItem(
+            label = artistName,
+            onClick = {
+                navController.navigate(Screen.ArtistSongs.createRoute(artistName))
+            },
+            onLongClick = { selectedArtist = artistName }
+        )
     }
 
     BaseScreen(
@@ -100,5 +109,61 @@ fun ArtistsScreen(
                 modifier = Modifier
             )
         }
+    }
+
+    selectedArtist?.let { artistName ->
+        AlbumArtistContextMenu(
+            title = artistName,
+            onDismiss = { selectedArtist = null },
+            onPlay = {
+                mediaController?.let { controller ->
+                    viewModel.getSongsForArtist(artistName) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.ArtistSongs.createRoute(artistName)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            controller.setMediaItems(mediaItems, 0, 0L)
+                            controller.prepare()
+                            controller.play()
+                        }
+                    }
+                }
+            },
+            onPlayNext = {
+                mediaController?.let { controller ->
+                    viewModel.getSongsForArtist(artistName) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.ArtistSongs.createRoute(artistName)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            val currentIndex = controller.currentMediaItemIndex
+                            val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(mediaItems)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(targetIndex, mediaItems)
+                            }
+                        }
+                    }
+                }
+            },
+            onAddToQueue = {
+                mediaController?.let { controller ->
+                    viewModel.getSongsForArtist(artistName) { songs ->
+                        if (songs.isNotEmpty()) {
+                            val route = Screen.ArtistSongs.createRoute(artistName)
+                            val mediaItems = songs.map { createMediaItem(it, route) }
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(mediaItems)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(mediaItems)
+                            }
+                        }
+                    }
+                }
+            }
+        )
     }
 }

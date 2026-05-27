@@ -34,6 +34,7 @@ fun SearchableScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
     onBackClick: () -> Unit,
+    onTitleClick: (() -> Unit)? = null,
     isSearchActive: Boolean,
     onSearchActiveChange: (Boolean) -> Unit,
     searchQuery: String,
@@ -158,6 +159,17 @@ fun SearchableScreenHeader(
                     .weight(1f)
                     .padding(
                         vertical = 16.dp
+                    )
+                    .then(
+                        if (onTitleClick != null) {
+                            Modifier.clickable(
+                                onClick = onTitleClick,
+                                indication = null,
+                                interactionSource = null
+                            )
+                        } else {
+                            Modifier
+                        }
                     )
             )
 
