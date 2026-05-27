@@ -13,19 +13,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.playback.createMediaItem
+import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
-import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.playback.createMediaItem
 
 @Composable
 fun AlbumsScreen(
@@ -97,7 +97,7 @@ fun AlbumsScreen(
             } else {
                 EmptyState(
                     title = "No Albums Found",
-                    message = "Cymatic did not find any albums. Scanned music will appear here.",
+                    message = "Cymatic did not find any albums.",
                     iconText = "( ! )",
                     actionLabel = "GO TO STORAGE",
                     onActionClick = { navController.navigate(Screen.StorageSettings.route) }

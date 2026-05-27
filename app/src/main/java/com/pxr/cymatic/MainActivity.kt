@@ -53,22 +53,21 @@ import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.common.StatusBar
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
-import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
-import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
 import com.pxr.cymatic.ui.screens.library.QueueScreen
+import com.pxr.cymatic.ui.screens.library.UnknownAlbum
+import com.pxr.cymatic.ui.screens.library.UnknownArtist
+import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
+import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
-import com.pxr.cymatic.ui.screens.library.UnknownAlbum
-import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
@@ -259,19 +258,6 @@ class MainActivity : ComponentActivity() {
                                         modifier = if (isPlayerExpanded) Modifier.weight(1f) else Modifier,
                                         isDocked = isDocked
                                     )
-                                }
-
-                                if (!isPlayerExpanded) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.secondary)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    StatusBar(modifier = Modifier.padding(horizontal = 24.dp))
                                 }
                             }
                         }

@@ -11,18 +11,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.components.list.NavigationItem
-import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
-import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.playback.createMediaItem
 
 @Composable
 fun PlaylistsScreen(
@@ -84,7 +84,7 @@ fun PlaylistsScreen(
             } else {
                 EmptyState(
                     title = "No Playlists",
-                    message = "Tap the '+' icon on the top right to create your first playlist.",
+                    message = "Tap the '+' icon on the top right to create a playlist.",
                     iconText = "( ! )"
                 )
             }

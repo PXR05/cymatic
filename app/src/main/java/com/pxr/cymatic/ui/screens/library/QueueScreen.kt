@@ -124,7 +124,7 @@ fun QueueScreen(
         if (queueItems.isEmpty()) {
             EmptyState(
                 title = "Queue is Empty",
-                message = "Cymatic has no tracks in the queue. Scanned music will appear here.",
+                message = "No tracks in the queue.",
                 iconText = "( ! )",
                 actionLabel = "GO TO SONGS",
                 onActionClick = { navController.navigate(com.pxr.cymatic.ui.navigation.Screen.AllSongs.createRoute()) }

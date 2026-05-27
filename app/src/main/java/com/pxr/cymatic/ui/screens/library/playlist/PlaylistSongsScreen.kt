@@ -1,9 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -12,16 +8,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.playback.createMediaItem
+import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
-import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
 import com.pxr.cymatic.ui.components.list.AudioFileList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -68,9 +62,9 @@ fun PlaylistSongsScreen(
         } else if (audioFiles.isEmpty()) {
             EmptyState(
                 title = "Playlist is Empty",
-                message = "Add tracks to this playlist from the context menu in the All Songs list.",
+                message = "Add tracks to this playlist from the context menu of a track.",
                 iconText = "( ! )",
-                actionLabel = "GO TO ALL SONGS",
+                actionLabel = "GO TO SONGS",
                 onActionClick = { navController.navigate(Screen.AllSongs.createRoute()) }
             )
         } else {
