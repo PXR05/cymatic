@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.playlist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
@@ -18,7 +18,7 @@ import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
-import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
@@ -91,7 +91,7 @@ fun PlaylistsScreen(
     }
 
     if (viewModel.showCreateDialog) {
-        PixelInputDialog(
+        CymaticInputDialog(
             title = "New Playlist",
             hint = "Playlist name",
             value = viewModel.newPlaylistName,

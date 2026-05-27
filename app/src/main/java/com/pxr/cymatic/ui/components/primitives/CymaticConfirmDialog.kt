@@ -9,12 +9,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun PixelConfirmDialog(
+fun CymaticConfirmDialog(
     message: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    PixelDialog(
+    CymaticDialog(
         title = "Confirm",
         onDismissRequest = onDismiss,
         content = {
@@ -26,12 +26,12 @@ fun PixelConfirmDialog(
             )
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss
             )
-            PixelDialogDivider()
-            PixelDialogButton(
+            CymaticDialogDivider()
+            CymaticDialogButton(
                 text = "Delete",
                 onClick = onConfirm,
                 color = MaterialTheme.colorScheme.error

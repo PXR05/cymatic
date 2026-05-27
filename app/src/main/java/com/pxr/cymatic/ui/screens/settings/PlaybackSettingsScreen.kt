@@ -65,16 +65,7 @@ fun PlaybackSettingsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .clickable(
-                        onClick = {
-                            scope.launch {
-                                SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt)
-                            }
-                        },
-                        indication = null,
-                        interactionSource = null
-                    ),
+                    .border(1.dp, MaterialTheme.colorScheme.secondary),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -84,6 +75,15 @@ fun PlaybackSettingsScreen(
                     modifier = Modifier
                         .background(if (resumeOnBt) MaterialTheme.colorScheme.onBackground else Color.Transparent)
                         .padding(28.dp, 20.dp)
+                        .clickable(
+                            onClick = {
+                                scope.launch {
+                                    SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt)
+                                }
+                            },
+                            indication = null,
+                            interactionSource = null
+                        ),
                 )
 
                 Box(
@@ -104,7 +104,7 @@ fun PlaybackSettingsScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Play music when Bluetooth connects",
+                        text = "Resume on Bluetooth connect",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -124,16 +124,7 @@ fun PlaybackSettingsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
-                    .clickable(
-                        onClick = {
-                            scope.launch {
-                                SettingsStore.setFadeEnabled(!fadeEnabled)
-                            }
-                        },
-                        indication = null,
-                        interactionSource = null
-                    ),
+                    .border(1.dp, MaterialTheme.colorScheme.secondary),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -143,6 +134,15 @@ fun PlaybackSettingsScreen(
                     modifier = Modifier
                         .background(if (fadeEnabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
                         .padding(28.dp, 20.dp)
+                        .clickable(
+                            onClick = {
+                                scope.launch {
+                                    SettingsStore.setFadeEnabled(!fadeEnabled)
+                                }
+                            },
+                            indication = null,
+                            interactionSource = null
+                        ),
                 )
 
                 Box(

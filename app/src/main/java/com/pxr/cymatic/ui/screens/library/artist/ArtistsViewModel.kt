@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.artist
 
 import android.app.Application
 import androidx.compose.runtime.getValue
@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.screens.library.artistDisplayName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

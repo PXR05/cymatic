@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.album
 
 import android.Manifest
 import android.os.Build
@@ -25,9 +25,9 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
-fun ArtistsScreen(
+fun AlbumsScreen(
     modifier: Modifier = Modifier,
-    viewModel: ArtistsViewModel = viewModel()
+    viewModel: AlbumsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
@@ -38,20 +38,20 @@ fun ArtistsScreen(
     ) { isGranted ->
         hasPermission = isGranted
         if (isGranted) {
-            viewModel.loadArtists()
+            viewModel.loadAlbums()
         }
     }
 
     val uiState by viewModel.uiState.collectAsState()
 
-    val items = uiState.artists.map { artistName ->
-        NavigationItem(artistName) {
-            navController.navigate(Screen.ArtistSongs.createRoute(artistName))
+    val items = uiState.albums.map { albumName ->
+        NavigationItem(albumName) {
+            navController.navigate(Screen.AlbumSongs.createRoute(albumName))
         }
     }
 
     BaseScreen(
-        title = "Artists",
+        title = "Albums",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,
@@ -74,21 +74,21 @@ fun ArtistsScreen(
         } else if (uiState.errorMessage != null) {
             ErrorState(
                 message = uiState.errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadArtists() }
+                onRetry = { viewModel.loadAlbums() }
             )
         } else if (uiState.isLoading) {
             LoadingState()
-        } else if (uiState.artists.isEmpty()) {
+        } else if (uiState.albums.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
                     title = "No Matches Found",
-                    message = "No artists match '${viewModel.searchQuery}'",
+                    message = "No albums match '${viewModel.searchQuery}'",
                     iconText = "( ? )"
                 )
             } else {
                 EmptyState(
-                    title = "No Artists Found",
-                    message = "Cymatic did not find any artists. Scanned music will appear here.",
+                    title = "No Albums Found",
+                    message = "Cymatic did not find any albums. Scanned music will appear here.",
                     iconText = "( ! )",
                     actionLabel = "GO TO STORAGE",
                     onActionClick = { navController.navigate(Screen.StorageSettings.route) }

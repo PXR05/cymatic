@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.playlist
 
 import android.app.Application
 import androidx.compose.runtime.getValue

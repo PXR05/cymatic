@@ -43,11 +43,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
-import com.pxr.cymatic.ui.components.primitives.PixelConfirmDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenu
-import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenuItem
-import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
-import com.pxr.cymatic.ui.components.primitives.PixelSlider
+import com.pxr.cymatic.ui.components.primitives.CymaticConfirmDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
+import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +96,7 @@ fun EQSettingsScreen(
     }
 
     if (showAddDialog) {
-        PixelInputDialog(
+        CymaticInputDialog(
             title = "New Preset",
             hint = "Preset name",
             value = dialogInput,
@@ -111,7 +111,7 @@ fun EQSettingsScreen(
     }
 
     if (showRenameDialog) {
-        PixelInputDialog(
+        CymaticInputDialog(
             title = "Rename Preset",
             hint = "New name",
             value = dialogInput,
@@ -126,7 +126,7 @@ fun EQSettingsScreen(
     }
 
     if (showDeleteConfirm) {
-        PixelConfirmDialog(
+        CymaticConfirmDialog(
             message = "Delete \"${state.selectedPresetName}\"?",
             onConfirm = {
                 viewModel.deletePreset(state.selectedPresetName)
@@ -184,12 +184,12 @@ fun EQSettingsScreen(
                             )
                     )
 
-                    PixelDropdownMenu(
+                    CymaticDropdownMenu(
                         expanded = showPresetDropdown,
                         onDismissRequest = { showPresetDropdown = false }
                     ) {
                         state.presets.forEach { preset ->
-                            PixelDropdownMenuItem(
+                            CymaticDropdownMenuItem(
                                 text = preset.name,
                                 onClick = {
                                     viewModel.selectPreset(preset.name)
@@ -214,11 +214,11 @@ fun EQSettingsScreen(
                             )
                     )
 
-                    PixelDropdownMenu(
+                    CymaticDropdownMenu(
                         expanded = showPresetMenu,
                         onDismissRequest = { showPresetMenu = false }
                     ) {
-                        PixelDropdownMenuItem(
+                        CymaticDropdownMenuItem(
                             text = "New",
                             onClick = {
                                 showPresetMenu = false
@@ -226,7 +226,7 @@ fun EQSettingsScreen(
                                 showAddDialog = true
                             }
                         )
-                        PixelDropdownMenuItem(
+                        CymaticDropdownMenuItem(
                             text = "Rename",
                             onClick = {
                                 showPresetMenu = false
@@ -234,14 +234,14 @@ fun EQSettingsScreen(
                                 showRenameDialog = true
                             }
                         )
-                        PixelDropdownMenuItem(
+                        CymaticDropdownMenuItem(
                             text = "Delete",
                             onClick = {
                                 showPresetMenu = false
                                 showDeleteConfirm = true
                             }
                         )
-                        PixelDropdownMenuItem(
+                        CymaticDropdownMenuItem(
                             text = "Import",
                             onClick = {
                                 showPresetMenu = false
@@ -252,7 +252,7 @@ fun EQSettingsScreen(
                                 importLauncher.launch(intent)
                             }
                         )
-                        PixelDropdownMenuItem(
+                        CymaticDropdownMenuItem(
                             text = "Export",
                             onClick = {
                                 showPresetMenu = false
@@ -309,7 +309,7 @@ fun EQSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            PixelSlider(
+            CymaticSlider(
                 value = activePreset.preamp,
                 onValueChange = { viewModel.updatePreamp(it) },
                 valueRange = -12f..12f,

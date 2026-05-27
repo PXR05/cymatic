@@ -4,8 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenu
-import com.pxr.cymatic.ui.components.primitives.PixelDropdownMenuItem
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,9 +39,9 @@ fun FilterTypeSelector(
                 )
         )
 
-        PixelDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        CymaticDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             FilterType.entries.forEach { type ->
-                PixelDropdownMenuItem(
+                CymaticDropdownMenuItem(
                     text = type.displayName,
                     onClick = { onSelect(type); expanded = false }
                 )

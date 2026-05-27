@@ -8,16 +8,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.Playlist
-import com.pxr.cymatic.ui.components.primitives.PixelDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
-import com.pxr.cymatic.ui.components.primitives.PixelInputDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
+import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 
 @Composable
 fun PlaylistContextMenu(
@@ -31,7 +31,7 @@ fun PlaylistContextMenu(
     var renameValue by remember { mutableStateOf(playlist.name) }
 
     if (showRenameDialog) {
-        PixelInputDialog(
+        CymaticInputDialog(
             title = "Rename Playlist",
             hint = "Playlist name",
             value = renameValue,
@@ -52,7 +52,7 @@ fun PlaylistContextMenu(
     }
 
     if (showDeleteConfirm) {
-        PixelDialog(
+        CymaticDialog(
             title = "Delete \"${playlist.name}\"?",
             onDismissRequest = { showDeleteConfirm = false },
             maxHeightRatio = 0.7f,
@@ -66,12 +66,12 @@ fun PlaylistContextMenu(
                 )
             },
             buttons = {
-                PixelDialogButton(
+                CymaticDialogButton(
                     text = "Cancel",
                     onClick = { showDeleteConfirm = false },
                     color = MaterialTheme.colorScheme.secondary
                 )
-                PixelDialogButton(
+                CymaticDialogButton(
                     text = "Delete",
                     onClick = {
                         onDelete(playlist.id)
@@ -84,7 +84,7 @@ fun PlaylistContextMenu(
         return
     }
 
-    PixelDialog(
+    CymaticDialog(
         title = playlist.name,
         onDismissRequest = onDismiss,
         maxHeightRatio = 0.7f,
@@ -106,7 +106,7 @@ fun PlaylistContextMenu(
             }
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss,
                 color = MaterialTheme.colorScheme.secondary

@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 
 @Composable
 fun AudioFileContextMenu(
@@ -41,7 +41,7 @@ fun AudioFileContextMenu(
         return
     }
 
-    PixelDialog(
+    CymaticDialog(
         title = title,
         onDismissRequest = onDismiss,
         maxHeightRatio = 0.7f,
@@ -73,7 +73,7 @@ fun AudioFileContextMenu(
             }
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss,
                 color = MaterialTheme.colorScheme.secondary

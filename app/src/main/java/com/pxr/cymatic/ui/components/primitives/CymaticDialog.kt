@@ -27,7 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 @Composable
-fun PixelDialog(
+fun CymaticDialog(
     title: String,
     onDismissRequest: () -> Unit,
     maxHeightRatio: Float = 0.9f,
@@ -85,7 +85,7 @@ fun PixelDialog(
 }
 
 @Composable
-fun RowScope.PixelDialogButton(
+fun RowScope.CymaticDialogButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -108,7 +108,7 @@ fun RowScope.PixelDialogButton(
 }
 
 @Composable
-fun PixelDialogDivider() {
+fun CymaticDialogDivider() {
     Text(
         text = "|",
         color = MaterialTheme.colorScheme.onBackground,

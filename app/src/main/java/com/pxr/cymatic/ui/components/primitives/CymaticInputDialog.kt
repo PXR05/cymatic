@@ -2,18 +2,18 @@ package com.pxr.cymatic.ui.components.primitives
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun PixelInputDialog(
+fun CymaticInputDialog(
     title: String,
     hint: String,
     value: String,
@@ -21,7 +21,7 @@ fun PixelInputDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    PixelDialog(
+    CymaticDialog(
         title = title,
         onDismissRequest = onDismiss,
         content = {
@@ -40,18 +40,19 @@ fun PixelInputDialog(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
+                shape = RoundedCornerShape(0.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             )
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss
             )
-            PixelDialogDivider()
-            PixelDialogButton(
+            CymaticDialogDivider()
+            CymaticDialogButton(
                 text = "OK",
                 onClick = onConfirm
             )

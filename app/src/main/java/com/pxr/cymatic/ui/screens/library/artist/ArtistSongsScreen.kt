@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.artist
 
 import android.Manifest
 import android.os.Build
@@ -29,16 +29,16 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
-fun AlbumSongsScreen(
-    albumName: String,
+fun ArtistSongsScreen(
+    artistName: String,
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
-    viewModel: AlbumSongsViewModel = viewModel()
+    viewModel: ArtistSongsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
-    val queueSource = Screen.AlbumSongs.createRoute(albumName)
+    val queueSource = Screen.ArtistSongs.createRoute(artistName)
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -46,12 +46,12 @@ fun AlbumSongsScreen(
     ) { isGranted ->
         hasPermission = isGranted
         if (isGranted) {
-            viewModel.loadAlbumSongs(albumName)
+            viewModel.loadArtistSongs(artistName)
         }
     }
 
-    LaunchedEffect(albumName) {
-        viewModel.loadAlbumSongs(albumName)
+    LaunchedEffect(artistName) {
+        viewModel.loadArtistSongs(artistName)
     }
 
     val filteredFiles by viewModel.songs.collectAsState()
@@ -59,7 +59,7 @@ fun AlbumSongsScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     BaseScreen(
-        title = albumName,
+        title = artistName,
         onBackClick = { navController.popBackStack() },
         modifier = modifier
     ) {
@@ -78,14 +78,14 @@ fun AlbumSongsScreen(
         } else if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadAlbumSongs(albumName) }
+                onRetry = { viewModel.loadArtistSongs(artistName) }
             )
         } else if (isLoading) {
             LoadingState()
         } else if (filteredFiles.isEmpty()) {
             EmptyState(
                 title = "No Songs Found",
-                message = "Cymatic did not find any songs for '$albumName'.",
+                message = "Cymatic did not find any songs for '$artistName'.",
                 iconText = "( ! )"
             )
         } else {

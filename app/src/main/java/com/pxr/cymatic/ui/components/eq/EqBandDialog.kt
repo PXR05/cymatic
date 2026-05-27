@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
-import com.pxr.cymatic.ui.components.primitives.PixelDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
-import com.pxr.cymatic.ui.components.primitives.PixelSlider
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
+import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 
 @SuppressLint("DefaultLocale")
 @Composable
@@ -29,7 +29,7 @@ fun EqBandDialog(
     onBandChange: (EqBand) -> Unit,
     onRemove: () -> Unit
 ) {
-    PixelDialog(
+    CymaticDialog(
         title = "Band ${index + 1} Controls",
         onDismissRequest = onDismiss,
         maxHeightRatio = 0.7f,
@@ -57,7 +57,7 @@ fun EqBandDialog(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                PixelSlider(
+                CymaticSlider(
                     value = band.frequency,
                     onValueChange = { onBandChange(band.copy(frequency = it)) },
                     valueRange = 20f..20_000f,
@@ -71,7 +71,7 @@ fun EqBandDialog(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                PixelSlider(
+                CymaticSlider(
                     value = band.gain,
                     onValueChange = { onBandChange(band.copy(gain = it)) },
                     valueRange = -12f..12f,
@@ -85,7 +85,7 @@ fun EqBandDialog(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                PixelSlider(
+                CymaticSlider(
                     value = band.q,
                     onValueChange = { onBandChange(band.copy(q = it)) },
                     valueRange = 0.1f..2f,
@@ -107,7 +107,7 @@ fun EqBandDialog(
             }
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Done",
                 onClick = onDismiss
             )

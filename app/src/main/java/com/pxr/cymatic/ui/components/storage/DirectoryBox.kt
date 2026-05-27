@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.primitives.PixelConfirmDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticConfirmDialog
 import kotlinx.coroutines.launch
 
 @SuppressLint("WrongConstant")
@@ -67,7 +67,7 @@ fun DirectoryBox(
     )
 
     if (showDeleteConfirm && pendingDeleteUri != null) {
-        PixelConfirmDialog(
+        CymaticConfirmDialog(
             message = "Remove \"${formatDirectoryLabel(pendingDeleteUri ?: "")}\"?",
             onConfirm = {
                 onRemove(pendingDeleteUri!!)

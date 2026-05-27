@@ -1,4 +1,4 @@
-package com.pxr.cymatic.ui.screens.library
+package com.pxr.cymatic.ui.screens.library.album
 
 import android.app.Application
 import androidx.compose.runtime.getValue
@@ -6,8 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.pxr.cymatic.data.media.Playlist
-import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.media.AudioRepository
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.screens.library.albumDisplayName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,17 +17,21 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class PlaylistsState(
+data class AlbumsState(
     val isLoading: Boolean = true,
-    val playlists: List<Playlist> = emptyList(),
+    val albums: List<String> = emptyList(),
     val errorMessage: String? = null
 )
 
-class PlaylistsViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = PlaylistRepository.getInstance(application)
+class AlbumsViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = AudioRepository.getInstance(application)
 
-    private val _playlists = MutableStateFlow<List<Playlist>?>(repository.getCachedPlaylists())
-    private val _isLoading = MutableStateFlow(repository.getCachedPlaylists() == null)
+    private val initialAlbums = repository.getCachedAudio()?.let { songs ->
+        songs.map(::albumDisplayName).distinct().sortedBy { it.lowercase() }
+    }
+
+    private val _albums = MutableStateFlow<List<String>?>(initialAlbums)
+    private val _isLoading = MutableStateFlow(initialAlbums == null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
     var searchQuery by mutableStateOf("")
@@ -37,12 +42,8 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
     private val _searchQueryFlow = MutableStateFlow("")
     private val _isSearchActiveFlow = MutableStateFlow(false)
 
-    var showCreateDialog by mutableStateOf(false)
-    var selectedPlaylist by mutableStateOf<Playlist?>(null)
-    var newPlaylistName by mutableStateOf("")
-
-    val uiState: StateFlow<PlaylistsState> = combine(
-        _playlists,
+    val uiState: StateFlow<AlbumsState> = combine(
+        _albums,
         _isLoading,
         _errorMessage,
         _searchQueryFlow,
@@ -50,39 +51,47 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
     ) { raw, loading, error, query, active ->
         val filtered = if (raw != null) {
             if (active && query.isNotEmpty()) {
-                raw.filter { it.name.contains(query, ignoreCase = true) }
+                raw.filter { it.contains(query, ignoreCase = true) }
             } else {
                 raw
             }
         } else {
             emptyList()
         }
-        PlaylistsState(
+        AlbumsState(
             isLoading = loading && raw == null,
-            playlists = filtered,
+            albums = filtered,
             errorMessage = error
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = PlaylistsState(
-            isLoading = repository.getCachedPlaylists() == null,
-            playlists = repository.getCachedPlaylists().orEmpty()
+        initialValue = AlbumsState(
+            isLoading = initialAlbums == null,
+            albums = initialAlbums.orEmpty()
         )
     )
 
     init {
-        loadPlaylists()
+        viewModelScope.launch {
+            SettingsStore.lastScanTimeMsFlow.collect {
+                loadAlbums()
+            }
+        }
     }
 
-    fun loadPlaylists() {
+    fun loadAlbums() {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                _playlists.value = repository.getPlaylists()
+                val songs = repository.getAllAudio()
+                _albums.value = songs
+                    .map(::albumDisplayName)
+                    .distinct()
+                    .sortedBy { it.lowercase() }
             } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "Failed to load playlists"
+                _errorMessage.value = e.message ?: "Failed to load albums"
             } finally {
                 _isLoading.value = false
             }
@@ -97,30 +106,5 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
     fun onSearchActiveChange(active: Boolean) {
         isSearchActive = active
         _isSearchActiveFlow.value = active
-    }
-
-    fun createPlaylist(name: String) {
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.createPlaylist(trimmed)
-            loadPlaylists()
-        }
-    }
-
-    fun renamePlaylist(playlistId: Long, newName: String) {
-        val trimmed = newName.trim()
-        if (trimmed.isEmpty()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.renamePlaylist(playlistId, trimmed)
-            loadPlaylists()
-        }
-    }
-
-    fun deletePlaylist(playlistId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.deletePlaylist(playlistId)
-            loadPlaylists()
-        }
     }
 }

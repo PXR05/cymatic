@@ -31,8 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
-import com.pxr.cymatic.ui.components.primitives.PixelDialog
-import com.pxr.cymatic.ui.components.primitives.PixelDialogButton
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -60,7 +60,7 @@ fun AddToPlaylistDialog(
         }
     }
 
-    PixelDialog(
+    CymaticDialog(
         title = "Add to Playlist",
         onDismissRequest = onDismiss,
         maxHeightRatio = 0.7f,
@@ -118,7 +118,7 @@ fun AddToPlaylistDialog(
             }
         },
         buttons = {
-            PixelDialogButton(
+            CymaticDialogButton(
                 text = "Done",
                 onClick = onDismiss
             )

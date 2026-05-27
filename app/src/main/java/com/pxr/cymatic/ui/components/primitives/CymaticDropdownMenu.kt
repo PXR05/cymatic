@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun PixelDropdownMenu(
+fun CymaticDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -45,7 +45,7 @@ fun PixelDropdownMenu(
 }
 
 @Composable
-fun PixelDropdownMenuItem(
+fun CymaticDropdownMenuItem(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
