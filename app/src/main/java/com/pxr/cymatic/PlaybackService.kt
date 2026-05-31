@@ -138,7 +138,6 @@ class PlaybackService : MediaLibraryService() {
             }
         }
 
-        var lastEnabled: Boolean? = null
         serviceScope.launch {
             combine(
                 SettingsStore.eqGlobalEnabledFlow,
@@ -148,9 +147,7 @@ class PlaybackService : MediaLibraryService() {
                 Triple(enabled, presets, selectedName)
             }.collect { (enabled, presets, selectedName) ->
                 Log.d("PlaybackService", "EQ settings changed - enabled: $enabled, selected preset: $selectedName")
-                val forceRebuild = lastEnabled != null && lastEnabled != enabled
-                lastEnabled = enabled
-                applyCurrentEqSettings(enabled, presets, selectedName, forceRebuild)
+                applyCurrentEqSettings(enabled, presets, selectedName)
             }
         }
 
@@ -197,8 +194,7 @@ class PlaybackService : MediaLibraryService() {
     private suspend fun applyCurrentEqSettings(
         enabled: Boolean = SettingsStore.currentEqGlobalEnabled,
         presets: List<EqPreset> = SettingsStore.currentEqPresets,
-        selectedName: String = SettingsStore.currentEqSelectedPreset,
-        forceRebuild: Boolean = false
+        selectedName: String = SettingsStore.currentEqSelectedPreset
     ) {
         if (!enabled) {
             eqAudioProcessor.disable()
@@ -227,16 +223,6 @@ class PlaybackService : MediaLibraryService() {
                 .buildUpon()
                 .setAudioOffloadPreferences(audioOffloadPreferences)
                 .build()
-
-            if (forceRebuild && player.mediaItemCount > 0) {
-                val currentPos = player.currentPosition
-                val playWhenReady = player.playWhenReady
-                val currentIndex = player.currentMediaItemIndex
-                val mediaItems = (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }
-                player.setMediaItems(mediaItems, currentIndex, currentPos)
-                player.prepare()
-                player.playWhenReady = playWhenReady
-            }
         }
     }
 

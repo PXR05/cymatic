@@ -55,14 +55,12 @@ data class BiquadCoefficients(
 
             return when (band.type) {
                 FilterType.PEAKING -> {
-                    val alphaTimesSqrtA = alpha * sqrt(A)
-                    val alphaOverSqrtA = alpha / sqrt(A)
-                    val b0 = 1.0 + alphaTimesSqrtA
+                    val b0 = 1.0 + alpha * A
                     val b1 = -2.0 * cosW0
-                    val b2 = 1.0 - alphaTimesSqrtA
-                    val a0 = 1.0 + alphaOverSqrtA
+                    val b2 = 1.0 - alpha * A
+                    val a0 = 1.0 + alpha / A
                     val a1 = -2.0 * cosW0
-                    val a2 = 1.0 - alphaOverSqrtA
+                    val a2 = 1.0 - alpha / A
                     normalized(b0, b1, b2, a0, a1, a2)
                 }
 

@@ -7,7 +7,7 @@ import androidx.media3.common.audio.AudioProcessor.AudioFormat
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.data.model.FilterType
-import com.pxr.cymatic.data.store.SettingsStore
+
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
@@ -73,7 +73,7 @@ class EqAudioProcessor : AudioProcessor {
         }
     }
 
-    override fun isActive(): Boolean = isActive && SettingsStore.currentEqGlobalEnabled
+    override fun isActive(): Boolean = isActive
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         pendingUpdate.getAndSet(null)?.let { update ->
@@ -194,7 +194,6 @@ class EqAudioProcessor : AudioProcessor {
                     coeffOffset += 5
                 }
 
-                sample = sample.coerceIn(-1f, 1f)
                 outputFloats.put(sample)
 
                 channelIndex++
