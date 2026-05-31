@@ -77,6 +77,24 @@ fun EqBodePlot(
         preset.bands.filter { it.enabled }.map { BiquadCoefficients.from(it, 44100) }
     }
 
+    val steps = 300
+    val frequencies = remember {
+        DoubleArray(steps + 1) { i ->
+            val fraction = i.toDouble() / steps
+            10.0.pow(minLog + fraction * logRange)
+        }
+    }
+    val magnitudes = remember(preset.preamp, biquads) {
+        FloatArray(steps + 1) { i ->
+            val freq = frequencies[i]
+            var totalDb = preset.preamp.toDouble()
+            for (bq in biquads) {
+                totalDb += bq.evaluateMagnitudeDb(freq, 44100.0)
+            }
+            totalDb.coerceIn(minDb - 10.0, maxDb + 10.0).toFloat()
+        }
+    }
+
     Canvas(
         modifier = modifier
             .border(1.dp, secondaryColor)
@@ -153,25 +171,14 @@ fun EqBodePlot(
         }
 
         val path = Path()
-        val steps = 300
-        var isFirst = true
-
         for (i in 0..steps) {
-            val fraction = i.toDouble() / steps
-            val freq = 10.0.pow(minLog + fraction * logRange)
-            
-            var totalDb = preset.preamp.toDouble()
-            for (bq in biquads) {
-                totalDb += bq.evaluateMagnitudeDb(freq, 44100.0)
-            }
-            val clampedDb = totalDb.coerceIn(minDb - 10.0, maxDb + 10.0)
-            
+            val freq = frequencies[i]
+            val db = magnitudes[i].toDouble()
             val px = xForFreq(freq)
-            val py = yForDb(clampedDb)
+            val py = yForDb(db)
 
-            if (isFirst) {
+            if (i == 0) {
                 path.moveTo(px, py)
-                isFirst = false
             } else {
                 path.lineTo(px, py)
             }
