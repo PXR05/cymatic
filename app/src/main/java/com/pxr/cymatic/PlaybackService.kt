@@ -302,31 +302,34 @@ class PlaybackService : MediaLibraryService() {
         val audioRepository = AudioRepository.getInstance(this)
 
         val currentId = stored.queueIds.getOrNull(stored.currentIndex)
-        if (currentId != null) {
-            val currentFile = audioRepository.getAudioByIds(listOf(currentId)).firstOrNull()
-            if (currentFile != null) {
-                val currentMediaItem = createMediaItem(currentFile, stored.queueSource)
-                withContext(Dispatchers.Main) {
-                    player.shuffleModeEnabled = stored.shuffleEnabled
-                    player.repeatMode = stored.repeatMode
-                    player.setMediaItem(currentMediaItem, stored.positionMs)
-                    player.playWhenReady = stored.wasPlaying
-                    player.prepare()
-                }
-            } else {
+        val audioFiles = audioRepository.getAudioByIds(stored.queueIds)
+        if (audioFiles.isEmpty()) {
+            if (currentId != null) {
                 SettingsStore.setLocked(false)
-                Log.w("PlaybackService", "Current audio file not found in database, cannot restore playback state")
             }
+            return
         }
 
-        val audioFiles = audioRepository.getAudioByIds(stored.queueIds)
-        if (audioFiles.isEmpty()) return
-
         val mediaItems = audioFiles.map { createMediaItem(it, stored.queueSource) }
-        val safeIndex = stored.currentIndex.coerceIn(0, mediaItems.lastIndex)
+        val targetIndex = if (currentId != null) {
+            audioFiles.indexOfFirst { it.id == currentId }
+        } else {
+            -1
+        }
+
+        if (currentId != null && targetIndex < 0) {
+            SettingsStore.setLocked(false)
+            Log.w("PlaybackService", "Current audio file not found in database, cannot restore playback state")
+        }
+
+        val safeIndex = if (targetIndex >= 0) targetIndex else stored.currentIndex.coerceIn(0, mediaItems.lastIndex)
 
         withContext(Dispatchers.Main) {
-            player.setMediaItems(mediaItems, safeIndex, player.currentPosition)
+            player.shuffleModeEnabled = stored.shuffleEnabled
+            player.repeatMode = stored.repeatMode
+            player.setMediaItems(mediaItems, safeIndex, stored.positionMs)
+            player.playWhenReady = stored.wasPlaying
+            player.prepare()
         }
     }
 
