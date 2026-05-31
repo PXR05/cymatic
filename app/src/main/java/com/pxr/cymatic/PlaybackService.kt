@@ -7,13 +7,13 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.util.Log
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
@@ -35,11 +35,14 @@ import com.pxr.cymatic.playback.createMediaItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.math.abs
 
 @UnstableApi
@@ -77,6 +80,7 @@ class PlaybackService : MediaLibraryService() {
             .setRenderersFactory(createEqRenderersFactory())
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
         fadingPlayer = FadingPlayer(player, serviceScope)
@@ -165,9 +169,18 @@ class PlaybackService : MediaLibraryService() {
             Log.e("PlaybackService", "Failed to build persisted state on destroy", e)
             null
         }
-        serviceScope.launch {
-            if (state != null) PlaybackStore.saveState(state)
+        if (state != null) {
+            try {
+                runBlocking {
+                    withTimeout(2000L) {
+                        PlaybackStore.saveState(state)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("PlaybackService", "Failed to save state on destroy", e)
+            }
         }
+        serviceScope.cancel()
         audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
         mediaLibrarySession.release()
         fadingPlayer.release()

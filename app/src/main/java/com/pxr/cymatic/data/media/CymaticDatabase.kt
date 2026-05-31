@@ -29,6 +29,7 @@ abstract class CymaticDatabase : RoomDatabase() {
                     CymaticDatabase::class.java,
                     "audio_store.db"
                 )
+                    .fallbackToDestructiveMigration(true)
                     .build()
                     .also { instance = it }
             }
