@@ -11,6 +11,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -47,6 +48,9 @@ import kotlin.math.abs
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
+    private companion object {
+        const val TAG = "PlaybackService"
+    }
 
     lateinit var player: ExoPlayer
         private set
@@ -102,11 +106,55 @@ class PlaybackService : MediaLibraryService() {
 
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                logPlayerState("media item transition: ${mediaItem?.mediaId}, reason=${transitionReasonName(reason)}")
                 persistPlaybackState()
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                logPlayerState("isPlaying changed: $isPlaying")
                 persistPlaybackState()
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                logPlayerState("playback state changed: ${playbackStateName(playbackState)}")
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                logPlayerState("playWhenReady changed: $playWhenReady, reason=${playWhenReadyReasonName(reason)}")
+            }
+
+            override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) {
+                logPlayerState(
+                    "playback suppression changed: ${suppressionReasonName(playbackSuppressionReason)}",
+                    warn = playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE
+                )
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                Log.e(
+                    TAG,
+                    "Player error: code=${error.errorCodeName}, message=${error.message}",
+                    error
+                )
+                logPlayerState("player error state")
+            }
+
+            override fun onEvents(player: Player, events: Player.Events) {
+                val names = buildList {
+                    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)) add("PLAYBACK_STATE")
+                    if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)) add("PLAY_WHEN_READY")
+                    if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) add("IS_PLAYING")
+                    if (events.contains(Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED)) add("SUPPRESSION")
+                    if (events.contains(Player.EVENT_PLAYER_ERROR)) add("PLAYER_ERROR")
+                    if (events.contains(Player.EVENT_POSITION_DISCONTINUITY)) add("POSITION_DISCONTINUITY")
+                    if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) add("MEDIA_ITEM_TRANSITION")
+                    if (events.contains(Player.EVENT_TIMELINE_CHANGED)) add("TIMELINE")
+                    if (events.contains(Player.EVENT_TRACKS_CHANGED)) add("TRACKS")
+                    if (events.contains(Player.EVENT_AUDIO_ATTRIBUTES_CHANGED)) add("AUDIO_ATTRIBUTES")
+                    if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) add("DEVICE_VOLUME")
+                    if (events.contains(Player.EVENT_VOLUME_CHANGED)) add("VOLUME")
+                }.joinToString(", ").ifBlank { "unlisted" }
+                logPlayerState("events: $names")
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
@@ -124,6 +172,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                logPlayerState("audio session changed: $audioSessionId")
                 serviceScope.launch { applyCurrentEqSettings() }
             }
         })
@@ -150,7 +199,7 @@ class PlaybackService : MediaLibraryService() {
             ) { enabled, presets, selectedName ->
                 Triple(enabled, presets, selectedName)
             }.collect { (enabled, presets, selectedName) ->
-                Log.d("PlaybackService", "EQ settings changed - enabled: $enabled, selected preset: $selectedName")
+                Log.d(TAG, "EQ settings changed - enabled: $enabled, selected preset: $selectedName")
                 applyCurrentEqSettings(enabled, presets, selectedName)
             }
         }
@@ -166,7 +215,7 @@ class PlaybackService : MediaLibraryService() {
         val state = try {
             buildPersistedState()
         } catch (e: Exception) {
-            Log.e("PlaybackService", "Failed to build persisted state on destroy", e)
+            Log.e(TAG, "Failed to build persisted state on destroy", e)
             null
         }
         if (state != null) {
@@ -177,7 +226,7 @@ class PlaybackService : MediaLibraryService() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("PlaybackService", "Failed to save state on destroy", e)
+                Log.e(TAG, "Failed to save state on destroy", e)
             }
         }
         serviceScope.cancel()
@@ -218,24 +267,22 @@ class PlaybackService : MediaLibraryService() {
             val sampleRate = withContext(Dispatchers.Main) {
                 player.audioFormat?.sampleRate ?: 44100
             }
-            Log.d("PlaybackService", "Applying EQ preset '${preset.name}' at ${sampleRate}Hz")
+            Log.d(TAG, "Applying EQ preset '${preset.name}' at ${sampleRate}Hz")
             eqAudioProcessor.updateBands(preset.preamp, preset.bands, sampleRate)
         }
 
         withContext(Dispatchers.Main) {
-            val offloadMode = if (enabled) {
-                TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
-            } else {
-                TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-            }
             val audioOffloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
-                .setAudioOffloadMode(offloadMode)
+                .setAudioOffloadMode(
+                    TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+                )
                 .setIsGaplessSupportRequired(true)
                 .build()
             player.trackSelectionParameters = player.trackSelectionParameters
                 .buildUpon()
                 .setAudioOffloadPreferences(audioOffloadPreferences)
                 .build()
+            Log.d(TAG, "Audio offload disabled; eqEnabled=$enabled")
         }
     }
 
@@ -292,7 +339,7 @@ class PlaybackService : MediaLibraryService() {
                     lastSavedPositionMs = state.positionMs
                 }
             } catch (e: Exception) {
-                Log.e("PlaybackService", "Failed to persist playback state", e)
+                Log.e(TAG, "Failed to persist playback state", e)
             }
         }
     }
@@ -319,7 +366,7 @@ class PlaybackService : MediaLibraryService() {
 
         if (currentId != null && targetIndex < 0) {
             SettingsStore.setLocked(false)
-            Log.w("PlaybackService", "Current audio file not found in database, cannot restore playback state")
+            Log.w(TAG, "Current audio file not found in database, cannot restore playback state")
         }
 
         val safeIndex = if (targetIndex >= 0) targetIndex else stored.currentIndex.coerceIn(0, mediaItems.lastIndex)
@@ -354,5 +401,61 @@ class PlaybackService : MediaLibraryService() {
             queueSource = queueSource,
             wasPlaying = player.playWhenReady
         )
+    }
+
+    private fun logPlayerState(message: String, warn: Boolean = false) {
+        val stateMessage = "$message | " +
+                "state=${playbackStateName(player.playbackState)}, " +
+                "playWhenReady=${player.playWhenReady}, " +
+                "isPlaying=${player.isPlaying}, " +
+                "suppression=${suppressionReasonName(player.playbackSuppressionReason)}, " +
+                "position=${player.currentPosition}, " +
+                "buffered=${player.bufferedPosition}, " +
+                "mediaId=${player.currentMediaItem?.mediaId}"
+        if (warn) {
+            Log.w(TAG, stateMessage)
+        } else {
+            Log.d(TAG, stateMessage)
+        }
+    }
+
+    private fun playbackStateName(state: Int): String {
+        return when (state) {
+            Player.STATE_IDLE -> "IDLE"
+            Player.STATE_BUFFERING -> "BUFFERING"
+            Player.STATE_READY -> "READY"
+            Player.STATE_ENDED -> "ENDED"
+            else -> "UNKNOWN($state)"
+        }
+    }
+
+    private fun playWhenReadyReasonName(reason: Int): String {
+        return when (reason) {
+            Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> "USER_REQUEST"
+            Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> "AUDIO_FOCUS_LOSS"
+            Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> "AUDIO_BECOMING_NOISY"
+            Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE -> "REMOTE"
+            Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM -> "END_OF_MEDIA_ITEM"
+            else -> "UNKNOWN($reason)"
+        }
+    }
+
+    private fun suppressionReasonName(reason: Int): String {
+        return when (reason) {
+            Player.PLAYBACK_SUPPRESSION_REASON_NONE -> "NONE"
+            Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS -> "TRANSIENT_AUDIO_FOCUS_LOSS"
+            Player.PLAYBACK_SUPPRESSION_REASON_UNSUITABLE_AUDIO_OUTPUT -> "UNSUITABLE_AUDIO_OUTPUT"
+            else -> "UNKNOWN($reason)"
+        }
+    }
+
+    private fun transitionReasonName(reason: Int): String {
+        return when (reason) {
+            Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
+            Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
+            Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
+            Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> "PLAYLIST_CHANGED"
+            else -> "UNKNOWN($reason)"
+        }
     }
 }
