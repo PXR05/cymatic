@@ -47,18 +47,44 @@ fun QueueScreen(
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
 
-    var queueItems by remember { mutableStateOf(emptyList<MediaItem>()) }
+    var queueItems by remember { mutableStateOf(emptyList<Pair<MediaItem, Int>>()) }
     var currentIndex by remember { mutableIntStateOf(mediaController?.currentMediaItemIndex ?: -1) }
     var currentId by remember { mutableStateOf(mediaController?.currentMediaItem?.mediaId ?: "") }
 
     fun updateQueue() {
         mediaController?.let { controller ->
-            val items = mutableListOf<MediaItem>()
-            for (i in 0 until controller.mediaItemCount) {
-                items.add(controller.getMediaItemAt(i))
+            val timeline = controller.currentTimeline
+            val indices = mutableListOf<Int>()
+
+            if (controller.shuffleModeEnabled && !timeline.isEmpty) {
+                var idx = timeline.getFirstWindowIndex(true)
+                while (idx >= 0 && idx < timeline.windowCount && idx < controller.mediaItemCount) {
+                    indices.add(idx)
+                    val nextIdx = timeline.getNextWindowIndex(idx, Player.REPEAT_MODE_OFF, true)
+                    if (nextIdx == idx || indices.size >= timeline.windowCount) {
+                        break
+                    }
+                    idx = nextIdx
+                }
             }
+
+            if (indices.isEmpty()) {
+                for (i in 0 until controller.mediaItemCount) {
+                    indices.add(i)
+                }
+            }
+
+            val items = mutableListOf<Pair<MediaItem, Int>>()
+            for (index in indices) {
+                if (index in 0 until controller.mediaItemCount) {
+                    items.add(controller.getMediaItemAt(index) to index)
+                }
+            }
+
             queueItems = items
-            currentIndex = controller.currentMediaItemIndex
+            val currentTimelineIndex = controller.currentMediaItemIndex
+            currentIndex = indices.indexOf(currentTimelineIndex)
+            currentId = controller.currentMediaItem?.mediaId ?: ""
         }
     }
 
@@ -73,12 +99,17 @@ fun QueueScreen(
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                currentIndex = mediaController.currentMediaItemIndex
+                updateQueue()
+            }
+
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                updateQueue()
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
                 if (events.contains(Player.EVENT_TIMELINE_CHANGED) ||
-                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)
+                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)
                 ) {
                     updateQueue()
                 }
@@ -136,12 +167,13 @@ fun QueueScreen(
             ) {
                 items(
                     count = queueItems.size,
-                    key = { i -> "${queueItems[i].mediaId}_$i" }
+                    key = { i -> "${queueItems[i].first.mediaId}_$i" }
                 ) { i ->
-                    val item = queueItems[i]
+                    val (item, originalIndex) = queueItems[i]
                     val isActive = i == currentIndex
-                    val isFirst = i == 0
-                    val isLast = i == queueItems.size - 1
+                    val isShuffling = mediaController?.shuffleModeEnabled == true
+                    val isFirst = i == 0 || isShuffling
+                    val isLast = i == queueItems.size - 1 || isShuffling
 
                     QueueItemRow(
                         index = i,
@@ -151,17 +183,17 @@ fun QueueScreen(
                         isFirst = isFirst,
                         isLast = isLast,
                         onPlay = {
-                            mediaController?.seekTo(i, 0L)
+                            mediaController?.seekTo(originalIndex, 0L)
                             mediaController?.play()
                         },
                         onMoveUp = {
                             if (i > 0) {
-                                mediaController?.moveMediaItem(i, i - 1)
+                                mediaController?.moveMediaItem(originalIndex, originalIndex - 1)
                             }
                         },
                         onMoveDown = {
                             if (i < queueItems.size - 1) {
-                                mediaController?.moveMediaItem(i, i + 1)
+                                mediaController?.moveMediaItem(originalIndex, originalIndex + 1)
                             }
                         }
                     )
