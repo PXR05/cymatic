@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ArtistsState(
     val isLoading: Boolean = true,
@@ -112,7 +113,9 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             val all = repository.getAllAudio()
             val filtered = com.pxr.cymatic.ui.screens.library.filterByArtist(all, artistName)
-            onResult(filtered)
+            withContext(Dispatchers.Main) {
+                onResult(filtered)
+            }
         }
     }
 }

@@ -10,8 +10,8 @@ import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -414,8 +414,6 @@ class PlaybackService : MediaLibraryService() {
                 "mediaId=${player.currentMediaItem?.mediaId}"
         if (warn) {
             Log.w(TAG, stateMessage)
-        } else {
-            Log.d(TAG, stateMessage)
         }
     }
 

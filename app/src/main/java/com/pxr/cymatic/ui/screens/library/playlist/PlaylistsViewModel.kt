@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class PlaylistsState(
     val isLoading: Boolean = true,
@@ -127,7 +128,9 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
     fun getPlaylistSongs(playlistId: Long, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val songs = repository.getPlaylistAudio(playlistId)
-            onResult(songs)
+            withContext(Dispatchers.Main) {
+                onResult(songs)
+            }
         }
     }
 }
