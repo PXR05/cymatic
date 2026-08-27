@@ -13,11 +13,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.pxr.cymatic"
+        applicationId = "com.pxr.cymatic.launcher"
         minSdk = 31
         targetSdk = 36
-        versionCode = 192
-        versionName = "0.1.9.2"
+        versionCode = 193
+        versionName = "0.2.0-launcher-preview01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
