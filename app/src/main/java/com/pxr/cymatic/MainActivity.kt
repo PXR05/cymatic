@@ -12,18 +12,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
@@ -53,10 +46,13 @@ import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.player.MaximizedPlayer
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.state.PlayerUiState
+import com.pxr.cymatic.ui.screens.home.AllAppsScreen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
 import com.pxr.cymatic.ui.screens.library.QueueScreen
@@ -69,6 +65,8 @@ import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.LauncherSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.PermissionsScreen
 import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
@@ -93,7 +91,8 @@ class MainActivity : ComponentActivity() {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
-                    Manifest.permission.READ_MEDIA_AUDIO
+                    Manifest.permission.READ_MEDIA_AUDIO,
+                    Manifest.permission.POST_NOTIFICATIONS
                 ),
                 1000
             )
@@ -174,6 +173,7 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 Screen.Playlists.route to { PlaylistsScreen() },
+                Screen.AllApps.route to { AllAppsScreen() },
                 Screen.PlaylistSongs.route to { entry ->
                     val playlistId = entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
                     val scrollId = entry.arguments?.getString("scrollId")
@@ -182,7 +182,9 @@ class MainActivity : ComponentActivity() {
                         scrollTargetId = scrollId?.toLongOrNull()
                     )
                 },
-                Screen.Settings.route to { SettingsScreen() },
+                                Screen.Settings.route to { SettingsScreen() },
+                                Screen.Permissions.route to { PermissionsScreen() },
+                                Screen.LauncherSettings.route to { LauncherSettingsScreen() },
                 Screen.EQSettings.route to { EQSettingsScreen() },
                 Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
                 Screen.StorageSettings.route to { StorageSettingsScreen() },
@@ -200,12 +202,13 @@ class MainActivity : ComponentActivity() {
                     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
                     val hasPlayback = playbackState.currentMediaId != null && playbackState.totalTracks > 0
                     val isDocked = isLandscape && hasPlayback
-                    val isPlayerExpanded = locked || isDocked
+                    val isMaximized by PlayerUiState.isMaximized.collectAsState()
+                    val hideSystemBars = locked || isDocked
 
-                    LaunchedEffect(isPlayerExpanded) {
+                    LaunchedEffect(hideSystemBars) {
                         val windowInsetsController =
                             WindowCompat.getInsetsController(window, window.decorView)
-                        if (isPlayerExpanded) {
+                        if (hideSystemBars) {
                             windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
                             windowInsetsController.systemBarsBehavior =
                                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -217,47 +220,58 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        Column {
-                            if (!isPlayerExpanded) {
-                                NavHost(
-                                    navController = navController,
-                                    startDestination = Screen.Home.route,
-                                    enterTransition = { EnterTransition.None },
-                                    exitTransition = { ExitTransition.None },
-                                    popEnterTransition = { EnterTransition.None },
-                                    popExitTransition = { ExitTransition.None },
-                                    modifier = Modifier.weight(1f)
+                        when {
+                            isMaximized && !isDocked -> {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(
+                                            bottom = WindowInsets.systemBars.asPaddingValues()
+                                                .calculateBottomPadding()
+                                        )
                                 ) {
-                                    routes.forEach { (route, composable) ->
-                                        composable(route) { backStackEntry ->
-                                            composable(backStackEntry)
-                                        }
-                                    }
+                                    MaximizedPlayer(modifier = Modifier.fillMaxSize())
                                 }
                             }
 
-                            Column(
-                                modifier = Modifier.padding(
-                                    bottom = WindowInsets.systemBars.asPaddingValues()
-                                        .calculateBottomPadding()
-                                )
-                            ) {
-                                if (playbackState.currentMediaId != null && playbackState.totalTracks > 0) {
-                                    if (!isPlayerExpanded) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(1.dp)
-                                                .background(MaterialTheme.colorScheme.secondary)
-                                        )
-
-                                        Spacer(modifier = Modifier.height(24.dp))
-                                    }
-
+                            hideSystemBars -> {
+                                Column(
+                                    modifier = Modifier.padding(
+                                        bottom = WindowInsets.systemBars.asPaddingValues()
+                                            .calculateBottomPadding()
+                                    )
+                                ) {
                                     PlayerBar(
-                                        modifier = if (isPlayerExpanded) Modifier.weight(1f) else Modifier,
+                                        modifier = Modifier.weight(1f),
                                         isDocked = isDocked
                                     )
+                                }
+                            }
+
+                            else -> {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(
+                                            bottom = WindowInsets.systemBars.asPaddingValues()
+                                                .calculateBottomPadding()
+                                        )
+                                ) {
+                                    NavHost(
+                                        navController = navController,
+                                        startDestination = Screen.Home.route,
+                                        enterTransition = { EnterTransition.None },
+                                        exitTransition = { ExitTransition.None },
+                                        popEnterTransition = { EnterTransition.None },
+                                        popExitTransition = { ExitTransition.None },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        routes.forEach { (route, composable) ->
+                                            composable(route) { backStackEntry ->
+                                                composable(backStackEntry)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

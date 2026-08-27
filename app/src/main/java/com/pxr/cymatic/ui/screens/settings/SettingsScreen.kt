@@ -35,6 +35,14 @@ fun SettingsScreen(
                     onClick = { navController.navigate(Screen.StorageSettings.route) }
                 ),
                 NavigationItem(
+                    label = "Permissions",
+                    onClick = { navController.navigate(Screen.Permissions.route) }
+                ),
+                NavigationItem(
+                    label = "Launcher",
+                    onClick = { navController.navigate(Screen.LauncherSettings.route) }
+                ),
+                NavigationItem(
                     label = "Version",
                     onClick = { navController.navigate(Screen.VersionSettings.route) }
                 ),

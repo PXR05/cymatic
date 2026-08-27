@@ -46,15 +46,14 @@ import androidx.media3.session.MediaController
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
-import com.pxr.cymatic.playback.toAudioMetadata
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -72,7 +71,6 @@ fun PlayerBar(
     val currentMediaItem = mediaController.currentMediaItem ?: return
     val metadata = currentMediaItem.toAudioMetadata()
     val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
-    val baseGap = 16.dp
 
     val hideArtwork by SettingsStore.hideArtworkFlow.collectAsState(initial = SettingsStore.currentHideArtwork)
     var showInfoDialog by remember { mutableStateOf(false) }
@@ -108,73 +106,71 @@ fun PlayerBar(
                 interactionSource = null
             ),
     ) {
-        if (locked || isDocked) {
-            AsyncImage(
-                model = ImageRequest
-                    .Builder(LocalContext.current)
-                    .data(metadata.artworkUri)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = metadata.album,
-                contentScale = ContentScale.Crop,
-                filterQuality = FilterQuality.None,
-                modifier = Modifier
-                    .then(
-                        if (isDocked) {
-                            Modifier.fillMaxWidth().aspectRatio(1f)
-                        } else {
-                            Modifier.fillMaxHeight()
-                        }
-                    )
-                    .blur(32.dp)
-            )
+        AsyncImage(
+            model = ImageRequest
+                .Builder(LocalContext.current)
+                .data(metadata.artworkUri)
+                .crossfade(true)
+                .build(),
+            contentDescription = metadata.album,
+            contentScale = ContentScale.Crop,
+            filterQuality = FilterQuality.None,
+            modifier = Modifier
+                .then(
+                    if (isDocked) {
+                        Modifier.fillMaxWidth().aspectRatio(1f)
+                    } else {
+                        Modifier.fillMaxHeight()
+                    }
+                )
+                .blur(32.dp)
+        )
 
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
+                        ),
+                    )
+                )
+        )
+
+        if (locked && !isDocked) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = ImageRequest
+                        .Builder(LocalContext.current)
+                        .data(metadata.artworkUri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = metadata.album,
+                    contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.High,
+                    modifier = Modifier
+                        .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                )
+            }
+        }
+
+        if (hideArtwork) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                            ),
-                        )
-                    )
+                    .background(Color.Black)
             )
-
-            if (locked && !isDocked) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = ImageRequest
-                            .Builder(LocalContext.current)
-                            .data(metadata.artworkUri)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = metadata.album,
-                        contentScale = ContentScale.Crop,
-                        filterQuality = FilterQuality.High,
-                        modifier = Modifier
-                            .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                    )
-                }
-            }
-
-            if (hideArtwork) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                )
-            }
         }
 
         if (isDocked) {
@@ -279,14 +275,7 @@ fun PlayerBar(
             }
         } else {
             Column(
-                modifier = Modifier
-                    .then(
-                        if (locked) {
-                            Modifier.fillMaxSize()
-                        } else {
-                            Modifier.fillMaxWidth()
-                        }
-                    ),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Bottom,
             ) {
                 Row(
@@ -312,7 +301,7 @@ fun PlayerBar(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(baseGap))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 TrackInfoAndStatus(
                     metadata = metadata,
@@ -324,7 +313,7 @@ fun PlayerBar(
                         .padding(horizontal = 24.dp)
                 )
 
-                Spacer(modifier = Modifier.height(baseGap * 1.5f))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 TrackProgressBar(
                     currentPosition = playbackState.currentPositionMs,
@@ -334,7 +323,7 @@ fun PlayerBar(
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
 
-                Spacer(modifier = Modifier.height(baseGap))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 TrackControls(
                     isPlaying = playbackState.isPlaying,
@@ -343,8 +332,6 @@ fun PlayerBar(
                     locked = locked,
                     mediaController = mediaController
                 )
-
-                Spacer(modifier = Modifier.height(baseGap * 1f))
             }
         }
     }

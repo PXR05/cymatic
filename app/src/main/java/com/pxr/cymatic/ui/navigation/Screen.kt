@@ -31,6 +31,8 @@ sealed class Screen(val route: String) {
 
     object Playlists : Screen("playlists")
 
+    object AllApps : Screen("all_apps")
+
     object PlaylistSongs : Screen("playlist/{playlistId}?scrollId={scrollId}") {
         fun createRoute(playlistId: Long, scrollId: Long? = null): String {
             return if (scrollId != null) "playlist/$playlistId?scrollId=$scrollId" else "playlist/$playlistId"
@@ -38,6 +40,10 @@ sealed class Screen(val route: String) {
     }
 
     object Settings : Screen("settings")
+
+    object Permissions : Screen("setting/permissions")
+
+    object LauncherSettings : Screen("setting/launcher")
 
     object EQSettings : Screen("setting/eq")
 
