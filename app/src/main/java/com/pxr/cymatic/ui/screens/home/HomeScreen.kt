@@ -373,7 +373,7 @@ private fun HomeVerticalPager(
     ) { vPage ->
         when (vPage) {
             0 -> HomeContent(onPlayerClick = onPlayerClick)
-            1 -> AllAppsScreen()
+            1 -> AllAppsScreen(vPagerState = vPagerState)
         }
     }
 }
@@ -461,23 +461,18 @@ private fun HomeContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(isOverviewMode) {
-                    detectTapGestures(
-                        onLongPress = {
-                            if (!isOverviewMode) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                isOverviewMode = true
-                                overviewLevel = OverviewMenuLevel.ROOT
-                            }
-                        },
-                        onTap = {
-                            if (isOverviewMode) {
+                .then(
+                    if (isOverviewMode) {
+                        Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
                                 isOverviewMode = false
                                 overviewLevel = OverviewMenuLevel.ROOT
                             }
-                        }
-                    )
-                }
+                        )
+                    } else Modifier
+                )
         ) {
             Column(
                 modifier = Modifier
@@ -491,18 +486,6 @@ private fun HomeContent(
                         end = 20.dp,
                         top = 12.dp,
                         bottom = 20.dp
-                    )
-                    .then(
-                        if (isOverviewMode) {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    isOverviewMode = false
-                                    overviewLevel = OverviewMenuLevel.ROOT
-                                }
-                            )
-                        } else Modifier
                     ),
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -510,7 +493,14 @@ private fun HomeContent(
                     IdleGreeting(
                         showClock = showClock,
                         showDay = showDay,
-                        showDate = showDate
+                        showDate = showDate,
+                        onLongPress = {
+                            if (!isOverviewMode) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                isOverviewMode = true
+                                overviewLevel = OverviewMenuLevel.ROOT
+                            }
+                        }
                     )
                 }
 
@@ -525,6 +515,17 @@ private fun HomeContent(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .pointerInput(isOverviewMode) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    if (!isOverviewMode) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        isOverviewMode = true
+                                        overviewLevel = OverviewMenuLevel.ROOT
+                                    }
+                                }
+                            )
+                        }
                         .padding(top = 8.dp, bottom = 4.dp, start = 4.dp)
                 ) {
                     Text(
@@ -564,6 +565,17 @@ private fun HomeContent(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .pointerInput(isOverviewMode) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    if (!isOverviewMode) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        isOverviewMode = true
+                                        overviewLevel = OverviewMenuLevel.ROOT
+                                    }
+                                }
+                            )
+                        }
                         .padding(top = 20.dp, bottom = 6.dp, start = 4.dp)
                 ) {
                     Text(
@@ -578,6 +590,12 @@ private fun HomeContent(
                     InteractivePinnedGrid(
                         entries = homeApps.entries,
                         showLabels = showPinnedLabels,
+                        onEmptySpaceLongPress = {
+                            if (!isOverviewMode) {
+                                isOverviewMode = true
+                                overviewLevel = OverviewMenuLevel.ROOT
+                            }
+                        },
                         onAppClick = { app ->
                             if (!isOverviewMode) {
                                 LauncherAppsLoader.launch(context, app.packageName)
@@ -1038,6 +1056,7 @@ private fun IdleGreeting(
     showClock: Boolean,
     showDay: Boolean,
     showDate: Boolean,
+    onLongPress: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val use24Hour by LauncherStore.use24HourFlow.collectAsState(initial = true)
@@ -1066,6 +1085,11 @@ private fun IdleGreeting(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() }
+                )
+            }
             .padding(horizontal = 4.dp, vertical = 8.dp)
     ) {
         if (showClock) {

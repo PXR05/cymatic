@@ -52,18 +52,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Velocity
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.common.AppActionPopup
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AllAppsScreen(
     modifier: Modifier = Modifier,
+    vPagerState: androidx.compose.foundation.pager.PagerState? = null,
     viewModel: LauncherAppsViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     val allApps by viewModel.allApps.collectAsState()
     val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
     val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
@@ -104,16 +115,47 @@ fun AllAppsScreen(
         gridState.scrollToItem(0)
     }
 
+    val nestedScrollConnection = remember(vPagerState, gridState, isSearching) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val isAtTop = gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
+                if (available.y > 0 && isAtTop && !isSearching && vPagerState != null) {
+                    val consumed = vPagerState.dispatchRawDelta(-available.y)
+                    return Offset(0f, -consumed)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                val isAtTop = gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
+                if (available.y > 0 && isAtTop && !isSearching && vPagerState != null) {
+                    vPagerState.animateScrollToPage(0)
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
             .safeDrawingPadding()
             .imePadding()
     ) {
         Box(modifier = Modifier.weight(1f)) {
             if (filteredApps.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(vPagerState) {
+                            detectVerticalDragGestures { _, dragAmount ->
+                                if (dragAmount > 12f && vPagerState != null) {
+                                    scope.launch { vPagerState.animateScrollToPage(0) }
+                                }
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

@@ -84,6 +84,7 @@ import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
 import com.pxr.cymatic.ui.screens.home.LauncherAppsViewModel
 import com.pxr.cymatic.ui.theme.PixelFontFamily
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -307,15 +308,41 @@ fun FolderDialog(
                                 return@awaitEachGesture
                             }
 
-                            val longPress = awaitLongPressOrCancellation(down.id)
-                            if (longPress == null) {
-                                // Tap
+                            val touchSlop = viewConfiguration.touchSlop
+                            val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                            var totalDrag = Offset.Zero
+                            var gestureAction: String? = null
+
+                            withTimeoutOrNull(longPressTimeout) {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                                    if (!change.pressed) {
+                                        if (totalDrag.getDistance() <= touchSlop && !change.isConsumed) {
+                                            change.consume()
+                                            gestureAction = "TAP"
+                                        }
+                                        break
+                                    }
+
+                                    val dragAmount = change.position - change.previousPosition
+                                    totalDrag += dragAmount
+                                    if (totalDrag.getDistance() > touchSlop) {
+                                        gestureAction = "SWIPE"
+                                        break
+                                    }
+                                }
+                            }
+
+                            if (gestureAction == "TAP") {
                                 val app = folder.apps[pressedIndex]
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                 onAppClick(app)
                                 dismissWithAnimation()
-                            } else {
+                            } else if (gestureAction == null && totalDrag.getDistance() <= touchSlop) {
                                 // Long press -> lift app for dragging
+                                down.consume()
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 draggedIndex = pressedIndex
                                 dragDelta = Offset.Zero
@@ -329,7 +356,7 @@ fun FolderDialog(
                                     if (change.pressed) {
                                         val dragAmount = change.position - change.previousPosition
                                         dragDelta += dragAmount
-                                        if (dragDelta.getDistance() > viewConfiguration.touchSlop) {
+                                        if (dragDelta.getDistance() > touchSlop) {
                                             hasMoved = true
                                         }
                                         change.consume()

@@ -62,6 +62,7 @@ import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
 import com.pxr.cymatic.ui.screens.home.LauncherAppsViewModel
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
 @Composable
@@ -74,6 +75,7 @@ fun InteractivePinnedGrid(
     onMergeFolder: (sourceIndex: Int, targetIndex: Int) -> Unit,
     onUnpinItem: (Int) -> Unit,
     onRenameFolderRequest: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
+    onEmptySpaceLongPress: () -> Unit = {},
     modifier: Modifier = Modifier,
     iconScale: Float = 1.0f
 ) {
@@ -105,21 +107,59 @@ fun InteractivePinnedGrid(
                     }?.key
 
                     if (pressedIndex == null || pressedIndex !in entries.indices) {
+                        // Empty space in grid -> check for long press to open wallpaper overview
+                        val longPressOnEmpty = awaitLongPressOrCancellation(down.id)
+                        if (longPressOnEmpty != null) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onEmptySpaceLongPress()
+                        }
                         return@awaitEachGesture
                     }
 
-                    // Wait for long press or tap
-                    val longPress = awaitLongPressOrCancellation(down.id)
-                    if (longPress == null) {
-                        // It was a tap (released before long press timeout)
+                    // A pinned item was pressed.
+                    // Wait for:
+                    // 1. Pointer released (finger lifted UP) before timeout and within touchSlop -> TAP on press up!
+                    // 2. Pointer moved past touchSlop -> SWIPE gesture for parent VerticalPager!
+                    // 3. Timeout reached without moving -> LONG PRESS / DRAG!
+                    val touchSlop = viewConfiguration.touchSlop
+                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                    var totalDrag = Offset.Zero
+                    var gestureAction: String? = null
+
+                    withTimeoutOrNull(longPressTimeout) {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                            if (!change.pressed) {
+                                if (totalDrag.getDistance() <= touchSlop && !change.isConsumed) {
+                                    change.consume()
+                                    gestureAction = "TAP"
+                                }
+                                break
+                            }
+
+                            val dragAmount = change.position - change.previousPosition
+                            totalDrag += dragAmount
+                            if (totalDrag.getDistance() > touchSlop) {
+                                // Finger moved past touchSlop -> user is swiping up to app drawer or scrolling.
+                                // Do NOT consume, so parent VerticalPager receives the gesture.
+                                gestureAction = "SWIPE"
+                                break
+                            }
+                        }
+                    }
+
+                    if (gestureAction == "TAP") {
                         val entry = entries[pressedIndex]
                         haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                         when (entry) {
                             is LauncherAppsViewModel.PinnedGridEntry.App -> onAppClick(entry.app)
                             is LauncherAppsViewModel.PinnedGridEntry.Folder -> onFolderClick(entry)
                         }
-                    } else {
+                    } else if (gestureAction == null && totalDrag.getDistance() <= touchSlop) {
                         // Long-press triggered! Lift the item with haptic feedback
+                        down.consume()
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         draggedIndex = pressedIndex
                         dragDelta = Offset.Zero
@@ -135,7 +175,7 @@ fun InteractivePinnedGrid(
                             if (change.pressed) {
                                 val dragAmount = change.position - change.previousPosition
                                 dragDelta += dragAmount
-                                if (dragDelta.getDistance() > viewConfiguration.touchSlop) {
+                                if (dragDelta.getDistance() > touchSlop) {
                                     hasMoved = true
                                 }
                                 change.consume()
@@ -149,10 +189,12 @@ fun InteractivePinnedGrid(
                                     var isMergeCandidate = false
 
                                     for ((idx, rect) in cellBounds) {
-                                        val dist = (rect.center - currentCenter).getDistance()
-                                        if (dist < closestDist) {
-                                            closestDist = dist
-                                            closestIdx = idx
+                                        if (idx in entries.indices) {
+                                            val dist = (rect.center - currentCenter).getDistance()
+                                            if (dist < closestDist) {
+                                                closestDist = dist
+                                                closestIdx = idx
+                                            }
                                         }
                                     }
 
@@ -168,7 +210,7 @@ fun InteractivePinnedGrid(
                                     }
                                 }
                             } else {
-                                // Pointer up / release
+                                // Pointer released
                                 change.consume()
                                 val targetIdx = hoveredIndex
 
