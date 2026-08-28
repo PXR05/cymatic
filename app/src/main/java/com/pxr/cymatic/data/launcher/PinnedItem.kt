@@ -2,10 +2,22 @@ package com.pxr.cymatic.data.launcher
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 sealed interface PinnedItem {
-    data class App(val packageName: String) : PinnedItem
-    data class Folder(val name: String, val packages: List<String>) : PinnedItem
+    val key: String
+
+    data class App(val packageName: String) : PinnedItem {
+        override val key: String get() = "app:$packageName"
+    }
+
+    data class Folder(
+        val name: String,
+        val packages: List<String>,
+        val id: String = UUID.randomUUID().toString()
+    ) : PinnedItem {
+        override val key: String get() = "folder:$id"
+    }
 }
 
 object PinnedLayoutCodec {
@@ -23,6 +35,7 @@ object PinnedLayoutCodec {
                 is PinnedItem.Folder -> array.put(
                     JSONObject()
                         .put("type", "folder")
+                        .put("id", item.id.ifBlank { UUID.randomUUID().toString() })
                         .put("name", item.name)
                         .put("apps", JSONArray(item.packages))
                 )
@@ -54,7 +67,8 @@ object PinnedLayoutCodec {
                         } else {
                             PinnedItem.Folder(
                                 name = obj.optString("name").ifBlank { "Folder" },
-                                packages = packages
+                                packages = packages,
+                                id = obj.optString("id").ifBlank { UUID.randomUUID().toString() }
                             )
                         }
                     }

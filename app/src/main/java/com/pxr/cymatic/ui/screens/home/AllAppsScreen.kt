@@ -190,9 +190,21 @@ fun AllAppsScreen(
                                 }
                             }
 
+                            val isPinned = viewModel.isPinned(app.packageName)
+
                             AppActionPopup(
                                 expanded = isMenuOpen,
                                 onDismissRequest = { selectedPackage = null },
+                                onPin = if (!isPinned) {
+                                    {
+                                        viewModel.pinApp(app.packageName)
+                                    }
+                                } else null,
+                                onUnpin = if (isPinned) {
+                                    {
+                                        viewModel.unpinApp(app.packageName)
+                                    }
+                                } else null,
                                 onAppInfo = {
                                     val infoIntent =
                                         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {

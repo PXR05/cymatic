@@ -1,0 +1,433 @@
+package com.pxr.cymatic.ui.components.launcher
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.pxr.cymatic.R
+import com.pxr.cymatic.data.launcher.LauncherAppsLoader
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
+import com.pxr.cymatic.ui.screens.home.LauncherAppsViewModel
+import kotlin.math.roundToInt
+
+@Composable
+fun InteractivePinnedGrid(
+    entries: List<LauncherAppsViewModel.PinnedGridEntry>,
+    showLabels: Boolean,
+    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit,
+    onFolderClick: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
+    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
+    onMergeFolder: (sourceIndex: Int, targetIndex: Int) -> Unit,
+    onUnpinItem: (Int) -> Unit,
+    onRenameFolderRequest: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
+
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var dragDelta by remember { mutableStateOf(Offset.Zero) }
+    var hoveredIndex by remember { mutableStateOf<Int?>(null) }
+    var isHoveringMergeTarget by remember { mutableStateOf(false) }
+
+    val cellBounds = remember { mutableStateMapOf<Int, Rect>() }
+    var selectedItemIndexForMenu by rememberSaveable { mutableStateOf<Int?>(null) }
+
+    val cellHeightDp = if (showLabels) 92.dp else 72.dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(entries) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val downOffset = down.position
+
+                    // Find which item was pressed
+                    val pressedIndex = cellBounds.entries.firstOrNull { (_, rect) ->
+                        rect.contains(downOffset)
+                    }?.key
+
+                    if (pressedIndex == null || pressedIndex !in entries.indices) {
+                        return@awaitEachGesture
+                    }
+
+                    // Wait for long press or tap
+                    val longPress = awaitLongPressOrCancellation(down.id)
+                    if (longPress == null) {
+                        // It was a tap (released before long press timeout)
+                        val entry = entries[pressedIndex]
+                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                        when (entry) {
+                            is LauncherAppsViewModel.PinnedGridEntry.App -> onAppClick(entry.app)
+                            is LauncherAppsViewModel.PinnedGridEntry.Folder -> onFolderClick(entry)
+                        }
+                    } else {
+                        // Long-press triggered! Lift the item with haptic feedback
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        draggedIndex = pressedIndex
+                        dragDelta = Offset.Zero
+                        hoveredIndex = pressedIndex
+                        isHoveringMergeTarget = false
+                        var hasMoved = false
+
+                        // Follow subsequent drag gestures
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+                            if (change.pressed) {
+                                val dragAmount = change.position - change.previousPosition
+                                dragDelta += dragAmount
+                                if (dragDelta.getDistance() > viewConfiguration.touchSlop) {
+                                    hasMoved = true
+                                }
+                                change.consume()
+
+                                val originalBounds = cellBounds[pressedIndex]
+                                if (originalBounds != null) {
+                                    val currentCenter = originalBounds.center + dragDelta
+
+                                    var closestIdx: Int? = null
+                                    var closestDist = Float.MAX_VALUE
+                                    var isMergeCandidate = false
+
+                                    for ((idx, rect) in cellBounds) {
+                                        val dist = (rect.center - currentCenter).getDistance()
+                                        if (dist < closestDist) {
+                                            closestDist = dist
+                                            closestIdx = idx
+                                        }
+                                    }
+
+                                    if (closestIdx != null && closestIdx in entries.indices) {
+                                        val targetRect = cellBounds[closestIdx]
+                                        if (targetRect != null && closestIdx != pressedIndex) {
+                                            val distToCenter = (targetRect.center - currentCenter).getDistance()
+                                            val mergeThresholdPx = with(density) { 36.dp.toPx() }
+                                            isMergeCandidate = distToCenter < mergeThresholdPx
+                                        }
+                                        hoveredIndex = closestIdx
+                                        isHoveringMergeTarget = isMergeCandidate
+                                    }
+                                }
+                            } else {
+                                // Pointer up / release
+                                change.consume()
+                                val targetIdx = hoveredIndex
+
+                                if (hasMoved && targetIdx != null && targetIdx in entries.indices && targetIdx != pressedIndex) {
+                                    if (isHoveringMergeTarget) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onMergeFolder(pressedIndex, targetIdx)
+                                    } else {
+                                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                                        onReorder(pressedIndex, targetIdx)
+                                    }
+                                } else if (!hasMoved) {
+                                    // User held down and released in place -> open popup menu
+                                    selectedItemIndexForMenu = pressedIndex
+                                }
+                                break
+                            }
+                        }
+
+                        draggedIndex = null
+                        dragDelta = Offset.Zero
+                        hoveredIndex = null
+                        isHoveringMergeTarget = false
+                    }
+                }
+            }
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            val chunked = entries.chunked(4)
+            chunked.forEachIndexed { rowIndex, rowItems ->
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    rowItems.forEachIndexed { colIndex, entry ->
+                        val itemIndex = rowIndex * 4 + colIndex
+                        val isBeingDragged = draggedIndex == itemIndex
+                        val isHoverTarget = hoveredIndex == itemIndex && draggedIndex != null && draggedIndex != itemIndex && isHoveringMergeTarget
+                        val isMenuOpen = selectedItemIndexForMenu == itemIndex
+
+                        val itemScale by animateFloatAsState(
+                            targetValue = if (isBeingDragged) 1.15f else if (isHoverTarget) 1.08f else 1.0f,
+                            animationSpec = spring(),
+                            label = "scale"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(cellHeightDp)
+                                .onGloballyPositioned { coordinates ->
+                                    cellBounds[itemIndex] = coordinates.boundsInParent()
+                                }
+                                .zIndex(if (isBeingDragged) 10f else 1f)
+                                .offset {
+                                    if (isBeingDragged) {
+                                        IntOffset(dragDelta.x.roundToInt(), dragDelta.y.roundToInt())
+                                    } else {
+                                        IntOffset.Zero
+                                    }
+                                }
+                                .scale(itemScale)
+                                .alpha(if (isBeingDragged) 0.88f else 1.0f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .then(
+                                        if (isHoverTarget) {
+                                            Modifier.border(
+                                                2.dp,
+                                                MaterialTheme.colorScheme.onBackground,
+                                                RectangleShape
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                PinnedCell(
+                                    entry = entry,
+                                    showLabels = showLabels
+                                )
+                            }
+
+                            CymaticDropdownMenu(
+                                expanded = isMenuOpen,
+                                onDismissRequest = { selectedItemIndexForMenu = null }
+                            ) {
+                                when (entry) {
+                                    is LauncherAppsViewModel.PinnedGridEntry.App -> {
+                                        CymaticDropdownMenuItem(
+                                            text = "Unpin from Home",
+                                            leadingIcon = R.drawable.ic_pixel_trash,
+                                            onClick = {
+                                                selectedItemIndexForMenu = null
+                                                onUnpinItem(itemIndex)
+                                            }
+                                        )
+                                        CymaticDropdownMenuItem(
+                                            text = "App Info",
+                                            leadingIcon = R.drawable.ic_pixel_info,
+                                            onClick = {
+                                                selectedItemIndexForMenu = null
+                                                val infoIntent =
+                                                    Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                        data = Uri.fromParts("package", entry.app.packageName, null)
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    }
+                                                context.startActivity(infoIntent)
+                                            }
+                                        )
+                                    }
+
+                                    is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
+                                        CymaticDropdownMenuItem(
+                                            text = "Rename Folder",
+                                            leadingIcon = R.drawable.ic_pixel_edit,
+                                            onClick = {
+                                                selectedItemIndexForMenu = null
+                                                onRenameFolderRequest(entry)
+                                            }
+                                        )
+                                        CymaticDropdownMenuItem(
+                                            text = "Unpin Folder",
+                                            leadingIcon = R.drawable.ic_pixel_trash,
+                                            onClick = {
+                                                selectedItemIndexForMenu = null
+                                                onUnpinItem(itemIndex)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (rowItems.size < 4) {
+                        repeat(4 - rowItems.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PinnedCell(
+    entry: LauncherAppsViewModel.PinnedGridEntry,
+    showLabels: Boolean
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        when (entry) {
+            is LauncherAppsViewModel.PinnedGridEntry.App -> {
+                if (entry.app.icon != null) {
+                    Image(
+                        bitmap = entry.app.icon.asImageBitmap(),
+                        contentDescription = null,
+                        filterQuality = FilterQuality.None,
+                        modifier = Modifier.size(52.dp)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_pixel_apps),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+
+                if (showLabels) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = entry.app.label,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+
+            is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        entry.apps.take(4).chunked(2).forEach { rowApps ->
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                rowApps.forEach { app ->
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(1.dp)
+                                            .size(18.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (app.icon != null) {
+                                            Image(
+                                                bitmap = app.icon.asImageBitmap(),
+                                                contentDescription = null,
+                                                filterQuality = FilterQuality.None,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .background(MaterialTheme.colorScheme.surface),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.ic_pixel_apps),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.secondary,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (showLabels) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = entry.name,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}

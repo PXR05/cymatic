@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun CymaticDropdownMenu(
@@ -63,5 +66,27 @@ fun CymaticDropdownMenuItem(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
         onClick = onClick,
         modifier = modifier
+    )
+}
+
+@Composable
+fun CymaticDropdownMenuItem(
+    text: String,
+    leadingIcon: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    CymaticDropdownMenuItem(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        leadingIcon = {
+            Icon(
+                painter = painterResource(leadingIcon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(16.dp)
+            )
+        }
     )
 }

@@ -73,6 +73,8 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.common.AppActionPopup
+import com.pxr.cymatic.ui.components.launcher.FolderDialog
+import com.pxr.cymatic.ui.components.launcher.InteractivePinnedGrid
 import com.pxr.cymatic.ui.components.player.FullPlayer
 import com.pxr.cymatic.ui.components.player.MaximizedPlayer
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -181,6 +183,9 @@ private fun HomeContent(
     val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
     val showDate by LauncherStore.showDateFlow.collectAsState(initial = true)
 
+    val allApps by appsViewModel.allApps.collectAsState()
+    var activeFolderForDialog by remember { mutableStateOf<LauncherAppsViewModel.PinnedGridEntry.Folder?>(null) }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -192,6 +197,36 @@ private fun HomeContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    activeFolderForDialog?.let { folder ->
+        val currentFolder = homeApps.entries
+            .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.Folder>()
+            .firstOrNull { it.id == folder.id } ?: folder
+
+        FolderDialog(
+            folder = currentFolder,
+            allApps = allApps,
+            onDismiss = { activeFolderForDialog = null },
+            onAppClick = { app ->
+                LauncherAppsLoader.launch(context, app.packageName)
+            },
+            onRenameFolder = { newName ->
+                appsViewModel.renameFolder(folder.id, newName)
+            },
+            onRemoveApp = { pkg ->
+                appsViewModel.removeAppFromFolder(folder.id, pkg)
+            },
+            onAddApp = { pkg ->
+                appsViewModel.addAppToFolder(folder.id, pkg)
+            },
+            onReorderApp = { fromIdx, toIdx ->
+                appsViewModel.reorderInFolder(folder.id, fromIdx, toIdx)
+            },
+            onDeleteFolder = {
+                appsViewModel.deleteFolder(folder.id)
+            }
+        )
+    }
+
     val libraryEntries = listOf(
         LibraryEntry("All Songs", R.drawable.ic_pixel_songs, Screen.AllSongs.createRoute()),
         LibraryEntry("Artists", R.drawable.ic_pixel_artists, Screen.Artists.route),
@@ -200,255 +235,107 @@ private fun HomeContent(
     )
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding()),
-            verticalArrangement = Arrangement.Bottom,
-            contentPadding = PaddingValues(
-                start = 20.dp,
-                end = 20.dp,
-                top = 12.dp,
-                bottom = 24.dp
-            )
+                .padding(top = innerPadding.calculateTopPadding())
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    top = 12.dp,
+                    bottom = 24.dp
+                ),
+            verticalArrangement = Arrangement.Bottom
         ) {
             if (showClock || showDay || showDate) {
-                item(key = "hero_greeting") {
-                    IdleGreeting(
-                        showClock = showClock,
-                        showDay = showDay,
-                        showDate = showDate
-                    )
-                }
+                IdleGreeting(
+                    showClock = showClock,
+                    showDay = showDay,
+                    showDate = showDate
+                )
             }
 
             if (hasPlayback) {
-                item(key = "hero_player") {
-                    FullPlayer(onMaximize = onPlayerClick)
-                }
+                FullPlayer(
+                    onMaximize = onPlayerClick,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
             }
 
-            item(key = "cymatic_label") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 20.dp, bottom = 6.dp, start = 4.dp)
-                ) {
-                    Text(
-                        text = "CYMATIC",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 10.sp,
-                        letterSpacing = 4.sp
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "Settings >",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .clickable(
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp, start = 4.dp)
+            ) {
+                Text(
+                    text = "LIBRARY",
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 10.sp,
+                    letterSpacing = 4.sp
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                libraryEntries.chunked(2).forEach { rowEntries ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowEntries.forEach { entry ->
+                            MusicCell(
+                                entry = entry,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                    navController.navigate(Screen.Settings.route)
+                                    navController.navigate(entry.route)
                                 },
-                                indication = null,
-                                interactionSource = null
+                                modifier = Modifier.weight(1f)
                             )
-                            .padding(4.dp)
-                    )
-                }
-            }
-
-            item(key = "music_grid") {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    libraryEntries.chunked(2).forEach { rowEntries ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            rowEntries.forEach { entry ->
-                                MusicCell(
-                                    entry = entry,
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                        navController.navigate(entry.route)
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            if (rowEntries.size < 2) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                        }
+                        if (rowEntries.size < 2) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
 
-            item(key = "apps_label") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 20.dp, bottom = 6.dp, start = 4.dp)
-                ) {
-                    Text(
-                        text = "MOST USED",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 10.sp,
-                        letterSpacing = 4.sp
-                    )
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, bottom = 6.dp, start = 4.dp)
+            ) {
+                Text(
+                    text = "PINNED",
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 10.sp,
+                    letterSpacing = 4.sp
+                )
             }
 
             if (homeApps.entries.isNotEmpty()) {
-                item(key = "pinned_grid") {
-                    SimplePinnedGrid(
-                        entries = homeApps.entries,
-                        showLabels = showPinnedLabels,
-                        onAppClick = { app ->
-                            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                            LauncherAppsLoader.launch(context, app.packageName)
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SimplePinnedGrid(
-    entries: List<LauncherAppsViewModel.PinnedGridEntry>,
-    showLabels: Boolean,
-    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit
-) {
-    val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
-    var selectedPackage by rememberSaveable { mutableStateOf<String?>(null) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        entries.chunked(4).forEach { rowItems ->
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                rowItems.forEach { entry ->
-                    val pkg = when (entry) {
-                        is LauncherAppsViewModel.PinnedGridEntry.App -> entry.app.packageName
-                        is LauncherAppsViewModel.PinnedGridEntry.Folder -> entry.apps.firstOrNull()?.packageName
+                InteractivePinnedGrid(
+                    entries = homeApps.entries,
+                    showLabels = showPinnedLabels,
+                    onAppClick = { app ->
+                        LauncherAppsLoader.launch(context, app.packageName)
+                    },
+                    onFolderClick = { folder ->
+                        activeFolderForDialog = folder
+                    },
+                    onReorder = { fromIdx, toIdx ->
+                        appsViewModel.reorderPinned(fromIdx, toIdx)
+                    },
+                    onMergeFolder = { sourceIdx, targetIdx ->
+                        appsViewModel.mergeIntoFolder(sourceIdx, targetIdx)
+                    },
+                    onUnpinItem = { idx ->
+                        appsViewModel.unpinItem(idx)
+                    },
+                    onRenameFolderRequest = { folder ->
+                        activeFolderForDialog = folder
                     }
-                    val isMenuOpen = pkg != null && selectedPackage == pkg
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(if (showLabels) 92.dp else 72.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    when (entry) {
-                                        is LauncherAppsViewModel.PinnedGridEntry.App ->
-                                            onAppClick(entry.app)
-                                        is LauncherAppsViewModel.PinnedGridEntry.Folder ->
-                                            entry.apps.firstOrNull()?.let(onAppClick)
-                                    }
-                                },
-                                onLongClick = {
-                                    if (pkg != null) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedPackage = pkg
-                                    }
-                                },
-                                indication = null,
-                                interactionSource = null
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        PinnedCellContent(
-                            entry = entry,
-                            showLabels = showLabels
-                        )
-
-                        if (pkg != null) {
-                            AppActionPopup(
-                                expanded = isMenuOpen,
-                                onDismissRequest = { selectedPackage = null },
-                                onAppInfo = {
-                                    val infoIntent =
-                                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = Uri.fromParts("package", pkg, null)
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                    context.startActivity(infoIntent)
-                                }
-                            )
-                        }
-                    }
-                }
-                if (rowItems.size < 4) {
-                    repeat(4 - rowItems.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PinnedCellContent(
-    entry: LauncherAppsViewModel.PinnedGridEntry,
-    showLabels: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        when (entry) {
-            is LauncherAppsViewModel.PinnedGridEntry.App -> {
-                AppIcon(app = entry.app, size = 52.dp)
-                if (showLabels) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = entry.app.label,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 10.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
-            }
-
-            is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    entry.apps.take(4).chunked(2).forEach { rowApps ->
-                        Row {
-                            rowApps.forEach { app ->
-                                Box(
-                                    modifier = Modifier
-                                        .padding(1.dp)
-                                        .size(16.dp)
-                                ) {
-                                    AppIcon(app = app, size = 16.dp)
-                                }
-                            }
-                        }
-                    }
-                }
-                if (showLabels) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = entry.name,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 10.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
+                )
             }
         }
     }

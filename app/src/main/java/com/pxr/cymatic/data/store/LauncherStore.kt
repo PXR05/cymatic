@@ -60,6 +60,11 @@ object LauncherStore {
                     ?: emptyList()
         }
 
+    val hasStoredPinnedLayoutFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs.contains(PINNED_LAYOUT_KEY) || prefs.contains(PINNED_PACKAGES_KEY)
+        }
+
     suspend fun getPinnedLayout(): List<PinnedItem> = pinnedLayoutFlow.first()
 
     fun setPinnedLayout(items: List<PinnedItem>) {

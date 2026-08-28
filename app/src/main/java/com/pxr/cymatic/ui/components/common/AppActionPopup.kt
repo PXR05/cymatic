@@ -17,6 +17,8 @@ fun AppActionPopup(
     onDismissRequest: () -> Unit,
     onAppInfo: () -> Unit,
     modifier: Modifier = Modifier,
+    onPin: (() -> Unit)? = null,
+    onUnpin: (() -> Unit)? = null,
     onUninstall: (() -> Unit)? = null
 ) {
     CymaticDropdownMenu(
@@ -24,6 +26,40 @@ fun AppActionPopup(
         onDismissRequest = onDismissRequest,
         modifier = modifier
     ) {
+        if (onPin != null) {
+            CymaticDropdownMenuItem(
+                text = "Pin to Home",
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pixel_plus),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                onClick = {
+                    onDismissRequest()
+                    onPin()
+                }
+            )
+        }
+        if (onUnpin != null) {
+            CymaticDropdownMenuItem(
+                text = "Unpin from Home",
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pixel_trash),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                onClick = {
+                    onDismissRequest()
+                    onUnpin()
+                }
+            )
+        }
         CymaticDropdownMenuItem(
             text = "App Info",
             leadingIcon = {
