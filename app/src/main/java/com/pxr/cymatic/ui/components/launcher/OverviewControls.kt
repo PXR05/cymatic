@@ -193,7 +193,7 @@ fun OverviewBottomActions(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                 onCloseOverview()
-                                navController.navigate(Screen.LauncherSettings.route)
+                                navController.navigate(Screen.Settings.route)
                             },
                             modifier = Modifier.weight(1f)
                         )
