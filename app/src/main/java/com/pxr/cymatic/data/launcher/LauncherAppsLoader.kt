@@ -17,8 +17,17 @@ object LauncherAppsLoader {
     data class LauncherApp(
         val label: String,
         val packageName: String,
-        val icon: Bitmap?
+        val icon: Bitmap?,
+        val canUninstall: Boolean = true
     )
+
+    fun canUninstallApp(context: Context, packageName: String): Boolean {
+        if (packageName == context.packageName) return false
+        return runCatching {
+            val appInfo = context.packageManager.getApplicationInfo(packageName, 0)
+            (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0
+        }.getOrDefault(false)
+    }
 
     fun loadLaunchableApps(context: Context): List<LauncherApp> {
         val packageManager = context.packageManager
@@ -32,12 +41,16 @@ object LauncherAppsLoader {
             .filter { it.activityInfo.packageName != context.packageName }
             .distinctBy { it.activityInfo.packageName }
             .map { info ->
+                val pkgName = info.activityInfo.packageName
+                val canUninstall = canUninstallApp(context, pkgName)
+
                 LauncherApp(
                     label = info.loadLabel(packageManager).toString().trim(),
-                    packageName = info.activityInfo.packageName,
+                    packageName = pkgName,
                     icon = runCatching {
                         info.loadIcon(packageManager)?.toBitmap(iconSizePx)
-                    }.getOrNull()
+                    }.getOrNull(),
+                    canUninstall = canUninstall
                 )
             }
             .filter { it.label.isNotEmpty() }
@@ -92,6 +105,25 @@ object LauncherAppsLoader {
         val intent = context.packageManager.getLaunchIntentForPackage(packageName)
         intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
+    }
+
+    fun uninstall(context: Context, packageName: String) {
+        try {
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = android.net.Uri.fromParts("package", packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
+                    data = android.net.Uri.fromParts("package", packageName, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun getShortcutsForPackage(context: Context, packageName: String): List<ShortcutInfo> {

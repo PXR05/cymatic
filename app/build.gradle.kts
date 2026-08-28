@@ -16,8 +16,8 @@ android {
         applicationId = "com.pxr.cymatic.launcher"
         minSdk = 31
         targetSdk = 36
-        versionCode = 193
-        versionName = "0.2.0-launcher-preview01"
+        versionCode = 194
+        versionName = "0.2.0-launcher-preview02"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.animation)
     implementation(libs.coil.compose)

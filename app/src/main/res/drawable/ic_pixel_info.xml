@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Circle: Top edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,3h8v2H8z" />
+    <!-- Circle: Bottom edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,19h8v2H8z" />
+    <!-- Circle: Left vertical edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M3,8h2v8H3z" />
+    <!-- Circle: Right vertical edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M19,8h2v8h-2z" />
+    <!-- Circle Corners -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,5h3v3H5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,5h3v3h-3z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,16h3v3H5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,16h3v3h-3z" />
+    <!-- Info dot -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11,7h2v2h-2z" />
+    <!-- Info bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11,10h2v5h-2z" />
+    <!-- Info base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,15h4v2h-4z" />
+</vector>

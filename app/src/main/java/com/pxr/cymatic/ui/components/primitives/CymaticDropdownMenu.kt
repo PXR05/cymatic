@@ -48,7 +48,8 @@ fun CymaticDropdownMenu(
 fun CymaticDropdownMenuItem(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    leadingIcon: @Composable (() -> Unit)? = null
 ) {
     DropdownMenuItem(
         text = {
@@ -58,6 +59,7 @@ fun CymaticDropdownMenuItem(
                 color = MaterialTheme.colorScheme.onBackground
             )
         },
+        leadingIcon = leadingIcon,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
         onClick = onClick,
         modifier = modifier

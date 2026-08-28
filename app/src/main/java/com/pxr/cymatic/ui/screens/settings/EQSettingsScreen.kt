@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,10 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
@@ -220,6 +224,14 @@ fun EQSettingsScreen(
                     ) {
                         CymaticDropdownMenuItem(
                             text = "New",
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pixel_plus),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = ""
@@ -228,6 +240,14 @@ fun EQSettingsScreen(
                         )
                         CymaticDropdownMenuItem(
                             text = "Rename",
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pixel_edit),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = state.selectedPresetName
@@ -236,6 +256,14 @@ fun EQSettingsScreen(
                         )
                         CymaticDropdownMenuItem(
                             text = "Delete",
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pixel_trash),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showPresetMenu = false
                                 showDeleteConfirm = true
@@ -243,6 +271,14 @@ fun EQSettingsScreen(
                         )
                         CymaticDropdownMenuItem(
                             text = "Import",
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pixel_arrow_down),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -254,6 +290,14 @@ fun EQSettingsScreen(
                         )
                         CymaticDropdownMenuItem(
                             text = "Export",
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_pixel_arrow_up),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             onClick = {
                                 showPresetMenu = false
                                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {

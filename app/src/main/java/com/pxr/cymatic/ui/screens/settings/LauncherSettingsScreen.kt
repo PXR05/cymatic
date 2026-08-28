@@ -40,6 +40,7 @@ fun LauncherSettingsScreen(
     val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
     val showDate by LauncherStore.showDateFlow.collectAsState(initial = true)
     val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
+    val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
 
     BaseScreen(
         title = "Launcher",
@@ -107,11 +108,20 @@ fun LauncherSettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             LauncherToggleRow(
-                title = "Pinned Labels",
-                subtitle = "Show app names under pinned icons",
+                title = "Most Used Labels",
+                subtitle = "Show app names under most used icons",
                 checked = showPinnedLabels,
                 onCheckedChange = { value ->
                     scope.launch { LauncherStore.setShowPinnedLabels(value) }
+                }
+            )
+
+            LauncherToggleRow(
+                title = "All Apps Labels",
+                subtitle = "Show app names in the app drawer",
+                checked = showAllAppsLabels,
+                onCheckedChange = { value ->
+                    scope.launch { LauncherStore.setShowAllAppsLabels(value) }
                 }
             )
         }

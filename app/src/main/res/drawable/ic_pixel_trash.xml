@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Top Handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,3h4v2h-4z" />
+    <!-- Lid Bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,5h14v2H5z" />
+    <!-- Can Body: Left Wall -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,7h2v13H7z" />
+    <!-- Can Body: Right Wall -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,7h2v13h-2z" />
+    <!-- Can Body: Bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,18h10v2H7z" />
+    <!-- Slat 1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,9h1v8h-1z" />
+    <!-- Slat 2 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M13,9h1v8h-1z" />
+</vector>

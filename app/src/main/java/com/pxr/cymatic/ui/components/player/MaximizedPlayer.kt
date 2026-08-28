@@ -1,12 +1,14 @@
 package com.pxr.cymatic.ui.components.player
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,25 +18,28 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,14 +51,15 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SwipeCarousel
 import com.pxr.cymatic.ui.locals.LocalMediaController
-import com.pxr.cymatic.ui.state.PlayerUiState
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MaximizedPlayer(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isActive: Boolean = true,
+    onClose: (() -> Unit)? = null
 ) {
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
@@ -73,211 +79,314 @@ fun MaximizedPlayer(
     val prevItem =
         if (hasPrev) mediaController.getMediaItemAt(mediaController.previousMediaItemIndex) else null
 
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val scope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = SheetValue.PartiallyExpanded
-        )
-    )
-    val queueAlpha by animateFloatAsState(
-        targetValue = if (scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded) {
-            1f
-        } else {
-            0f
-        },
-        animationSpec = tween(durationMillis = 200),
-        label = "queueAlpha"
-    )
 
-    BackHandler {
-        if (scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded) {
-            scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+    BackHandler(enabled = isActive) {
+        if (pagerState.currentPage == 1) {
+            scope.launch { pagerState.animateScrollToPage(0) }
         } else {
-            PlayerUiState.isMaximized.value = false
+            onClose?.invoke()
         }
     }
 
-    Box(
+    VerticalPager(
+        state = pagerState,
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        BottomSheetScaffold(
-            scaffoldState = scaffoldState,
-            containerColor = Color.Transparent,
-            sheetContainerColor = MaterialTheme.colorScheme.background,
-            sheetShape = RectangleShape,
-            sheetDragHandle = null,
-            sheetPeekHeight = 80.dp,
-            sheetContent = {
-                QueueSheetContent(
-                    mediaController = mediaController,
-                    currentIndex = playbackState.currentIndex,
-                    totalTracks = playbackState.totalTracks,
-                    listAlpha = queueAlpha,
-                    onSelect = { index ->
-                        mediaController.seekTo(index, 0L)
-                    },
-                    onClose = {
-                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                    }
-                )
-            },
-            modifier = Modifier.fillMaxSize()
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .safeDrawingPadding()
-                    .imePadding()
-                    .padding(horizontal = 24.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_pixel_arrow_down),
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clickable(
-                                onClick = { PlayerUiState.isMaximized.value = false },
-                                indication = null,
-                                interactionSource = null
-                            )
-                            .padding(6.dp)
-                    )
-                }
-
-                Box(
-                    contentAlignment = Alignment.Center,
+            .background(MaterialTheme.colorScheme.background),
+        beyondViewportPageCount = 1
+    ) { page ->
+        when (page) {
+            0 -> {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(vertical = 16.dp)
+                        .fillMaxSize()
+                        .safeDrawingPadding()
+                        .imePadding()
+                        .padding(horizontal = 24.dp)
                 ) {
-                    SwipeCarousel(
-                        modifier = Modifier.fillMaxWidth(),
-                        hasPrev = hasPrev,
-                        hasNext = hasNext,
-                        onPrev = { latestController.seekToPrevious() },
-                        onNext = { latestController.seekToNext() },
-                        onTap = {
-                            if (latestPlaybackState.isPlaying) {
-                                latestController.pause()
-                            } else {
-                                latestController.play()
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(vertical = 16.dp)
+                    ) {
+                        SwipeCarousel(
+                            modifier = Modifier.fillMaxWidth(),
+                            hasPrev = hasPrev,
+                            hasNext = hasNext,
+                            onPrev = { latestController.seekToPrevious() },
+                            onNext = { latestController.seekToNext() },
+                            onTap = {
+                                if (latestPlaybackState.isPlaying) {
+                                    latestController.pause()
+                                } else {
+                                    latestController.play()
+                                }
+                            },
+                            content = {
+                                AsyncImage(
+                                    model = ImageRequest
+                                        .Builder(LocalContext.current)
+                                        .data(metadata.artworkUri)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = metadata.album,
+                                    contentScale = ContentScale.Crop,
+                                    filterQuality = FilterQuality.High,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                )
+                            },
+                            prevContent = {
+                                if (prevItem != null) {
+                                    AsyncImage(
+                                        model = ImageRequest
+                                            .Builder(LocalContext.current)
+                                            .data(prevItem.mediaMetadata.artworkUri)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        filterQuality = FilterQuality.High,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                    )
+                                }
+                            },
+                            nextContent = {
+                                if (nextItem != null) {
+                                    AsyncImage(
+                                        model = ImageRequest
+                                            .Builder(LocalContext.current)
+                                            .data(nextItem.mediaMetadata.artworkUri)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        filterQuality = FilterQuality.High,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                    )
+                                }
                             }
-                        },
-                        content = {
-                            AsyncImage(
-                                model = ImageRequest
-                                    .Builder(LocalContext.current)
-                                    .data(metadata.artworkUri)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = metadata.album,
-                                contentScale = ContentScale.Crop,
-                                filterQuality = FilterQuality.High,
+                        )
+                    }
+
+                    Text(
+                        text = title,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 20.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = artist,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    ProgressBar(
+                        currentPosition = playbackState.currentPositionMs,
+                        durationMs = playbackState.durationMs ?: 0L,
+                        onSeek = { mediaController.seekTo(it) },
+                        showNumber = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Controls(
+                        isPlaying = playbackState.isPlaying,
+                        isShuffling = playbackState.isShuffling,
+                        repeatMode = playbackState.repeatMode,
+                        onClick = mapOf(
+                            "shuffle" to {
+                                mediaController.shuffleModeEnabled = !playbackState.isShuffling
+                            },
+                            "previous" to { mediaController.seekToPrevious() },
+                            "play_pause" to {
+                                if (playbackState.isPlaying) mediaController.pause()
+                                else mediaController.play()
+                            },
+                            "next" to { mediaController.seekToNext() },
+                            "repeat" to {
+                                val newMode = when (playbackState.repeatMode) {
+                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                    else -> Player.REPEAT_MODE_OFF
+                                }
+                                mediaController.repeatMode = newMode
+                            }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    ) {
+                        Text(
+                            text = "${playbackState.totalTracks} TRACKS IN QUEUE",
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 11.sp,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                }
+            }
+
+            1 -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .safeDrawingPadding()
+                        .imePadding()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "QUEUE · ${playbackState.totalTracks}",
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontSize = 11.sp,
+                            letterSpacing = 2.sp
+                        )
+                    }
+
+                    var selectedQueueIndex by remember { mutableStateOf<Int?>(null) }
+                    val haptic = LocalHapticFeedback.current
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(count = mediaController.mediaItemCount, key = { it }) { index ->
+                            val item = mediaController.getMediaItemAt(index)
+                            val itemTitle = item.mediaMetadata.title?.toString() ?: "Unknown Title"
+                            val itemArtist = item.mediaMetadata.artist?.toString() ?: ""
+                            val isCurrent = index == playbackState.currentIndex
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .aspectRatio(1f)
+                                    .background(
+                                        if (isCurrent) {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        } else {
+                                            Color.Transparent
+                                        }
+                                    )
+                                    .combinedClickable(
+                                        onClick = { mediaController.seekTo(index, 0L) },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            selectedQueueIndex = index
+                                        },
+                                        indication = null,
+                                        interactionSource = null
+                                    )
+                                    .padding(horizontal = 24.dp, vertical = 10.dp)
+                            ) {
+                                Text(
+                                    text = (index + 1).toString().padStart(2, '0'),
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.width(28.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = itemTitle,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        fontSize = 14.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (itemArtist.isNotBlank()) {
+                                        Text(
+                                            text = itemArtist,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                if (isCurrent) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_pixel_play),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    selectedQueueIndex?.let { selectedIdx ->
+                        if (selectedIdx < mediaController.mediaItemCount) {
+                            val selectedItem = mediaController.getMediaItemAt(selectedIdx)
+                            QueueItemContextMenu(
+                                index = selectedIdx,
+                                totalCount = mediaController.mediaItemCount,
+                                mediaItem = selectedItem,
+                                isCurrent = selectedIdx == playbackState.currentIndex,
+                                onDismiss = { selectedQueueIndex = null },
+                                onPlay = { mediaController.seekTo(selectedIdx, 0L) },
+                                onMoveUp = {
+                                    if (selectedIdx > 0) {
+                                        mediaController.moveMediaItem(selectedIdx, selectedIdx - 1)
+                                    }
+                                },
+                                onMoveDown = {
+                                    if (selectedIdx < mediaController.mediaItemCount - 1) {
+                                        mediaController.moveMediaItem(selectedIdx, selectedIdx + 1)
+                                    }
+                                },
+                                onMoveToTop = {
+                                    if (selectedIdx > 0) {
+                                        mediaController.moveMediaItem(selectedIdx, 0)
+                                    }
+                                },
+                                onMoveToBottom = {
+                                    if (selectedIdx < mediaController.mediaItemCount - 1) {
+                                        mediaController.moveMediaItem(selectedIdx, mediaController.mediaItemCount - 1)
+                                    }
+                                },
+                                onRemove = {
+                                    if (selectedIdx < mediaController.mediaItemCount) {
+                                        mediaController.removeMediaItem(selectedIdx)
+                                    }
+                                }
                             )
-                        },
-                        prevContent = {
-                            if (prevItem != null) {
-                                AsyncImage(
-                                    model = ImageRequest
-                                        .Builder(LocalContext.current)
-                                        .data(prevItem.mediaMetadata.artworkUri)
-                                        .crossfade(true)
-                                        .build(),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    filterQuality = FilterQuality.High,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                )
-                            }
-                        },
-                        nextContent = {
-                            if (nextItem != null) {
-                                AsyncImage(
-                                    model = ImageRequest
-                                        .Builder(LocalContext.current)
-                                        .data(nextItem.mediaMetadata.artworkUri)
-                                        .crossfade(true)
-                                        .build(),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    filterQuality = FilterQuality.High,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                )
-                            }
                         }
-                    )
+                    }
                 }
-
-                Text(
-                    text = title,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 20.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = artist,
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                ProgressBar(
-                    currentPosition = playbackState.currentPositionMs,
-                    durationMs = playbackState.durationMs ?: 0L,
-                    onSeek = { mediaController.seekTo(it) },
-                    showNumber = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Controls(
-                    isPlaying = playbackState.isPlaying,
-                    isShuffling = playbackState.isShuffling,
-                    repeatMode = playbackState.repeatMode,
-                    onClick = mapOf(
-                        "shuffle" to {
-                            mediaController.shuffleModeEnabled = !playbackState.isShuffling
-                        },
-                        "previous" to { mediaController.seekToPrevious() },
-                        "play_pause" to {
-                            if (playbackState.isPlaying) mediaController.pause()
-                            else mediaController.play()
-                        },
-                        "next" to { mediaController.seekToNext() },
-                        "repeat" to {
-                            val newMode = when (playbackState.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                            mediaController.repeatMode = newMode
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

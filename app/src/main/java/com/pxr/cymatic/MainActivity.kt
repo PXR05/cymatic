@@ -46,12 +46,10 @@ import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.player.MaximizedPlayer
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.state.PlayerUiState
 import com.pxr.cymatic.ui.screens.home.AllAppsScreen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
@@ -202,7 +200,6 @@ class MainActivity : ComponentActivity() {
                     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
                     val hasPlayback = playbackState.currentMediaId != null && playbackState.totalTracks > 0
                     val isDocked = isLandscape && hasPlayback
-                    val isMaximized by PlayerUiState.isMaximized.collectAsState()
                     val hideSystemBars = locked || isDocked
 
                     LaunchedEffect(hideSystemBars) {
@@ -221,19 +218,6 @@ class MainActivity : ComponentActivity() {
 
                     Surface(modifier = Modifier.fillMaxSize()) {
                         when {
-                            isMaximized && !isDocked -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(
-                                            bottom = WindowInsets.systemBars.asPaddingValues()
-                                                .calculateBottomPadding()
-                                        )
-                                ) {
-                                    MaximizedPlayer(modifier = Modifier.fillMaxSize())
-                                }
-                            }
-
                             hideSystemBars -> {
                                 Column(
                                     modifier = Modifier.padding(

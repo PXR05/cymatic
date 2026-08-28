@@ -1,17 +1,15 @@
 package com.pxr.cymatic.ui.screens.home
 
 import android.content.Intent
-import android.content.pm.ShortcutInfo
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,50 +19,52 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -72,22 +72,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.store.LauncherStore
+import com.pxr.cymatic.ui.components.common.AppActionPopup
 import com.pxr.cymatic.ui.components.player.FullPlayer
-import com.pxr.cymatic.ui.components.primitives.CymaticDialog
-import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
-import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
+import com.pxr.cymatic.ui.components.player.MaximizedPlayer
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.state.rememberPlaybackState
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
 
 private data class LibraryEntry(
     val label: String,
@@ -97,12 +93,93 @@ private data class LibraryEntry(
 
 @Composable
 fun HomeScreen() {
+    val mediaController = LocalMediaController.current
+    val playbackState = rememberPlaybackState(mediaController)
+    val hasPlayback = mediaController != null &&
+        playbackState.currentMediaId != null &&
+        playbackState.totalTracks > 0
+
+    val hPagerState = rememberPagerState(pageCount = { if (hasPlayback) 2 else 1 })
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(hasPlayback) {
+        if (!hasPlayback && hPagerState.currentPage == 1) {
+            hPagerState.animateScrollToPage(0)
+        }
+    }
+
+    HorizontalPager(
+        state = hPagerState,
+        modifier = Modifier.fillMaxSize(),
+        beyondViewportPageCount = 1
+    ) { hPage ->
+        when (hPage) {
+            0 -> HomeVerticalPager(
+                onPlayerClick = {
+                    if (hasPlayback) {
+                        scope.launch { hPagerState.animateScrollToPage(1) }
+                    }
+                }
+            )
+
+            1 -> {
+                if (hasPlayback) {
+                    MaximizedPlayer(
+                        modifier = Modifier.fillMaxSize(),
+                        isActive = hPagerState.currentPage == 1,
+                        onClose = {
+                            scope.launch { hPagerState.animateScrollToPage(0) }
+                        }
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeVerticalPager(
+    onPlayerClick: () -> Unit
+) {
+    val vPagerState = rememberPagerState(pageCount = { 2 })
+    val scope = rememberCoroutineScope()
+
+    BackHandler(enabled = vPagerState.currentPage == 1) {
+        scope.launch { vPagerState.animateScrollToPage(0) }
+    }
+
+    VerticalPager(
+        state = vPagerState,
+        modifier = Modifier.fillMaxSize(),
+        beyondViewportPageCount = 1
+    ) { vPage ->
+        when (vPage) {
+            0 -> HomeContent(onPlayerClick = onPlayerClick)
+            1 -> AllAppsScreen()
+        }
+    }
+}
+
+@Composable
+private fun HomeContent(
+    onPlayerClick: () -> Unit
+) {
     val navController = LocalNavController.current
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val appsViewModel: LauncherAppsViewModel = viewModel()
     val homeApps by appsViewModel.homeApps.collectAsState()
-    val allApps by appsViewModel.allApps.collectAsState()
+    val mediaController = LocalMediaController.current
+    val playbackState = rememberPlaybackState(mediaController)
+    val hasPlayback = mediaController != null &&
+        playbackState.currentMediaId != null &&
+        playbackState.totalTracks > 0
+    val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
+    val showClock by LauncherStore.showClockFlow.collectAsState(initial = true)
+    val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
+    val showDate by LauncherStore.showDateFlow.collectAsState(initial = true)
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -115,16 +192,6 @@ fun HomeScreen() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val mediaController = LocalMediaController.current
-    val playbackState = rememberPlaybackState(mediaController)
-    val hasPlayback = mediaController != null &&
-        playbackState.currentMediaId != null &&
-        playbackState.totalTracks > 0
-    val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
-    val showClock by LauncherStore.showClockFlow.collectAsState(initial = true)
-    val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
-    val showDate by LauncherStore.showDateFlow.collectAsState(initial = true)
-
     val libraryEntries = listOf(
         LibraryEntry("All Songs", R.drawable.ic_pixel_songs, Screen.AllSongs.createRoute()),
         LibraryEntry("Artists", R.drawable.ic_pixel_artists, Screen.Artists.route),
@@ -132,15 +199,7 @@ fun HomeScreen() {
         LibraryEntry("Playlists", R.drawable.ic_pixel_playlists, Screen.Playlists.route)
     )
 
-    var openFolderName by remember { mutableStateOf<String?>(null) }
-    var appPopupPackage by remember { mutableStateOf<String?>(null) }
-    var folderMenuName by remember { mutableStateOf<String?>(null) }
-    var renamingFolderName by remember { mutableStateOf<String?>(null) }
-    var editingFolderName by remember { mutableStateOf<String?>(null) }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -165,7 +224,7 @@ fun HomeScreen() {
 
             if (hasPlayback) {
                 item(key = "hero_player") {
-                    FullPlayer()
+                    FullPlayer(onMaximize = onPlayerClick)
                 }
             }
 
@@ -231,490 +290,103 @@ fun HomeScreen() {
                         .padding(top = 20.dp, bottom = 6.dp, start = 4.dp)
                 ) {
                     Text(
-                        text = "APPS",
+                        text = "MOST USED",
                         color = MaterialTheme.colorScheme.secondary,
                         fontSize = 10.sp,
                         letterSpacing = 4.sp
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "all >",
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .clickable(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                    navController.navigate(Screen.AllApps.route)
-                                },
-                                indication = null,
-                                interactionSource = null
-                            )
-                            .padding(4.dp)
                     )
                 }
             }
 
             if (homeApps.entries.isNotEmpty()) {
                 item(key = "pinned_grid") {
-                    PinnedGrid(
+                    SimplePinnedGrid(
                         entries = homeApps.entries,
                         showLabels = showPinnedLabels,
                         onAppClick = { app ->
                             haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                             LauncherAppsLoader.launch(context, app.packageName)
-                        },
-                        onFolderClick = { name ->
-                            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                            openFolderName = name
-                        },
-                        onAppLongPress = { app ->
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            appPopupPackage = app.packageName
-                        },
-                        onCommitMove = { from, to ->
-                            appsViewModel.moveItem(from, to)
-                        },
-                        onCreateFolder = { draggedPkg, targetPkg ->
-                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                            appsViewModel.createFolder(draggedPkg, targetPkg)
-                        },
-                        onAddToFolder = { folderName, pkg ->
-                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                            appsViewModel.addToFolder(folderName, pkg)
                         }
                     )
                 }
             }
-        }
-    }
-
-    openFolderName?.let { folderName ->
-        val folder = homeApps.entries
-            .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.Folder>()
-            .firstOrNull { it.name == folderName }
-
-        if (folder == null) {
-            openFolderName = null
-        } else {
-            FolderDialog(
-                folder = folder,
-                onDismiss = { openFolderName = null },
-                onAppClick = { app ->
-                    haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                    LauncherAppsLoader.launch(context, app.packageName)
-                    openFolderName = null
-                },
-                onRemoveApp = { app ->
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                    appsViewModel.removeFromFolder(folder.name, app.packageName)
-                },
-                onMoreClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                    folderMenuName = folder.name
-                }
-            )
-        }
-    }
-
-    appPopupPackage?.let { pkg ->
-        val app = homeApps.entries
-            .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.App>()
-            .firstOrNull { it.app.packageName == pkg }?.app
-            ?: appsViewModel.allApps.value.firstOrNull { it.packageName == pkg }
-
-        if (app == null) {
-            appPopupPackage = null
-        } else {
-            AppActionsDialog(
-                app = app,
-                onDismiss = { appPopupPackage = null },
-                onLaunchShortcut = { shortcut ->
-                    haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                    LauncherAppsLoader.startShortcut(context, shortcut)
-                    appPopupPackage = null
-                },
-                onOpenAppInfo = {
-                    val intent = Intent(
-                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                    )
-                    intent.data = Uri.fromParts("package", pkg, null)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                    appPopupPackage = null
-                },
-                onUnpin = {
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                    appsViewModel.unpin(pkg)
-                    appPopupPackage = null
-                }
-            )
-        }
-    }
-
-    folderMenuName?.let { name ->
-        CymaticDialog(
-            title = name,
-            onDismissRequest = { folderMenuName = null },
-            content = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    MenuRow("Rename") {
-                        renamingFolderName = name
-                        folderMenuName = null
-                    }
-                    MenuRow("Edit Apps") {
-                        editingFolderName = name
-                        folderMenuName = null
-                    }
-                    MenuRow("Delete Folder") {
-                        appsViewModel.unpinFolder(name)
-                        folderMenuName = null
-                    }
-                }
-            },
-            buttons = {
-                CymaticDialogButton(
-                    text = "CLOSE",
-                    onClick = { folderMenuName = null },
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-        )
-    }
-
-    renamingFolderName?.let { name ->
-        var newName by remember(name) { mutableStateOf(name) }
-        CymaticInputDialog(
-            title = "Rename Folder",
-            hint = "Folder name",
-            value = newName,
-            onValueChange = { newName = it },
-            onConfirm = {
-                appsViewModel.renameFolder(name, newName.trim())
-                renamingFolderName = null
-            },
-            onDismiss = { renamingFolderName = null }
-        )
-    }
-
-    editingFolderName?.let { name ->
-        val folder = homeApps.entries
-            .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.Folder>()
-            .firstOrNull { it.name == name }
-
-        if (folder == null) {
-            editingFolderName = null
-        } else {
-            CymaticDialog(
-                title = "Edit Apps",
-                onDismissRequest = { editingFolderName = null },
-                content = {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        allApps.forEach { app ->
-                            val inFolder = folder.apps.any { it.packageName == app.packageName }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                            if (inFolder) {
-                                                appsViewModel.removeFromFolder(name, app.packageName)
-                                            } else {
-                                                appsViewModel.addToFolder(name, app.packageName)
-                                            }
-                                        },
-                                        indication = null,
-                                        interactionSource = null
-                                    )
-                                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                            ) {
-                                AppIcon(app = app, size = 26.dp)
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = app.label,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .border(1.dp, MaterialTheme.colorScheme.onBackground)
-                                ) {
-                                    if (inFolder) {
-                                        Text(
-                                            text = "x",
-                                            color = MaterialTheme.colorScheme.onBackground,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                buttons = {
-                    CymaticDialogButton(
-                        text = "CLOSE",
-                        onClick = { editingFolderName = null },
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            )
         }
     }
 }
 
+
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PinnedGrid(
+private fun SimplePinnedGrid(
     entries: List<LauncherAppsViewModel.PinnedGridEntry>,
     showLabels: Boolean,
-    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit,
-    onFolderClick: (String) -> Unit,
-    onAppLongPress: (LauncherAppsLoader.LauncherApp) -> Unit,
-    onCommitMove: (Int, Int) -> Unit,
-    onCreateFolder: (String, String) -> Unit,
-    onAddToFolder: (String, String) -> Unit
+    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit
 ) {
-    val density = LocalDensity.current
-    val spacingPx = with(density) { 4.dp.toPx() }
-    val cellHeightPx = with(density) { (if (showLabels) 76.dp else 64.dp).toPx() }
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    var selectedPackage by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var dragIndex by remember { mutableStateOf<Int?>(null) }
-    var dragPosition by remember { mutableStateOf(Offset.Zero) }
-    var dragStartCenter by remember { mutableStateOf(Offset.Zero) }
-    var hoveredIndex by remember { mutableStateOf<Int?>(null) }
-    var folderPendingIndex by remember { mutableStateOf<Int?>(null) }
-    val cellBounds = remember { mutableStateMapOf<Int, Rect>() }
-    var containerOrigin by remember { mutableStateOf(Offset.Zero) }
-    var containerWidthPx by remember { mutableIntStateOf(0) }
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        entries.chunked(4).forEach { rowItems ->
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                rowItems.forEach { entry ->
+                    val pkg = when (entry) {
+                        is LauncherAppsViewModel.PinnedGridEntry.App -> entry.app.packageName
+                        is LauncherAppsViewModel.PinnedGridEntry.Folder -> entry.apps.firstOrNull()?.packageName
+                    }
+                    val isMenuOpen = pkg != null && selectedPackage == pkg
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onGloballyPositioned { coordinates ->
-                containerOrigin = coordinates.positionInRoot()
-                containerWidthPx = coordinates.size.width
-            }
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            entries.chunked(4).forEachIndexed { rowIndex, rowItems ->
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    rowItems.forEachIndexed { colIndex, entry ->
-                        val index = rowIndex * 4 + colIndex
-                        val isOrigin = dragIndex == index
-                        val isHovered = hoveredIndex == index
-                        val isFolderTarget = folderPendingIndex == index
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(if (showLabels) 76.dp else 64.dp)
-                                .onGloballyPositioned { cellBounds[index] = it.boundsInRoot() }
-                                .combinedClickable(
-                                    onClick = {
-                                        when (entry) {
-                                            is LauncherAppsViewModel.PinnedGridEntry.App ->
-                                                onAppClick(entry.app)
-
-                                            is LauncherAppsViewModel.PinnedGridEntry.Folder ->
-                                                onFolderClick(entry.name)
-                                        }
-                                    },
-                                    interactionSource = null,
-                                    indication = null
-                                )
-                                .scale(if (isFolderTarget) 0.9f else 1f)
-                                .alpha(if (isOrigin) 0.3f else 1f)
-                                .border(
-                                    1.dp,
-                                    when {
-                                        isFolderTarget -> MaterialTheme.colorScheme.onBackground
-                                        isHovered -> MaterialTheme.colorScheme.secondary
-                                        else -> Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(if (showLabels) 92.dp else 72.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    when (entry) {
+                                        is LauncherAppsViewModel.PinnedGridEntry.App ->
+                                            onAppClick(entry.app)
+                                        is LauncherAppsViewModel.PinnedGridEntry.Folder ->
+                                            entry.apps.firstOrNull()?.let(onAppClick)
                                     }
-                                )
-                                .background(
-                                    if (isFolderTarget) {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    } else {
-                                        Color.Transparent
+                                },
+                                onLongClick = {
+                                    if (pkg != null) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        selectedPackage = pkg
                                     }
-                                )
-                                .pointerInput(entries) {
-                                    var folderCandidate: Int? = null
-                                    var folderCandidateSince = 0L
-                                    var folderPending = false
-                                    var didMove = false
+                                },
+                                indication = null,
+                                interactionSource = null
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PinnedCellContent(
+                            entry = entry,
+                            showLabels = showLabels
+                        )
 
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { offset ->
-                                            dragIndex = index
-                                            dragPosition = cellBounds[index]?.center ?: offset
-                                            hoveredIndex = null
-                                            folderCandidate = null
-                                            folderPending = false
-                                            folderPendingIndex = null
-                                            didMove = false
-                                        },
-                                        onDrag = { change, dragAmount ->
-                                            change.consume()
-                                            dragPosition += dragAmount
-                                            if (!didMove &&
-                                                (dragPosition - dragStartCenter).getDistance() > 12f
-                                            ) {
-                                                didMove = true
-                                            }
-
-                                            val hovered = cellBounds.entries
-                                                .firstOrNull { it.value.contains(dragPosition) }
-                                                ?.key
-                                                ?.takeIf { it != dragIndex }
-
-                                            hoveredIndex = hovered
-
-                                            if (hovered == null) {
-                                                folderCandidate = null
-                                                folderPending = false
-                                                folderPendingIndex = null
-                                                return@detectDragGesturesAfterLongPress
-                                            }
-
-                                            val draggedEntry =
-                                                entries.getOrNull(dragIndex ?: return@detectDragGesturesAfterLongPress)
-                                            val targetEntry = entries.getOrNull(hovered)
-                                            val isFolderCandidate =
-                                                draggedEntry is LauncherAppsViewModel.PinnedGridEntry.App &&
-                                                    (targetEntry is LauncherAppsViewModel.PinnedGridEntry.App ||
-                                                        targetEntry is LauncherAppsViewModel.PinnedGridEntry.Folder)
-
-                                            if (isFolderCandidate && folderCandidate == hovered) {
-                                                if (!folderPending &&
-                                                    System.currentTimeMillis() - folderCandidateSince > FOLDER_HOVER_MILLIS
-                                                ) {
-                                                    folderPending = true
-                                                    folderPendingIndex = hovered
-                                                }
-                                            } else {
-                                                folderCandidate =
-                                                    if (isFolderCandidate) hovered else null
-                                                folderCandidateSince = System.currentTimeMillis()
-                                                folderPending = false
-                                                folderPendingIndex = null
-                                            }
-                                        },
-                                        onDragEnd = {
-                                            val from = dragIndex
-                                            val draggedEntry = from?.let { entries.getOrNull(it) }
-                                            if (folderPending && folderPendingIndex != null) {
-                                                val targetEntry = folderPendingIndex?.let { entries.getOrNull(it) }
-                                                val draggedPkg =
-                                                    (draggedEntry as? LauncherAppsViewModel.PinnedGridEntry.App)
-                                                        ?.app?.packageName
-                                                when (targetEntry) {
-                                                    is LauncherAppsViewModel.PinnedGridEntry.App -> {
-                                                        if (draggedPkg != null) {
-                                                            onCreateFolder(
-                                                                draggedPkg,
-                                                                targetEntry.app.packageName
-                                                            )
-                                                        }
-                                                    }
-
-                                                    is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
-                                                        if (draggedPkg != null) {
-                                                            onAddToFolder(
-                                                                targetEntry.name,
-                                                                draggedPkg
-                                                            )
-                                                        }
-                                                    }
-
-                                                    else -> {}
-                                                }
-                                            } else if (!didMove) {
-                                                when (val entry = entries.getOrNull(index)) {
-                                                    is LauncherAppsViewModel.PinnedGridEntry.App ->
-                                                        onAppLongPress(entry.app)
-
-                                                    is LauncherAppsViewModel.PinnedGridEntry.Folder ->
-                                                        onFolderClick(entry.name)
-
-                                                    null -> {}
-                                                }
-                                            } else if (from != null) {
-                                                val to = hoveredIndex
-                                                if (to != null && from != to) {
-                                                    onCommitMove(from, to)
-                                                }
-                                            }
-                                            dragIndex = null
-                                            hoveredIndex = null
-                                            folderPendingIndex = null
-                                            folderPending = false
-                                            folderCandidate = null
-                                        },
-                                        onDragCancel = {
-                                            dragIndex = null
-                                            hoveredIndex = null
-                                            folderPendingIndex = null
-                                            folderPending = false
-                                            folderCandidate = null
+                        if (pkg != null) {
+                            AppActionPopup(
+                                expanded = isMenuOpen,
+                                onDismissRequest = { selectedPackage = null },
+                                onAppInfo = {
+                                    val infoIntent =
+                                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", pkg, null)
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         }
-                                    )
+                                    context.startActivity(infoIntent)
                                 }
-                        ) {
-                            PinnedCellContent(
-                                entry = entry,
-                                showLabels = showLabels
                             )
                         }
                     }
-                    if (rowItems.size < 4) {
-                        repeat(4 - rowItems.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                }
+                if (rowItems.size < 4) {
+                    repeat(4 - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-            }
-        }
-
-        val draggedEntry = dragIndex?.let { entries.getOrNull(it) }
-        if (draggedEntry != null && containerWidthPx > 0) {
-            val cellWidthPx = (containerWidthPx - 3 * spacingPx) / 4
-            Box(
-                modifier = Modifier
-                    .offset {
-                        IntOffset(
-                            (dragPosition.x - containerOrigin.x - cellWidthPx / 2).roundToInt(),
-                            (dragPosition.y - containerOrigin.y - cellHeightPx / 2).roundToInt()
-                        )
-                    }
-                    .size(
-                        width = with(density) { cellWidthPx.toDp() },
-                        height = with(density) { cellHeightPx.toDp() }
-                    )
-                    .zIndex(2f)
-                    .border(1.dp, MaterialTheme.colorScheme.onBackground)
-            ) {
-                PinnedCellContent(
-                    entry = draggedEntry,
-                    showLabels = showLabels
-                )
             }
         }
     }
@@ -732,7 +404,7 @@ private fun PinnedCellContent(
     ) {
         when (entry) {
             is LauncherAppsViewModel.PinnedGridEntry.App -> {
-                AppIcon(app = entry.app, size = 36.dp)
+                AppIcon(app = entry.app, size = 52.dp)
                 if (showLabels) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -801,183 +473,23 @@ private fun AppIcon(app: LauncherAppsLoader.LauncherApp, size: androidx.compose.
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun FolderDialog(
-    folder: LauncherAppsViewModel.PinnedGridEntry.Folder,
-    onDismiss: () -> Unit,
-    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit,
-    onRemoveApp: (LauncherAppsLoader.LauncherApp) -> Unit,
-    onMoreClick: () -> Unit
-) {
-    CymaticDialog(
-        title = folder.name,
-        onDismissRequest = onDismiss,
-        content = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "...",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 16.sp,
-                    modifier = Modifier
-                        .clickable(
-                            onClick = onMoreClick,
-                            indication = null,
-                            interactionSource = null
-                        )
-                        .padding(horizontal = 24.dp, vertical = 4.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                folder.apps.chunked(4).forEach { rowApps ->
-                    Row {
-                        rowApps.forEach { app ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .combinedClickable(
-                                        onClick = { onAppClick(app) },
-                                        onLongClick = { onRemoveApp(app) },
-                                        interactionSource = null,
-                                        indication = null
-                                    )
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    AppIcon(app = app, size = 36.dp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = app.label,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        fontSize = 10.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                        if (rowApps.size < 4) {
-                            repeat(4 - rowApps.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        buttons = {
-            CymaticDialogButton(
-                text = "CLOSE",
-                onClick = onDismiss,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-    )
-}
-
-@Composable
-private fun AppActionsDialog(
-    app: LauncherAppsLoader.LauncherApp,
-    onDismiss: () -> Unit,
-    onLaunchShortcut: (ShortcutInfo) -> Unit,
-    onOpenAppInfo: () -> Unit,
-    onUnpin: () -> Unit
-) {
-    val context = LocalContext.current
-    var shortcuts by remember(app.packageName) {
-        mutableStateOf<List<ShortcutInfo>?>(null)
-    }
-
-    LaunchedEffect(app.packageName) {
-        shortcuts = withContext(Dispatchers.IO) {
-            LauncherAppsLoader.getShortcutsForPackage(context, app.packageName)
-        }
-    }
-
-    CymaticDialog(
-        title = app.label,
-        onDismissRequest = onDismiss,
-        content = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
-                shortcuts?.forEach { shortcut ->
-                    MenuRow(label = shortcut.shortLabel?.toString() ?: "Shortcut") {
-                        onLaunchShortcut(shortcut)
-                    }
-                }
-                MenuRow(label = "App Info") {
-                    onOpenAppInfo()
-                }
-                MenuRow(label = "Remove") {
-                    onUnpin()
-                }
-            }
-        },
-        buttons = {
-            CymaticDialogButton(
-                text = "CLOSE",
-                onClick = onDismiss,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-    )
-}
-
-@Composable
-private fun MenuRow(
-    label: String,
-    onClick: () -> Unit
-) {
-    Text(
-        text = label,
-        color = MaterialTheme.colorScheme.onBackground,
-        fontSize = 16.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = null
-            )
-            .padding(horizontal = 24.dp, vertical = 12.dp)
-    )
-}
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MusicCell(
     entry: LibraryEntry,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
     Box(
         modifier = modifier
             .height(52.dp)
-            .background(
-                if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
-            )
-            .combinedClickable(
+            .border(0.dp, androidx.compose.ui.graphics.Color.Transparent)
+            .clickable(
                 onClick = onClick,
-                interactionSource = interactionSource,
-                indication = null
+                indication = null,
+                interactionSource = interactionSource
             )
             .padding(horizontal = 12.dp)
     ) {
@@ -1066,5 +578,3 @@ private fun IdleGreeting(
         }
     }
 }
-
-private const val FOLDER_HOVER_MILLIS = 400

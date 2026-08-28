@@ -29,11 +29,10 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SwipeCarousel
 import com.pxr.cymatic.ui.locals.LocalMediaController
-import com.pxr.cymatic.ui.state.PlayerUiState
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
-fun FullPlayer(modifier: Modifier = Modifier) {
+fun FullPlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) {
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
     if (playbackState.currentMediaId == null) return
@@ -83,7 +82,7 @@ fun FullPlayer(modifier: Modifier = Modifier) {
                     onPrev = { latestController.seekToPrevious() },
                     onNext = { latestController.seekToNext() },
                     onTap = {
-                        PlayerUiState.isMaximized.value = true
+                        onMaximize?.invoke()
                     },
                     content = { TrackText(title, artist) },
                     prevContent = {

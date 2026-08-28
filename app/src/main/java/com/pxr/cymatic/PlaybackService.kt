@@ -217,11 +217,13 @@ class PlaybackService : MediaLibraryService() {
         val shuffle = CommandButton.Builder()
             .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
             .setDisplayName("Shuffle")
+            .setIconResId(R.drawable.ic_pixel_shuffle)
             .build()
 
         val repeat = CommandButton.Builder()
             .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE)
             .setDisplayName("Repeat")
+            .setIconResId(R.drawable.ic_pixel_repeat)
             .build()
 
         return listOf(shuffle, repeat)

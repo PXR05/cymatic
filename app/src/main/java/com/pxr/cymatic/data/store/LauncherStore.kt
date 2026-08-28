@@ -31,6 +31,7 @@ object LauncherStore {
     private val SHOW_DAY_KEY = booleanPreferencesKey("SHOW_DAY")
     private val SHOW_DATE_KEY = booleanPreferencesKey("SHOW_DATE")
     private val SHOW_PINNED_LABELS_KEY = booleanPreferencesKey("SHOW_PINNED_LABELS")
+    private val SHOW_ALL_APPS_LABELS_KEY = booleanPreferencesKey("SHOW_ALL_APPS_LABELS")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.launcherDataStore
@@ -95,6 +96,11 @@ object LauncherStore {
             prefs[SHOW_PINNED_LABELS_KEY] ?: false
         }
 
+    val showAllAppsLabelsFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[SHOW_ALL_APPS_LABELS_KEY] ?: true
+        }
+
     fun setUse24Hour(value: Boolean) {
         scope.launch {
             store.edit { prefs ->
@@ -131,6 +137,14 @@ object LauncherStore {
         scope.launch {
             store.edit { prefs ->
                 prefs[SHOW_PINNED_LABELS_KEY] = value
+            }
+        }
+    }
+
+    fun setShowAllAppsLabels(value: Boolean) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[SHOW_ALL_APPS_LABELS_KEY] = value
             }
         }
     }
