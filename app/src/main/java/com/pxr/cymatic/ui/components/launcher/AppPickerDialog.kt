@@ -27,11 +27,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,8 +96,8 @@ fun AppPickerDialog(
                     },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
                         focusedTextColor = MaterialTheme.colorScheme.onBackground,
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                         cursorColor = MaterialTheme.colorScheme.onBackground,
@@ -106,7 +107,8 @@ fun AppPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(46.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -153,7 +155,9 @@ fun AppPickerDialog(
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                            .background(Color.Transparent),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(

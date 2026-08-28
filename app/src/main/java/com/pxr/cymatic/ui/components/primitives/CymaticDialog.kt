@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+
 @Composable
 fun CymaticDialog(
     title: String,
@@ -41,6 +44,7 @@ fun CymaticDialog(
     val dialogWidthDp = with(density) { dialogWidth.toDp() }
     val dialogHeight = with(window) { (containerSize.height * maxHeightRatio) }
     val dialogHeightDp = with(density) { dialogHeight.toDp() }
+    val dialogShape = RoundedCornerShape(18.dp)
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -52,11 +56,12 @@ fun CymaticDialog(
     ) {
         Column(
             modifier = Modifier
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(vertical = 24.dp)
                 .width(dialogWidthDp)
-                .heightIn(max = dialogHeightDp),
+                .heightIn(max = dialogHeightDp)
+                .clip(dialogShape)
+                .border(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f), dialogShape)
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
+                .padding(vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (title.isNotEmpty()) {

@@ -16,8 +16,8 @@ android {
         applicationId = "com.pxr.cymatic.launcher"
         minSdk = 31
         targetSdk = 36
-        versionCode = 194
-        versionName = "0.2.0-launcher-preview02"
+        versionCode = 195
+        versionName = "0.2.0-launcher-preview03"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

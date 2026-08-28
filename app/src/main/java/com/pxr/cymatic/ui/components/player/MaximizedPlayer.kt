@@ -17,12 +17,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,14 +38,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SwipeCarousel
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -94,7 +90,7 @@ fun MaximizedPlayer(
         state = pagerState,
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(Color.Transparent),
         beyondViewportPageCount = 1
     ) { page ->
         when (page) {
@@ -255,7 +251,7 @@ fun MaximizedPlayer(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(Color.Transparent)
                         .safeDrawingPadding()
                         .imePadding()
                 ) {
@@ -334,15 +330,6 @@ fun MaximizedPlayer(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                }
-
-                                if (isCurrent) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_pixel_play),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onBackground,
-                                        modifier = Modifier.size(14.dp)
-                                    )
                                 }
                             }
                         }

@@ -36,11 +36,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +66,7 @@ fun AllAppsScreen(
     val haptic = LocalHapticFeedback.current
     val allApps by viewModel.allApps.collectAsState()
     val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
+    val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedPackage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -136,10 +139,13 @@ fun AllAppsScreen(
                     ) { app ->
                         val isMenuOpen = selectedPackage == app.packageName
 
+                        val iconSize = (52 * appIconScale).dp
+                        val cellHeight = if (showAllAppsLabels) (92 * appIconScale).dp else (72 * appIconScale).dp
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(if (showAllAppsLabels) 92.dp else 72.dp)
+                                .height(cellHeight)
                                 .combinedClickable(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
@@ -165,12 +171,12 @@ fun AllAppsScreen(
                                         bitmap = iconBitmap,
                                         contentDescription = app.label,
                                         filterQuality = FilterQuality.High,
-                                        modifier = Modifier.size(52.dp)
+                                        modifier = Modifier.size(iconSize)
                                     )
                                 } else {
                                     Box(
                                         modifier = Modifier
-                                            .size(52.dp)
+                                            .size(iconSize)
                                             .border(1.dp, MaterialTheme.colorScheme.outline)
                                     )
                                 }
@@ -225,12 +231,14 @@ fun AllAppsScreen(
             }
         }
 
+        val searchShape = RoundedCornerShape(14.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
-                .background(MaterialTheme.colorScheme.background)
+                .clip(searchShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), searchShape)
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
                 .padding(horizontal = 12.dp, vertical = 2.dp)
         ) {
             TextField(

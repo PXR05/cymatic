@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pxr.cymatic.data.launcher.PinnedItem
@@ -31,7 +32,13 @@ object LauncherStore {
     private val SHOW_DAY_KEY = booleanPreferencesKey("SHOW_DAY")
     private val SHOW_DATE_KEY = booleanPreferencesKey("SHOW_DATE")
     private val SHOW_PINNED_LABELS_KEY = booleanPreferencesKey("SHOW_PINNED_LABELS")
+    private val SHOW_FOLDER_LABELS_KEY = booleanPreferencesKey("SHOW_FOLDER_LABELS")
     private val SHOW_ALL_APPS_LABELS_KEY = booleanPreferencesKey("SHOW_ALL_APPS_LABELS")
+    private val APP_ICON_SCALE_KEY = floatPreferencesKey("APP_ICON_SCALE")
+    private val WALLPAPER_DARKEN_OPACITY_KEY = floatPreferencesKey("WALLPAPER_DARKEN_OPACITY")
+    private val WALLPAPER_GRADIENT_ENABLED_KEY = booleanPreferencesKey("WALLPAPER_GRADIENT_ENABLED")
+    private val WALLPAPER_BLUR_RADIUS_KEY = floatPreferencesKey("WALLPAPER_BLUR_RADIUS")
+    private val USE_SONG_WALLPAPER_KEY = booleanPreferencesKey("USE_SONG_WALLPAPER")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.launcherDataStore
@@ -101,9 +108,39 @@ object LauncherStore {
             prefs[SHOW_PINNED_LABELS_KEY] ?: false
         }
 
+    val showFolderLabelsFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[SHOW_FOLDER_LABELS_KEY] ?: true
+        }
+
     val showAllAppsLabelsFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[SHOW_ALL_APPS_LABELS_KEY] ?: true
+        }
+
+    val appIconScaleFlow: Flow<Float>
+        get() = store.data.map { prefs ->
+            prefs[APP_ICON_SCALE_KEY] ?: 1.0f
+        }
+
+    val wallpaperDarkenOpacityFlow: Flow<Float>
+        get() = store.data.map { prefs ->
+            prefs[WALLPAPER_DARKEN_OPACITY_KEY] ?: 0.0f
+        }
+
+    val wallpaperGradientEnabledFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[WALLPAPER_GRADIENT_ENABLED_KEY] ?: false
+        }
+
+    val wallpaperBlurRadiusFlow: Flow<Float>
+        get() = store.data.map { prefs ->
+            prefs[WALLPAPER_BLUR_RADIUS_KEY] ?: 0.0f
+        }
+
+    val useSongWallpaperFlow: Flow<Boolean>
+        get() = store.data.map { prefs ->
+            prefs[USE_SONG_WALLPAPER_KEY] ?: false
         }
 
     fun setUse24Hour(value: Boolean) {
@@ -146,10 +183,58 @@ object LauncherStore {
         }
     }
 
+    fun setShowFolderLabels(value: Boolean) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[SHOW_FOLDER_LABELS_KEY] = value
+            }
+        }
+    }
+
     fun setShowAllAppsLabels(value: Boolean) {
         scope.launch {
             store.edit { prefs ->
                 prefs[SHOW_ALL_APPS_LABELS_KEY] = value
+            }
+        }
+    }
+
+    fun setAppIconScale(value: Float) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[APP_ICON_SCALE_KEY] = value.coerceIn(0.5f, 2.0f)
+            }
+        }
+    }
+
+    fun setWallpaperDarkenOpacity(value: Float) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[WALLPAPER_DARKEN_OPACITY_KEY] = value.coerceIn(0.0f, 1.0f)
+            }
+        }
+    }
+
+    fun setWallpaperGradientEnabled(value: Boolean) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[WALLPAPER_GRADIENT_ENABLED_KEY] = value
+            }
+        }
+    }
+
+    fun setWallpaperBlurRadius(value: Float) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[WALLPAPER_BLUR_RADIUS_KEY] = value.coerceIn(0.0f, 30.0f)
+            }
+        }
+    }
+
+    fun setUseSongWallpaper(value: Boolean) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[USE_SONG_WALLPAPER_KEY] = value
             }
         }
     }

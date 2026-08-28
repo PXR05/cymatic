@@ -31,12 +31,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
@@ -71,7 +74,8 @@ fun InteractivePinnedGrid(
     onMergeFolder: (sourceIndex: Int, targetIndex: Int) -> Unit,
     onUnpinItem: (Int) -> Unit,
     onRenameFolderRequest: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconScale: Float = 1.0f
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -85,7 +89,7 @@ fun InteractivePinnedGrid(
     val cellBounds = remember { mutableStateMapOf<Int, Rect>() }
     var selectedItemIndexForMenu by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    val cellHeightDp = if (showLabels) 92.dp else 72.dp
+    val cellHeightDp = if (showLabels) (92 * iconScale).dp else (72 * iconScale).dp
 
     Box(
         modifier = modifier
@@ -235,7 +239,7 @@ fun InteractivePinnedGrid(
                                             Modifier.border(
                                                 2.dp,
                                                 MaterialTheme.colorScheme.onBackground,
-                                                RectangleShape
+                                                RoundedCornerShape(14.dp)
                                             )
                                         } else {
                                             Modifier
@@ -245,7 +249,8 @@ fun InteractivePinnedGrid(
                             ) {
                                 PinnedCell(
                                     entry = entry,
-                                    showLabels = showLabels
+                                    showLabels = showLabels,
+                                    iconScale = iconScale
                                 )
                             }
 
@@ -315,8 +320,13 @@ fun InteractivePinnedGrid(
 @Composable
 private fun PinnedCell(
     entry: LauncherAppsViewModel.PinnedGridEntry,
-    showLabels: Boolean
+    showLabels: Boolean,
+    iconScale: Float = 1.0f
 ) {
+    val iconSize = (52 * iconScale).dp
+    val fallbackIconSize = (28 * iconScale).dp
+    val miniIconSize = (18 * iconScale).dp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -329,12 +339,12 @@ private fun PinnedCell(
                         bitmap = entry.app.icon.asImageBitmap(),
                         contentDescription = null,
                         filterQuality = FilterQuality.None,
-                        modifier = Modifier.size(52.dp)
+                        modifier = Modifier.size(iconSize)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(iconSize)
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
@@ -342,7 +352,7 @@ private fun PinnedCell(
                             painter = painterResource(R.drawable.ic_pixel_apps),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(fallbackIconSize)
                         )
                     }
                 }
@@ -364,15 +374,16 @@ private fun PinnedCell(
             is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .size(iconSize)
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.25f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(4.dp)
+                        modifier = Modifier.padding(3.dp)
                     ) {
                         entry.apps.take(4).chunked(2).forEach { rowApps ->
                             Row(
@@ -383,7 +394,7 @@ private fun PinnedCell(
                                     Box(
                                         modifier = Modifier
                                             .padding(1.dp)
-                                            .size(18.dp),
+                                            .size(miniIconSize),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (app.icon != null) {
@@ -391,12 +402,12 @@ private fun PinnedCell(
                                                 bitmap = app.icon.asImageBitmap(),
                                                 contentDescription = null,
                                                 filterQuality = FilterQuality.None,
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size(miniIconSize)
                                             )
                                         } else {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(18.dp)
+                                                    .size(miniIconSize)
                                                     .background(MaterialTheme.colorScheme.surface),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -404,7 +415,7 @@ private fun PinnedCell(
                                                     painter = painterResource(R.drawable.ic_pixel_apps),
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.secondary,
-                                                    modifier = Modifier.size(10.dp)
+                                                    modifier = Modifier.size(fallbackIconSize / 2)
                                                 )
                                             }
                                         }

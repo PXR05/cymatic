@@ -169,5 +169,6 @@ jobs:
           files: ${{ github.workspace }}/signed-apk/*.apk
           body_path: ${{ github.workspace }}/release-notes.md
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
+          prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

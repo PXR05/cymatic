@@ -3,6 +3,7 @@ package com.pxr.cymatic.ui.screens.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,9 +25,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.store.LauncherStore
+import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun LauncherSettingsScreen(
@@ -40,7 +43,13 @@ fun LauncherSettingsScreen(
     val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
     val showDate by LauncherStore.showDateFlow.collectAsState(initial = true)
     val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
+    val showFolderLabels by LauncherStore.showFolderLabelsFlow.collectAsState(initial = true)
     val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
+    val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
+    val darkenOpacity by LauncherStore.wallpaperDarkenOpacityFlow.collectAsState(initial = 0.0f)
+    val gradientEnabled by LauncherStore.wallpaperGradientEnabledFlow.collectAsState(initial = false)
+    val blurRadius by LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0.0f)
+    val useSongWallpaper by LauncherStore.useSongWallpaperFlow.collectAsState(initial = false)
 
     BaseScreen(
         title = "Launcher",
@@ -117,6 +126,15 @@ fun LauncherSettingsScreen(
             )
 
             LauncherToggleRow(
+                title = "Folder Labels",
+                subtitle = "Show app names inside folders",
+                checked = showFolderLabels,
+                onCheckedChange = { value ->
+                    scope.launch { LauncherStore.setShowFolderLabels(value) }
+                }
+            )
+
+            LauncherToggleRow(
                 title = "All Apps Labels",
                 subtitle = "Show app names in the app drawer",
                 checked = showAllAppsLabels,
@@ -124,6 +142,162 @@ fun LauncherSettingsScreen(
                     scope.launch { LauncherStore.setShowAllAppsLabels(value) }
                 }
             )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Icon Size",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Scale app icons (${(appIconScale * 100).roundToInt()}%)",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Text(
+                        text = "${(appIconScale * 100).roundToInt()}%",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CymaticSlider(
+                    value = appIconScale,
+                    onValueChange = { LauncherStore.setAppIconScale(it) },
+                    valueRange = 0.5f..2.0f
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Wallpaper Effects",
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LauncherToggleRow(
+                title = "Use Song Artwork as Wallpaper",
+                subtitle = "Apply Apple Music style ambient blur and extended gradient from current track",
+                checked = useSongWallpaper,
+                onCheckedChange = { value ->
+                    scope.launch { LauncherStore.setUseSongWallpaper(value) }
+                }
+            )
+
+            if (useSongWallpaper) {
+                Text(
+                    text = "Automatic Apple Music style effects are pre-applied when artwork is available.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Darken Opacity",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Dim wallpaper behind content",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Text(
+                        text = "${(darkenOpacity * 100).roundToInt()}%",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CymaticSlider(
+                    value = darkenOpacity,
+                    onValueChange = { LauncherStore.setWallpaperDarkenOpacity(it) },
+                    valueRange = 0.0f..1.0f
+                )
+            }
+
+            LauncherToggleRow(
+                title = "Gradient Darken",
+                subtitle = "Keep top clear, darken bottom for visibility",
+                checked = gradientEnabled,
+                onCheckedChange = { value ->
+                    scope.launch { LauncherStore.setWallpaperGradientEnabled(value) }
+                }
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Wallpaper Blur",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Blur background wallpaper",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Text(
+                        text = "${blurRadius.roundToInt()} px",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CymaticSlider(
+                    value = blurRadius,
+                    onValueChange = { LauncherStore.setWallpaperBlurRadius(it) },
+                    valueRange = 0.0f..30.0f
+                )
+            }
         }
     }
 }

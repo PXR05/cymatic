@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,11 +21,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.Player
 import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SwipeCarousel
@@ -32,7 +33,7 @@ import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
-fun FullPlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) {
+fun HomePlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) {
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
     if (playbackState.currentMediaId == null) return
@@ -63,7 +64,7 @@ fun FullPlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
     ) {
         Column {
             Text(
-                text = "NOW PLAYING · ${playbackState.currentIndex + 1}/${playbackState.totalTracks}",
+                text = "${playbackState.currentIndex + 1}/${playbackState.totalTracks}",
                 color = MaterialTheme.colorScheme.secondary,
                 fontSize = 10.sp,
                 letterSpacing = 3.sp
@@ -133,13 +134,15 @@ fun FullPlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progressFraction)
                         .fillMaxHeight()
+                        .clip(RoundedCornerShape(2.dp))
                         .background(MaterialTheme.colorScheme.onBackground)
                 )
             }

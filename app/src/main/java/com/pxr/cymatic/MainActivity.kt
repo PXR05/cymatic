@@ -6,12 +6,19 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -29,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.app.ActivityCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -45,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -201,6 +210,27 @@ class MainActivity : ComponentActivity() {
                     val hasPlayback = playbackState.currentMediaId != null && playbackState.totalTracks > 0
                     val isDocked = isLandscape && hasPlayback
                     val hideSystemBars = locked || isDocked
+                    val wallpaperBlurRadius by LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0f)
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        LaunchedEffect(wallpaperBlurRadius) {
+                            val blurPx = (wallpaperBlurRadius * resources.displayMetrics.density).toInt()
+                            try {
+                                if (blurPx > 0) {
+                                    window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                                    window.attributes.blurBehindRadius = blurPx
+                                    window.setBackgroundBlurRadius(blurPx)
+                                } else {
+                                    window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                                    window.attributes.blurBehindRadius = 0
+                                    window.setBackgroundBlurRadius(0)
+                                }
+                                window.attributes = window.attributes
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
 
                     LaunchedEffect(hideSystemBars) {
                         val windowInsetsController =
@@ -216,7 +246,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Surface(modifier = Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color.Transparent
+                    ) {
                         when {
                             hideSystemBars -> {
                                 Column(
@@ -233,27 +266,38 @@ class MainActivity : ComponentActivity() {
                             }
 
                             else -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(
-                                            bottom = WindowInsets.systemBars.asPaddingValues()
-                                                .calculateBottomPadding()
-                                        )
+                                NavHost(
+                                    navController = navController,
+                                    startDestination = Screen.Home.route,
+                                    enterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> (fullWidth * 0.28f).toInt() },
+                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+                                    },
+                                    exitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
+                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                                        ) + fadeOut(animationSpec = tween(durationMillis = 200))
+                                    },
+                                    popEnterTransition = {
+                                        slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
+                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+                                    },
+                                    popExitTransition = {
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> (fullWidth * 0.28f).toInt() },
+                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                                        ) + fadeOut(animationSpec = tween(durationMillis = 200))
+                                    },
+                                    modifier = Modifier.fillMaxSize()
                                 ) {
-                                    NavHost(
-                                        navController = navController,
-                                        startDestination = Screen.Home.route,
-                                        enterTransition = { EnterTransition.None },
-                                        exitTransition = { ExitTransition.None },
-                                        popEnterTransition = { EnterTransition.None },
-                                        popExitTransition = { ExitTransition.None },
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        routes.forEach { (route, composable) ->
-                                            composable(route) { backStackEntry ->
-                                                composable(backStackEntry)
-                                            }
+                                    routes.forEach { (route, composable) ->
+                                        composable(route) { backStackEntry ->
+                                            composable(backStackEntry)
                                         }
                                     }
                                 }
