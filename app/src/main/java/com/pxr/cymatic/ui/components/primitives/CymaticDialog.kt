@@ -27,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.ui.draw.clip
 
 @Composable
@@ -44,7 +45,7 @@ fun CymaticDialog(
     val dialogWidthDp = with(density) { dialogWidth.toDp() }
     val dialogHeight = with(window) { (containerSize.height * maxHeightRatio) }
     val dialogHeightDp = with(density) { dialogHeight.toDp() }
-    val dialogShape = RoundedCornerShape(18.dp)
+    val dialogShape = PixelCornerShape(cornerRadius = 28.dp)
 
     Dialog(
         onDismissRequest = onDismissRequest,

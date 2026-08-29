@@ -42,11 +42,6 @@ fun HomePlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
     val title = metadata.title ?: "Unknown Title"
     val artist = metadata.artist ?: "Unknown Artist"
     val durationMs = playbackState.durationMs ?: 0L
-    val progressFraction = if (durationMs > 0L) {
-        (playbackState.currentPositionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
 
     val latestController by rememberUpdatedState(mediaController)
 
@@ -129,23 +124,14 @@ fun HomePlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progressFraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.onBackground)
-                )
-            }
+            ProgressBar(
+                currentPosition = playbackState.currentPositionMs,
+                durationMs = durationMs,
+                onSeek = { mediaController.seekTo(it) },
+                showNumber = false
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

@@ -219,9 +219,9 @@ private fun QueueItemRow(
     val isLabelCJK = title.contains(cjkRegex)
     val isSubLabelCJK = artist?.contains(cjkRegex) ?: false
     val labelColor =
-        if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground
+        if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
     val secondaryLabelColor =
-        if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.secondary
+        if (isActive) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary
     val labelFontStyle = MaterialTheme.typography.bodyLarge.copy(
         fontSize = 20.sp,
         letterSpacing = if (isLabelCJK) 2.sp else 0.sp
@@ -234,7 +234,7 @@ private fun QueueItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isActive) MaterialTheme.colorScheme.onBackground else Color.Transparent)
+            .background(if (isActive) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f) else Color.Transparent)
             .clickable(
                 onClick = onPlay,
                 indication = null,

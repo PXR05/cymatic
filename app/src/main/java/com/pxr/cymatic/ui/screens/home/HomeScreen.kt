@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -45,9 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,6 +59,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -65,6 +69,7 @@ import com.pxr.cymatic.data.launcher.SystemShadeHelper
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlinx.coroutines.withTimeoutOrNull
+import com.pxr.cymatic.ui.components.common.verticalFadingEdge
 import com.pxr.cymatic.ui.components.launcher.FolderDialog
 import com.pxr.cymatic.ui.components.launcher.IdleGreeting
 import com.pxr.cymatic.ui.components.launcher.InteractivePinnedGrid
@@ -109,27 +114,15 @@ fun HomeScreen() {
     }
     val isSongWallpaperActive = useSongWallpaper && currentArtworkUri != null
 
-    val appleSpringSpec = remember {
-        spring<Float>(
-            dampingRatio = 0.76f,
-            stiffness = 380f
-        )
-    }
-
     LaunchedEffect(hasPlayback) {
         if (!hasPlayback && hPagerState.currentPage == 1) {
-            hPagerState.animateScrollToPage(0, animationSpec = appleSpringSpec)
+            hPagerState.animateScrollToPage(0)
         }
     }
 
     val vOffset = (vPagerState.currentPage + vPagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
     val hOffset = (hPagerState.currentPage + hPagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
     val nonHomeOffset = maxOf(vOffset, hOffset)
-
-    val hFlingBehavior = PagerDefaults.flingBehavior(
-        state = hPagerState,
-        snapAnimationSpec = appleSpringSpec
-    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         WallpaperBackdrop(
@@ -145,15 +138,14 @@ fun HomeScreen() {
         HorizontalPager(
             state = hPagerState,
             modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1,
-            flingBehavior = hFlingBehavior
+            beyondViewportPageCount = 1
         ) { hPage ->
             when (hPage) {
                 0 -> HomeVerticalPager(
                     vPagerState = vPagerState,
                     onPlayerClick = {
                         if (hasPlayback) {
-                            scope.launch { hPagerState.animateScrollToPage(1, animationSpec = appleSpringSpec) }
+                            scope.launch { hPagerState.animateScrollToPage(1) }
                         }
                     }
                 )
@@ -163,7 +155,7 @@ fun HomeScreen() {
                             modifier = Modifier.fillMaxSize(),
                             isActive = hPagerState.currentPage == 1,
                             onClose = {
-                                scope.launch { hPagerState.animateScrollToPage(0, animationSpec = appleSpringSpec) }
+                                scope.launch { hPagerState.animateScrollToPage(0) }
                             }
                         )
                     } else {
@@ -181,27 +173,17 @@ private fun HomeVerticalPager(
     onPlayerClick: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val appleSpringSpec = remember {
-        spring<Float>(
-            dampingRatio = 0.76f,
-            stiffness = 380f
-        )
-    }
 
     BackHandler(enabled = vPagerState.currentPage == 1) {
-        scope.launch { vPagerState.animateScrollToPage(0, animationSpec = appleSpringSpec) }
+        scope.launch { vPagerState.animateScrollToPage(0) }
     }
-
-    val vFlingBehavior = PagerDefaults.flingBehavior(
-        state = vPagerState,
-        snapAnimationSpec = appleSpringSpec
-    )
 
     VerticalPager(
         state = vPagerState,
-        modifier = Modifier.fillMaxSize(),
-        beyondViewportPageCount = 1,
-        flingBehavior = vFlingBehavior
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalFadingEdge(top = 48.dp, bottom = 48.dp),
+        beyondViewportPageCount = 1
     ) { vPage ->
         when (vPage) {
             0 -> HomeContent(onPlayerClick = onPlayerClick)

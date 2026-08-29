@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,12 +40,14 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.theme.PixelCornerShape
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlin.math.roundToInt
 
@@ -59,15 +60,15 @@ enum class OverviewMenuLevel {
 
 @Composable
 fun OverviewActionCell(
-    label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     iconRes: Int? = null,
+    label: String? = null,
     badge: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val cellShape = RoundedCornerShape(12.dp)
+    val cellShape = PixelCornerShape(cornerRadius = 18.dp)
 
     Box(
         modifier = modifier
@@ -75,7 +76,9 @@ fun OverviewActionCell(
             .clip(cellShape)
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), cellShape)
             .background(
-                if (pressed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.background.copy(alpha = 0.90f)
+                if (pressed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.background.copy(
+                    alpha = 0.90f
+                )
             )
             .clickable(
                 onClick = onClick,
@@ -100,15 +103,20 @@ fun OverviewActionCell(
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
                 }
-                Text(
-                    text = label,
-                    fontFamily = PixelFontFamily,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.sp
-                )
+                if (iconRes != null && label != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                if (label != null) {
+                    Text(
+                        text = label,
+                        fontFamily = PixelFontFamily,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp,
+                        lineHeight = 1.em
+                    )
+                }
             }
             if (badge != null) {
                 Text(
@@ -116,7 +124,8 @@ fun OverviewActionCell(
                     fontFamily = PixelFontFamily,
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 9.sp,
-                    letterSpacing = 1.sp
+                    letterSpacing = 1.sp,
+                    lineHeight = 1.em
                 )
             }
         }
@@ -164,10 +173,16 @@ fun OverviewBottomActions(
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                 try {
                                     val intent = Intent(Intent.ACTION_SET_WALLPAPER)
-                                    context.startActivity(Intent.createChooser(intent, "Set Wallpaper"))
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent,
+                                            "Set Wallpaper"
+                                        )
+                                    )
                                 } catch (e: Exception) {
                                     try {
-                                        val displayIntent = Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                                        val displayIntent =
+                                            Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
                                         context.startActivity(displayIntent)
                                     } catch (e2: Exception) {
                                         e2.printStackTrace()
@@ -199,13 +214,14 @@ fun OverviewBottomActions(
                         )
                     }
                 }
+
                 OverviewMenuLevel.EFFECTS -> {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OverviewActionCell(
-                            label = "BACK",
+
                             iconRes = R.drawable.ic_pixel_arrow_left,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
@@ -257,8 +273,9 @@ fun OverviewBottomActions(
                         )
                     }
                 }
+
                 OverviewMenuLevel.DARKEN_OPTION -> {
-                    val cardShape = RoundedCornerShape(12.dp)
+                    val cardShape = PixelCornerShape(cornerRadius = 18.dp)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
@@ -266,7 +283,7 @@ fun OverviewBottomActions(
                             .height(52.dp)
                     ) {
                         OverviewActionCell(
-                            label = "BACK",
+
                             iconRes = R.drawable.ic_pixel_arrow_left,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
@@ -280,7 +297,11 @@ fun OverviewBottomActions(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(cardShape)
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), cardShape)
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                                    cardShape
+                                )
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.90f))
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
@@ -317,8 +338,9 @@ fun OverviewBottomActions(
                         }
                     }
                 }
+
                 OverviewMenuLevel.BLUR_OPTION -> {
-                    val cardShape = RoundedCornerShape(12.dp)
+                    val cardShape = PixelCornerShape(cornerRadius = 18.dp)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
@@ -326,7 +348,7 @@ fun OverviewBottomActions(
                             .height(52.dp)
                     ) {
                         OverviewActionCell(
-                            label = "BACK",
+
                             iconRes = R.drawable.ic_pixel_arrow_left,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
@@ -340,7 +362,11 @@ fun OverviewBottomActions(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(cardShape)
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), cardShape)
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                                    cardShape
+                                )
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.90f))
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {

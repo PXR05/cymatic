@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -27,27 +28,17 @@ fun CymaticDropdownMenu(
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val secondaryColor = MaterialTheme.colorScheme.secondary
-    val menuShape = RoundedCornerShape(12.dp)
+    val menuShape = PixelCornerShape(cornerRadius = 18.dp)
 
-    MaterialTheme(
-        shapes = MaterialTheme.shapes.copy(
-            extraSmall = menuShape,
-            small = menuShape,
-            medium = menuShape,
-            large = menuShape,
-            extraLarge = menuShape
-        )
-    ) {
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = onDismissRequest,
-            modifier = modifier
-                .clip(menuShape)
-                .background(backgroundColor.copy(alpha = 0.95f))
-                .border(1.dp, secondaryColor.copy(alpha = 0.4f), menuShape),
-            content = content
-        )
-    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        shape = menuShape,
+        containerColor = backgroundColor.copy(alpha = 0.95f),
+        modifier = modifier
+            .border(1.dp, secondaryColor.copy(alpha = 0.4f), menuShape),
+        content = content
+    )
 }
 
 @Composable

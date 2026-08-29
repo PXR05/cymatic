@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -132,7 +133,7 @@ fun AllAppsScreen(
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val isAtTop = gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
                 if (available.y > 0 && isAtTop && !isSearching && vPagerState != null) {
-                    vPagerState.animateScrollToPage(0, animationSpec = spring(dampingRatio = 0.76f, stiffness = 380f))
+                    vPagerState.animateScrollToPage(0)
                     return available
                 }
                 return Velocity.Zero
@@ -154,7 +155,7 @@ fun AllAppsScreen(
                         .pointerInput(vPagerState) {
                             detectVerticalDragGestures { _, dragAmount ->
                                 if (dragAmount > 12f && vPagerState != null) {
-                                    scope.launch { vPagerState.animateScrollToPage(0, animationSpec = spring(dampingRatio = 0.76f, stiffness = 380f)) }
+                                    scope.launch { vPagerState.animateScrollToPage(0) }
                                 }
                             }
                         },
@@ -287,7 +288,7 @@ fun AllAppsScreen(
             }
         }
 
-        val searchShape = RoundedCornerShape(14.dp)
+        val searchShape = PixelCornerShape(cornerRadius = 22.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
