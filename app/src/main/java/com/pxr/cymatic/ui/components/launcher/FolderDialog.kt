@@ -56,14 +56,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -97,7 +99,7 @@ fun FolderDialog(
     appIconScale: Float = 1.0f,
     rowsFromBottom: Int = 0,
     onDismiss: () -> Unit,
-    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit,
+    onAppClick: (LauncherAppsLoader.LauncherApp, android.graphics.Rect?) -> Unit,
     onRenameFolder: (String) -> Unit,
     onRemoveApp: (String) -> Unit,
     onAddApp: (String) -> Unit,
@@ -126,6 +128,8 @@ fun FolderDialog(
     var dragDelta by remember { mutableStateOf(Offset.Zero) }
     var hoveredIndex by remember { mutableStateOf<Int?>(null) }
     val cellBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val cellCoordinates = remember { mutableStateMapOf<Int, LayoutCoordinates>() }
+    var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val visibleState = remember {
         MutableTransitionState(false).apply {
@@ -295,13 +299,22 @@ fun FolderDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onGloballyPositioned { rootCoordinates = it }
                     .pointerInput(folder.apps) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             val downOffset = down.position
 
-                            val pressedIndex = cellBounds.entries.firstOrNull { (_, rect) ->
-                                rect.contains(downOffset)
+                            val rootCoords = rootCoordinates
+                            val pressedIndex = cellCoordinates.entries.firstOrNull { (key, coords) ->
+                                if (coords.isAttached && rootCoords != null && rootCoords.isAttached) {
+                                    val localOffset = coords.localPositionOf(rootCoords, downOffset)
+                                    localOffset.x >= 0f && localOffset.x <= coords.size.width.toFloat() &&
+                                        localOffset.y >= 0f && localOffset.y <= coords.size.height.toFloat()
+                                } else {
+                                    val rect = cellBounds[key]
+                                    rect != null && rect.contains(downOffset)
+                                }
                             }?.key
 
                             if (pressedIndex == null || pressedIndex !in folder.apps.indices) {
@@ -337,8 +350,18 @@ fun FolderDialog(
 
                             if (gestureAction == "TAP") {
                                 val app = folder.apps[pressedIndex]
-                                haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                onAppClick(app)
+                                val coords = cellCoordinates[pressedIndex]
+                                val sourceBounds = if (coords != null && coords.isAttached) {
+                                    val pos = coords.positionInWindow()
+                                    val sz = coords.size
+                                    android.graphics.Rect(
+                                        pos.x.toInt(),
+                                        pos.y.toInt(),
+                                        (pos.x + sz.width).toInt(),
+                                        (pos.y + sz.height).toInt()
+                                    )
+                                } else null
+                                onAppClick(app, sourceBounds)
                                 dismissWithAnimation()
                             } else if (gestureAction == null && totalDrag.getDistance() <= touchSlop) {
                                 // Long press -> lift app for dragging
@@ -429,7 +452,15 @@ fun FolderDialog(
                                         .weight(1f)
                                         .height(cellHeight)
                                         .onGloballyPositioned { coords ->
-                                            cellBounds[slotIdx] = coords.boundsInParent()
+                                            cellCoordinates[slotIdx] = coords
+                                            val root = rootCoordinates
+                                            if (root != null && root.isAttached && coords.isAttached) {
+                                                val topLeft = root.localPositionOf(coords, Offset.Zero)
+                                                cellBounds[slotIdx] = Rect(
+                                                    offset = topLeft,
+                                                    size = Size(coords.size.width.toFloat(), coords.size.height.toFloat())
+                                                )
+                                            }
                                         }
                                         .zIndex(if (isBeingDragged) 10f else 1f)
                                         .offset {

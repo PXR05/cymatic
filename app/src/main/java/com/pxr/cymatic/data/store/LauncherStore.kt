@@ -83,6 +83,15 @@ object LauncherStore {
         }
     }
 
+    fun clearPinnedLayout() {
+        scope.launch {
+            store.edit { prefs ->
+                prefs.remove(PINNED_LAYOUT_KEY)
+                prefs.remove(PINNED_PACKAGES_KEY)
+            }
+        }
+    }
+
     val use24HourFlow: Flow<Boolean>
         get() = store.data.map { prefs ->
             prefs[USE_24_HOUR_KEY] ?: true

@@ -1,6 +1,8 @@
 package com.pxr.cymatic.ui.screens.home
 
 import android.app.Application
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
@@ -255,14 +257,26 @@ class LauncherAppsViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun pinApp(packageName: String) {
+    fun pinApp(packageName: String, context: Context? = null) {
         viewModelScope.launch {
             val list = getCurrentLayout()
             if (list.none { it is PinnedItem.App && it.packageName == packageName }) {
+                if (list.size >= MAX_PIN_COUNT) {
+                    context?.let { ctx ->
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(ctx, "Maximum $MAX_PIN_COUNT pinned items reached", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return@launch
+                }
                 list.add(PinnedItem.App(packageName))
                 LauncherStore.setPinnedLayout(list)
             }
         }
+    }
+
+    fun resetToMostUsed() {
+        LauncherStore.clearPinnedLayout()
     }
 
     fun isPinned(packageName: String): Boolean {
@@ -276,5 +290,6 @@ class LauncherAppsViewModel(application: Application) : AndroidViewModel(applica
 
     companion object {
         const val DEFAULT_PIN_COUNT = 8
+        const val MAX_PIN_COUNT = 8
     }
 }

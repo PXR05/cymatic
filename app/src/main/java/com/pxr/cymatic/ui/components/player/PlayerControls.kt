@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -34,16 +33,12 @@ fun Controls(
     val inactiveColor = MaterialTheme.colorScheme.secondary
     val shuffleColor = if (isShuffling) activeColor else inactiveColor
     val repeatColor = if (repeatMode == Player.REPEAT_MODE_OFF) inactiveColor else activeColor
-    val subscript = SpanStyle(
-        fontSize = 10.sp
-    )
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_pixel_shuffle),

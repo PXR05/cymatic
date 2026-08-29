@@ -39,14 +39,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -69,7 +71,7 @@ import kotlin.math.roundToInt
 fun InteractivePinnedGrid(
     entries: List<LauncherAppsViewModel.PinnedGridEntry>,
     showLabels: Boolean,
-    onAppClick: (LauncherAppsLoader.LauncherApp) -> Unit,
+    onAppClick: (LauncherAppsLoader.LauncherApp, android.graphics.Rect?) -> Unit,
     onFolderClick: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
     onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
     onMergeFolder: (sourceIndex: Int, targetIndex: Int) -> Unit,
@@ -89,6 +91,8 @@ fun InteractivePinnedGrid(
     var isHoveringMergeTarget by remember { mutableStateOf(false) }
 
     val cellBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val cellCoordinates = remember { mutableStateMapOf<Int, LayoutCoordinates>() }
+    var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var selectedItemIndexForMenu by rememberSaveable { mutableStateOf<Int?>(null) }
 
     val cellHeightDp = if (showLabels) (92 * iconScale).dp else (72 * iconScale).dp
@@ -96,14 +100,23 @@ fun InteractivePinnedGrid(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .onGloballyPositioned { rootCoordinates = it }
             .pointerInput(entries) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val downOffset = down.position
 
                     // Find which item was pressed
-                    val pressedIndex = cellBounds.entries.firstOrNull { (_, rect) ->
-                        rect.contains(downOffset)
+                    val rootCoords = rootCoordinates
+                    val pressedIndex = cellCoordinates.entries.firstOrNull { (key, coords) ->
+                        if (coords.isAttached && rootCoords != null && rootCoords.isAttached) {
+                            val localOffset = coords.localPositionOf(rootCoords, downOffset)
+                            localOffset.x >= 0f && localOffset.x <= coords.size.width.toFloat() &&
+                                localOffset.y >= 0f && localOffset.y <= coords.size.height.toFloat()
+                        } else {
+                            val rect = cellBounds[key]
+                            rect != null && rect.contains(downOffset)
+                        }
                     }?.key
 
                     if (pressedIndex == null || pressedIndex !in entries.indices) {
@@ -152,9 +165,21 @@ fun InteractivePinnedGrid(
 
                     if (gestureAction == "TAP") {
                         val entry = entries[pressedIndex]
-                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                         when (entry) {
-                            is LauncherAppsViewModel.PinnedGridEntry.App -> onAppClick(entry.app)
+                            is LauncherAppsViewModel.PinnedGridEntry.App -> {
+                                val coords = cellCoordinates[pressedIndex]
+                                val sourceBounds = if (coords != null && coords.isAttached) {
+                                    val pos = coords.positionInWindow()
+                                    val sz = coords.size
+                                    android.graphics.Rect(
+                                        pos.x.toInt(),
+                                        pos.y.toInt(),
+                                        (pos.x + sz.width).toInt(),
+                                        (pos.y + sz.height).toInt()
+                                    )
+                                } else null
+                                onAppClick(entry.app, sourceBounds)
+                            }
                             is LauncherAppsViewModel.PinnedGridEntry.Folder -> onFolderClick(entry)
                         }
                     } else if (gestureAction == null && totalDrag.getDistance() <= touchSlop) {
@@ -180,17 +205,27 @@ fun InteractivePinnedGrid(
                                 }
                                 change.consume()
 
-                                val originalBounds = cellBounds[pressedIndex]
-                                if (originalBounds != null) {
-                                    val currentCenter = originalBounds.center + dragDelta
+                                val root = rootCoordinates
+                                if (root != null && root.isAttached) {
+                                    val pressedCoords = cellCoordinates[pressedIndex]
+                                    val pressedTopLeft = if (pressedCoords != null && pressedCoords.isAttached) {
+                                        root.localPositionOf(pressedCoords, Offset.Zero)
+                                    } else {
+                                        cellBounds[pressedIndex]?.topLeft ?: Offset.Zero
+                                    }
+                                    val pressedSize = pressedCoords?.size?.let { Size(it.width.toFloat(), it.height.toFloat()) }
+                                        ?: cellBounds[pressedIndex]?.size ?: Size.Zero
+                                    val currentCenter = pressedTopLeft + Offset(pressedSize.width / 2f, pressedSize.height / 2f) + dragDelta
 
                                     var closestIdx: Int? = null
                                     var closestDist = Float.MAX_VALUE
                                     var isMergeCandidate = false
 
-                                    for ((idx, rect) in cellBounds) {
-                                        if (idx in entries.indices) {
-                                            val dist = (rect.center - currentCenter).getDistance()
+                                    for ((idx, coords) in cellCoordinates) {
+                                        if (idx in entries.indices && coords.isAttached) {
+                                            val cellTopLeft = root.localPositionOf(coords, Offset.Zero)
+                                            val cellCenter = cellTopLeft + Offset(coords.size.width / 2f, coords.size.height / 2f)
+                                            val dist = (cellCenter - currentCenter).getDistance()
                                             if (dist < closestDist) {
                                                 closestDist = dist
                                                 closestIdx = idx
@@ -199,9 +234,11 @@ fun InteractivePinnedGrid(
                                     }
 
                                     if (closestIdx != null && closestIdx in entries.indices) {
-                                        val targetRect = cellBounds[closestIdx]
-                                        if (targetRect != null && closestIdx != pressedIndex) {
-                                            val distToCenter = (targetRect.center - currentCenter).getDistance()
+                                        val coords = cellCoordinates[closestIdx]
+                                        if (coords != null && coords.isAttached && closestIdx != pressedIndex) {
+                                            val cellTopLeft = root.localPositionOf(coords, Offset.Zero)
+                                            val cellCenter = cellTopLeft + Offset(coords.size.width / 2f, coords.size.height / 2f)
+                                            val distToCenter = (cellCenter - currentCenter).getDistance()
                                             val mergeThresholdPx = with(density) { 36.dp.toPx() }
                                             isMergeCandidate = distToCenter < mergeThresholdPx
                                         }
@@ -259,7 +296,15 @@ fun InteractivePinnedGrid(
                                 .weight(1f)
                                 .height(cellHeightDp)
                                 .onGloballyPositioned { coordinates ->
-                                    cellBounds[itemIndex] = coordinates.boundsInParent()
+                                    cellCoordinates[itemIndex] = coordinates
+                                    val root = rootCoordinates
+                                    if (root != null && root.isAttached && coordinates.isAttached) {
+                                        val topLeft = root.localPositionOf(coordinates, Offset.Zero)
+                                        cellBounds[itemIndex] = Rect(
+                                            offset = topLeft,
+                                            size = Size(coordinates.size.width.toFloat(), coordinates.size.height.toFloat())
+                                        )
+                                    }
                                 }
                                 .zIndex(if (isBeingDragged) 10f else 1f)
                                 .offset {

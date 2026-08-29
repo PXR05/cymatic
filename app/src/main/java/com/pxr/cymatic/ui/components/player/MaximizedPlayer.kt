@@ -14,11 +14,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -32,15 +33,21 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Velocity
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -99,7 +106,6 @@ fun MaximizedPlayer(
                     modifier = Modifier
                         .fillMaxSize()
                         .safeDrawingPadding()
-                        .imePadding()
                         .padding(horizontal = 24.dp)
                 ) {
                     Box(
@@ -248,17 +254,55 @@ fun MaximizedPlayer(
             }
 
             1 -> {
+                val queueListState = rememberLazyListState()
+                val nestedScrollConnection = remember(queueListState, pagerState, scope) {
+                    object : NestedScrollConnection {
+                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                            if (available.y > 0f) {
+                                val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
+                                    queueListState.firstVisibleItemScrollOffset == 0
+                                if (isAtTop) {
+                                    val consumed = pagerState.dispatchRawDelta(-available.y)
+                                    return Offset(0f, -consumed)
+                                }
+                            }
+                            return Offset.Zero
+                        }
+
+                        override suspend fun onPreFling(available: Velocity): Velocity {
+                            if (available.y > 0f) {
+                                val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
+                                    queueListState.firstVisibleItemScrollOffset == 0
+                                if (isAtTop) {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(0)
+                                    }
+                                    return available
+                                }
+                            }
+                            return Velocity.Zero
+                        }
+                    }
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .nestedScroll(nestedScrollConnection)
                         .background(Color.Transparent)
                         .safeDrawingPadding()
-                        .imePadding()
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures { _, dragAmount ->
+                                    if (dragAmount > 12f) {
+                                        scope.launch { pagerState.animateScrollToPage(0) }
+                                    }
+                                }
+                            }
                             .padding(horizontal = 24.dp, vertical = 12.dp)
                     ) {
                         Text(
@@ -273,6 +317,7 @@ fun MaximizedPlayer(
                     val haptic = LocalHapticFeedback.current
 
                     LazyColumn(
+                        state = queueListState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {

@@ -1,5 +1,6 @@
 package com.pxr.cymatic.data.launcher
 
+import android.app.ActivityOptions
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -8,6 +9,7 @@ import android.content.pm.ShortcutInfo
 import android.content.pm.LauncherApps
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Process
@@ -101,10 +103,45 @@ object LauncherAppsLoader {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    fun launch(context: Context, packageName: String) {
-        val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-        intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
+    fun launch(
+        context: Context,
+        packageName: String,
+        sourceBounds: Rect? = null
+    ) {
+        val intent = context.packageManager.getLaunchIntentForPackage(packageName) ?: return
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        if (sourceBounds != null && sourceBounds.width() > 0 && sourceBounds.height() > 0) {
+            intent.sourceBounds = sourceBounds
+        }
+
+        val optionsBundle = runCatching {
+            val decorView = (context as? android.app.Activity)?.window?.decorView
+            if (sourceBounds != null && sourceBounds.width() > 0 && sourceBounds.height() > 0 && decorView != null) {
+                ActivityOptions.makeClipRevealAnimation(
+                    decorView,
+                    sourceBounds.left,
+                    sourceBounds.top,
+                    sourceBounds.width(),
+                    sourceBounds.height()
+                ).toBundle()
+            } else {
+                ActivityOptions.makeCustomAnimation(
+                    context,
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+                ).toBundle()
+            }
+        }.getOrNull()
+
+        try {
+            context.startActivity(intent, optionsBundle)
+        } catch (_: Exception) {
+            try {
+                context.startActivity(intent)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun uninstall(context: Context, packageName: String) {

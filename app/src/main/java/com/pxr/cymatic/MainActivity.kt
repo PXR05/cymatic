@@ -13,10 +13,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
@@ -50,7 +56,9 @@ import androidx.media3.session.SessionToken
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.MaterialTheme
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.store.LauncherStore
@@ -246,9 +254,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = currentBackStackEntry?.destination?.route
+                    val isHomeRoute = currentRoute == null || currentRoute == Screen.Home.route
+
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = Color.Transparent
+                        color = if (isHomeRoute) Color.Transparent else MaterialTheme.colorScheme.background
                     ) {
                         when {
                             hideSystemBars -> {
@@ -271,27 +283,27 @@ class MainActivity : ComponentActivity() {
                                     startDestination = Screen.Home.route,
                                     enterTransition = {
                                         slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> (fullWidth * 0.28f).toInt() },
-                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                                        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+                                            initialOffsetX = { fullWidth -> fullWidth },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = 0.9f)
+                                        )
                                     },
                                     exitTransition = {
                                         slideOutHorizontally(
-                                            targetOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
-                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                                        ) + fadeOut(animationSpec = tween(durationMillis = 200))
+                                            targetOffsetX = { fullWidth -> -(fullWidth * 0.25f).toInt() },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = 0.9f)
+                                        )
                                     },
                                     popEnterTransition = {
                                         slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
-                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                                        ) + fadeIn(animationSpec = tween(durationMillis = 220))
+                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.25f).toInt() },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = 0.9f)
+                                        )
                                     },
                                     popExitTransition = {
                                         slideOutHorizontally(
-                                            targetOffsetX = { fullWidth -> (fullWidth * 0.28f).toInt() },
-                                            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                                        ) + fadeOut(animationSpec = tween(durationMillis = 200))
+                                            targetOffsetX = { fullWidth -> fullWidth },
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = 0.9f)
+                                        )
                                     },
                                     modifier = Modifier.fillMaxSize()
                                 ) {

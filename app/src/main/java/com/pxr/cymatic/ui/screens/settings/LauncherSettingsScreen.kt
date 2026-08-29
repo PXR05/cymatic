@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,7 +23,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.store.LauncherStore
@@ -36,6 +42,8 @@ fun LauncherSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val navController = LocalNavController.current
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
     val use24Hour by LauncherStore.use24HourFlow.collectAsState(initial = true)
@@ -181,6 +189,18 @@ fun LauncherSettingsScreen(
                     valueRange = 0.5f..2.0f
                 )
             }
+
+            LauncherActionRow(
+                title = "Reset Pinned Apps",
+                subtitle = "Reset homescreen pinned grid to most used apps",
+                buttonText = "RESET",
+                onClick = {
+                    scope.launch {
+                        LauncherStore.clearPinnedLayout()
+                        Toast.makeText(context, "Pinned apps reset to most used", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -344,6 +364,58 @@ private fun LauncherToggleRow(
                     interactionSource = null
                 )
                 .padding(horizontal = 20.dp, vertical = 12.dp)
+        )
+    }
+}
+
+@Composable
+private fun LauncherActionRow(
+    title: String,
+    subtitle: String,
+    buttonText: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+    val buttonShape = RoundedCornerShape(8.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+
+        Text(
+            text = buttonText,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .clip(buttonShape)
+                .border(1.dp, MaterialTheme.colorScheme.onBackground, buttonShape)
+                .clickable(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                        onClick()
+                    },
+                    indication = null,
+                    interactionSource = null
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         )
     }
 }

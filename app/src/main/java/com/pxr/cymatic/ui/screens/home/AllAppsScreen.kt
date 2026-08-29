@@ -2,6 +2,7 @@ package com.pxr.cymatic.ui.screens.home
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
@@ -129,7 +132,7 @@ fun AllAppsScreen(
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val isAtTop = gridState.firstVisibleItemIndex == 0 && gridState.firstVisibleItemScrollOffset == 0
                 if (available.y > 0 && isAtTop && !isSearching && vPagerState != null) {
-                    vPagerState.animateScrollToPage(0)
+                    vPagerState.animateScrollToPage(0, animationSpec = spring(dampingRatio = 0.76f, stiffness = 380f))
                     return available
                 }
                 return Velocity.Zero
@@ -142,7 +145,6 @@ fun AllAppsScreen(
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
             .safeDrawingPadding()
-            .imePadding()
     ) {
         Box(modifier = Modifier.weight(1f)) {
             if (filteredApps.isEmpty()) {
@@ -152,7 +154,7 @@ fun AllAppsScreen(
                         .pointerInput(vPagerState) {
                             detectVerticalDragGestures { _, dragAmount ->
                                 if (dragAmount > 12f && vPagerState != null) {
-                                    scope.launch { vPagerState.animateScrollToPage(0) }
+                                    scope.launch { vPagerState.animateScrollToPage(0, animationSpec = spring(dampingRatio = 0.76f, stiffness = 380f)) }
                                 }
                             }
                         },
@@ -183,15 +185,27 @@ fun AllAppsScreen(
 
                         val iconSize = (52 * appIconScale).dp
                         val cellHeight = if (showAllAppsLabels) (92 * appIconScale).dp else (72 * appIconScale).dp
+                        var itemCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(cellHeight)
+                                .onGloballyPositioned { itemCoordinates = it }
                                 .combinedClickable(
                                     onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                        LauncherAppsLoader.launch(context, app.packageName)
+                                        val coords = itemCoordinates
+                                        val sourceBounds = if (coords != null && coords.isAttached) {
+                                            val pos = coords.positionInWindow()
+                                            val sz = coords.size
+                                            android.graphics.Rect(
+                                                pos.x.toInt(),
+                                                pos.y.toInt(),
+                                                (pos.x + sz.width).toInt(),
+                                                (pos.y + sz.height).toInt()
+                                            )
+                                        } else null
+                                        LauncherAppsLoader.launch(context, app.packageName, sourceBounds)
                                     },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -245,7 +259,7 @@ fun AllAppsScreen(
                                 onDismissRequest = { selectedPackage = null },
                                 onPin = if (!isPinned) {
                                     {
-                                        viewModel.pinApp(app.packageName)
+                                        viewModel.pinApp(app.packageName, context)
                                     }
                                 } else null,
                                 onUnpin = if (isPinned) {
