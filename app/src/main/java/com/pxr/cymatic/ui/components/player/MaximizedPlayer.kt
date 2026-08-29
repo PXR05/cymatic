@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
@@ -107,7 +106,6 @@ fun MaximizedPlayer(
                     modifier = Modifier
                         .fillMaxSize()
                         .safeDrawingPadding()
-                        .imePadding()
                         .padding(horizontal = 24.dp)
                 ) {
                     Box(
@@ -293,7 +291,6 @@ fun MaximizedPlayer(
                         .nestedScroll(nestedScrollConnection)
                         .background(Color.Transparent)
                         .safeDrawingPadding()
-                        .imePadding()
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
