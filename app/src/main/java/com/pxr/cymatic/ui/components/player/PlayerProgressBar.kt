@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,11 +82,11 @@ fun ProgressBar(
             modifier = seekModifier,
             contentAlignment = Alignment.CenterStart
         ) {
-            val barShape = PixelCornerShape(cornerRadius = 4.dp, pixelSize = 1.dp)
+            val barShape = RoundedCornerShape(3.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(6.dp)
                     .clip(barShape)
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
             ) {

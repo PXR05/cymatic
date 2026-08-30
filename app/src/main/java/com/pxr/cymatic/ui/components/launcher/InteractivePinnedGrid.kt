@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -327,7 +326,7 @@ fun InteractivePinnedGrid(
                                             Modifier.border(
                                                 2.dp,
                                                 MaterialTheme.colorScheme.onBackground,
-                                                PixelCornerShape(cornerRadius = 18.dp)
+                                                RoundedCornerShape(14.dp)
                                             )
                                         } else {
                                             Modifier
@@ -460,7 +459,7 @@ private fun PinnedCell(
             }
 
             is LauncherAppsViewModel.PinnedGridEntry.Folder -> {
-                val folderIconShape = PixelCornerShape(cornerRadius = 18.dp)
+                val folderIconShape = RoundedCornerShape(14.dp)
                 Box(
                     modifier = Modifier
                         .size(iconSize)

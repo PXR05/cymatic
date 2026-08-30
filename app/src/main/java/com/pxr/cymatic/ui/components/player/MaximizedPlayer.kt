@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +58,6 @@ import com.pxr.cymatic.ui.components.common.SwipeCarousel
 import com.pxr.cymatic.ui.components.common.verticalFadingEdge
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -69,14 +69,15 @@ fun MaximizedPlayer(
 ) {
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
-    if (playbackState.currentMediaId == null) return
-    val currentMediaItem = mediaController.currentMediaItem ?: return
-    val metadata = currentMediaItem.toAudioMetadata()
-    val title = metadata.title ?: "Unknown Title"
-    val artist = metadata.artist ?: "Unknown Artist"
 
-    val latestPlaybackState by rememberUpdatedState(playbackState)
+    val currentItem = mediaController.currentMediaItem
+    val metadata = currentItem?.toAudioMetadata() ?: return
+
+    val title = metadata.title?.ifEmpty { "Unknown Title" } ?: "Unknown Title"
+    val artist = metadata.artist?.ifEmpty { "Unknown Artist" } ?: "Unknown Artist"
+
     val latestController by rememberUpdatedState(mediaController)
+    val latestPlaybackState by rememberUpdatedState(playbackState)
 
     val hasNext = mediaController.hasNextMediaItem()
     val hasPrev = mediaController.hasPreviousMediaItem()
@@ -87,75 +88,61 @@ fun MaximizedPlayer(
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val scope = rememberCoroutineScope()
+    var selectedQueueIndex by remember { mutableStateOf<Int?>(null) }
 
     BackHandler(enabled = isActive) {
-        if (pagerState.currentPage == 1) {
+        if (selectedQueueIndex != null) {
+            selectedQueueIndex = null
+        } else if (pagerState.currentPage == 1) {
             scope.launch { pagerState.animateScrollToPage(0) }
         } else {
             onClose?.invoke()
         }
     }
 
-    VerticalPager(
-        state = pagerState,
-        modifier = modifier
-            .fillMaxSize()
-            .verticalFadingEdge(top = 48.dp, bottom = 48.dp)
-            .background(Color.Transparent),
-        beyondViewportPageCount = 1
-    ) { page ->
-        when (page) {
-            0 -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .safeDrawingPadding()
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
+    Box(modifier = modifier.fillMaxSize()) {
+        VerticalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalFadingEdge(enabled = selectedQueueIndex == null)
+                .background(Color.Transparent),
+            beyondViewportPageCount = 1
+        ) { page ->
+            when (page) {
+                0 -> {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(vertical = 16.dp)
+                            .fillMaxSize()
+                            .safeDrawingPadding()
                     ) {
-                        SwipeCarousel(
-                            modifier = Modifier.fillMaxWidth(),
-                            hasPrev = hasPrev,
-                            hasNext = hasNext,
-                            onPrev = { latestController.seekToPrevious() },
-                            onNext = { latestController.seekToNext() },
-                            onTap = {
-                                if (latestPlaybackState.isPlaying) {
-                                    latestController.pause()
-                                } else {
-                                    latestController.play()
-                                }
-                            },
-                            content = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    AsyncImage(
-                                        model = ImageRequest
-                                            .Builder(LocalContext.current)
-                                            .data(metadata.artworkUri)
-                                            .crossfade(true)
-                                            .build(),
-                                        contentDescription = metadata.album,
-                                        contentScale = ContentScale.Crop,
-                                        filterQuality = FilterQuality.High,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(1f)
-                                            .clip(PixelCornerShape(cornerRadius = 36.dp))
-                                    )
-                                }
-                            },
-                            prevContent = {
-                                if (prevItem != null) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(vertical = 16.dp)
+                        ) {
+                            SwipeCarousel(
+                                modifier = Modifier.fillMaxWidth(),
+                                hasPrev = hasPrev,
+                                hasNext = hasNext,
+                                onPrev = { latestController.seekToPrevious() },
+                                onNext = { latestController.seekToNext() },
+                                onTap = {
+                                    if (latestPlaybackState.isPlaying) {
+                                        latestController.pause()
+                                    } else {
+                                        latestController.play()
+                                    }
+                                },
+                                onLongPress = {
+                                    val currentIdx = latestPlaybackState.currentIndex
+                                    if (currentIdx in 0 until latestController.mediaItemCount) {
+                                        selectedQueueIndex = currentIdx
+                                    }
+                                },
+                                content = {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -165,46 +152,70 @@ fun MaximizedPlayer(
                                         AsyncImage(
                                             model = ImageRequest
                                                 .Builder(LocalContext.current)
-                                                .data(prevItem.mediaMetadata.artworkUri)
+                                                .data(metadata.artworkUri)
                                                 .crossfade(true)
                                                 .build(),
-                                            contentDescription = null,
+                                            contentDescription = metadata.album,
                                             contentScale = ContentScale.Crop,
                                             filterQuality = FilterQuality.High,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .aspectRatio(1f)
-                                                .clip(PixelCornerShape(cornerRadius = 36.dp))
+                                                .clip(RoundedCornerShape(20.dp))
                                         )
                                     }
-                                }
-                            },
-                            nextContent = {
-                                if (nextItem != null) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 24.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        AsyncImage(
-                                            model = ImageRequest
-                                                .Builder(LocalContext.current)
-                                                .data(nextItem.mediaMetadata.artworkUri)
-                                                .crossfade(true)
-                                                .build(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            filterQuality = FilterQuality.High,
+                                },
+                                prevContent = {
+                                    if (prevItem != null) {
+                                        Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .aspectRatio(1f)
-                                                .clip(PixelCornerShape(cornerRadius = 36.dp))
-                                        )
+                                                .padding(horizontal = 24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AsyncImage(
+                                                model = ImageRequest
+                                                    .Builder(LocalContext.current)
+                                                    .data(prevItem.mediaMetadata.artworkUri)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                filterQuality = FilterQuality.High,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(20.dp))
+                                            )
+                                        }
+                                    }
+                                },
+                                nextContent = {
+                                    if (nextItem != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AsyncImage(
+                                                model = ImageRequest
+                                                    .Builder(LocalContext.current)
+                                                    .data(nextItem.mediaMetadata.artworkUri)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                filterQuality = FilterQuality.High,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(20.dp))
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
                     }
 
                     Column(
@@ -346,7 +357,6 @@ fun MaximizedPlayer(
                         )
                     }
 
-                    var selectedQueueIndex by remember { mutableStateOf<Int?>(null) }
                     val haptic = LocalHapticFeedback.current
 
                     LazyColumn(
@@ -361,7 +371,7 @@ fun MaximizedPlayer(
                             val itemArtist = item.mediaMetadata.artist?.toString() ?: ""
                             val isCurrent = index == playbackState.currentIndex
 
-                            val itemShape = PixelCornerShape(cornerRadius = 16.dp)
+                            val itemShape = RoundedCornerShape(12.dp)
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -415,46 +425,47 @@ fun MaximizedPlayer(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
 
-                    selectedQueueIndex?.let { selectedIdx ->
-                        if (selectedIdx < mediaController.mediaItemCount) {
-                            val selectedItem = mediaController.getMediaItemAt(selectedIdx)
-                            QueueItemContextMenu(
-                                index = selectedIdx,
-                                totalCount = mediaController.mediaItemCount,
-                                mediaItem = selectedItem,
-                                isCurrent = selectedIdx == playbackState.currentIndex,
-                                onDismiss = { selectedQueueIndex = null },
-                                onPlay = { mediaController.seekTo(selectedIdx, 0L) },
-                                onMoveUp = {
-                                    if (selectedIdx > 0) {
-                                        mediaController.moveMediaItem(selectedIdx, selectedIdx - 1)
-                                    }
-                                },
-                                onMoveDown = {
-                                    if (selectedIdx < mediaController.mediaItemCount - 1) {
-                                        mediaController.moveMediaItem(selectedIdx, selectedIdx + 1)
-                                    }
-                                },
-                                onMoveToTop = {
-                                    if (selectedIdx > 0) {
-                                        mediaController.moveMediaItem(selectedIdx, 0)
-                                    }
-                                },
-                                onMoveToBottom = {
-                                    if (selectedIdx < mediaController.mediaItemCount - 1) {
-                                        mediaController.moveMediaItem(selectedIdx, mediaController.mediaItemCount - 1)
-                                    }
-                                },
-                                onRemove = {
-                                    if (selectedIdx < mediaController.mediaItemCount) {
-                                        mediaController.removeMediaItem(selectedIdx)
-                                    }
-                                }
-                            )
+        selectedQueueIndex?.let { selectedIdx ->
+            if (selectedIdx in 0 until mediaController.mediaItemCount) {
+                val selectedItem = mediaController.getMediaItemAt(selectedIdx)
+                QueueItemContextMenu(
+                    index = selectedIdx,
+                    totalCount = mediaController.mediaItemCount,
+                    mediaItem = selectedItem,
+                    isCurrent = selectedIdx == playbackState.currentIndex,
+                    onDismiss = { selectedQueueIndex = null },
+                    onPlay = { mediaController.seekTo(selectedIdx, 0L) },
+                    onMoveUp = {
+                        if (selectedIdx > 0) {
+                            mediaController.moveMediaItem(selectedIdx, selectedIdx - 1)
+                        }
+                    },
+                    onMoveDown = {
+                        if (selectedIdx < mediaController.mediaItemCount - 1) {
+                            mediaController.moveMediaItem(selectedIdx, selectedIdx + 1)
+                        }
+                    },
+                    onMoveToTop = {
+                        if (selectedIdx > 0) {
+                            mediaController.moveMediaItem(selectedIdx, 0)
+                        }
+                    },
+                    onMoveToBottom = {
+                        if (selectedIdx < mediaController.mediaItemCount - 1) {
+                            mediaController.moveMediaItem(selectedIdx, mediaController.mediaItemCount - 1)
+                        }
+                    },
+                    onRemove = {
+                        if (selectedIdx in 0 until mediaController.mediaItemCount) {
+                            mediaController.removeMediaItem(selectedIdx)
                         }
                     }
-                }
+                )
             }
         }
     }

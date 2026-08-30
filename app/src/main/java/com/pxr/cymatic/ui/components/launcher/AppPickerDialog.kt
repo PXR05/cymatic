@@ -28,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,8 +107,8 @@ fun AppPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(46.dp)
-                        .clip(PixelCornerShape(cornerRadius = 16.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), PixelCornerShape(cornerRadius = 16.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -153,7 +152,7 @@ fun AppPickerDialog(
                                         modifier = Modifier.size(36.dp)
                                     )
                                 } else {
-                                    val fallbackShape = PixelCornerShape(cornerRadius = 12.dp)
+                                    val fallbackShape = RoundedCornerShape(8.dp)
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)

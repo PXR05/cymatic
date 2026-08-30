@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +48,6 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlin.math.roundToInt
 
@@ -68,7 +68,7 @@ fun OverviewActionCell(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val cellShape = PixelCornerShape(cornerRadius = 18.dp)
+    val cellShape = RoundedCornerShape(12.dp)
 
     Box(
         modifier = modifier
@@ -275,7 +275,7 @@ fun OverviewBottomActions(
                 }
 
                 OverviewMenuLevel.DARKEN_OPTION -> {
-                    val cardShape = PixelCornerShape(cornerRadius = 18.dp)
+                    val cardShape = RoundedCornerShape(12.dp)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
@@ -340,7 +340,7 @@ fun OverviewBottomActions(
                 }
 
                 OverviewMenuLevel.BLUR_OPTION -> {
-                    val cardShape = PixelCornerShape(cornerRadius = 18.dp)
+                    val cardShape = RoundedCornerShape(12.dp)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier

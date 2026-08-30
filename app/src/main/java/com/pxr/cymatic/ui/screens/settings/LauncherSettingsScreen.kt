@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -378,7 +377,7 @@ private fun LauncherActionRow(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val buttonShape = PixelCornerShape(cornerRadius = 14.dp)
+    val buttonShape = RoundedCornerShape(8.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()

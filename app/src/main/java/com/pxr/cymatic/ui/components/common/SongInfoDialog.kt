@@ -1,7 +1,5 @@
 package com.pxr.cymatic.ui.components.common
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,14 +18,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
+import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -41,15 +37,9 @@ fun SongInfoDialog(
     mediaId: Long,
     onDismissRequest: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val window = LocalWindowInfo.current
-    val dialogWidth =
-        with(window) { (containerSize.width * 0.8f) }
-    val dialogWidthDp = with(density) { dialogWidth.toDp() }
-
     if (!showDialog) return
 
+    val context = LocalContext.current
     var audioFile by remember { mutableStateOf<AudioFile?>(null) }
 
     LaunchedEffect(mediaId) {
@@ -58,33 +48,17 @@ fun SongInfoDialog(
         }
     }
 
-    Dialog(
+    CymaticDialog(
+        title = "Song Information",
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false,
-        ),
-    ) {
-        Column(
-            modifier = modifier
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(24.dp)
-                .width(dialogWidthDp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "Song Information",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 20.sp,
-            )
-
+        maxHeightRatio = 0.8f,
+        widthRatio = 0.85f,
+        content = {
             if (audioFile != null) {
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 16.dp),
+                        .padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     InfoItem(
@@ -128,10 +102,18 @@ fun SongInfoDialog(
                     text = "Loading...",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
+        },
+        buttons = {
+            CymaticDialogButton(
+                text = "Close",
+                onClick = onDismissRequest,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
-    }
+    )
 }
 
 @Composable

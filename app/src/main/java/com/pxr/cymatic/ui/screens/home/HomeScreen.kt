@@ -3,9 +3,7 @@ package com.pxr.cymatic.ui.screens.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -43,23 +41,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,8 +57,6 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.launcher.SystemShadeHelper
 import com.pxr.cymatic.data.store.LauncherStore
-import com.pxr.cymatic.ui.theme.PixelFontFamily
-import kotlinx.coroutines.withTimeoutOrNull
 import com.pxr.cymatic.ui.components.common.verticalFadingEdge
 import com.pxr.cymatic.ui.components.launcher.FolderDialog
 import com.pxr.cymatic.ui.components.launcher.IdleGreeting
@@ -124,6 +112,15 @@ fun HomeScreen() {
     val hOffset = (hPagerState.currentPage + hPagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
     val nonHomeOffset = maxOf(vOffset, hOffset)
 
+    val appsViewModel: LauncherAppsViewModel = viewModel()
+    val context = LocalContext.current
+    val homeApps by appsViewModel.homeApps.collectAsState()
+    val allApps by appsViewModel.allApps.collectAsState()
+    val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
+    val showFolderLabels by LauncherStore.showFolderLabelsFlow.collectAsState(initial = true)
+    val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
+    var activeFolderForDialog by remember { mutableStateOf<LauncherAppsViewModel.PinnedGridEntry.Folder?>(null) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         WallpaperBackdrop(
             isSongWallpaperActive = isSongWallpaperActive,
@@ -143,6 +140,8 @@ fun HomeScreen() {
             when (hPage) {
                 0 -> HomeVerticalPager(
                     vPagerState = vPagerState,
+                    isFolderDialogOpen = activeFolderForDialog != null,
+                    onOpenFolder = { activeFolderForDialog = it },
                     onPlayerClick = {
                         if (hasPlayback) {
                             scope.launch { hPagerState.animateScrollToPage(1) }
@@ -164,12 +163,56 @@ fun HomeScreen() {
                 }
             }
         }
+
+        activeFolderForDialog?.let { folder ->
+            val currentFolder = homeApps.entries
+                .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.Folder>()
+                .firstOrNull { it.id == folder.id } ?: folder
+
+            val folderIndex = homeApps.entries.indexOfFirst {
+                it is LauncherAppsViewModel.PinnedGridEntry.Folder && it.id == folder.id
+            }
+            val totalPinnedRows = if (homeApps.entries.isNotEmpty()) (homeApps.entries.size + 3) / 4 else 1
+            val folderRowIndex = if (folderIndex >= 0) folderIndex / 4 else 0
+            val rowsFromBottom = (totalPinnedRows - 1 - folderRowIndex).coerceAtLeast(0)
+
+            FolderDialog(
+                folder = currentFolder,
+                allApps = allApps,
+                showFolderLabels = showFolderLabels,
+                showPinnedLabels = showPinnedLabels,
+                appIconScale = appIconScale,
+                rowsFromBottom = rowsFromBottom,
+                onDismiss = { activeFolderForDialog = null },
+                onAppClick = { app, sourceBounds ->
+                    LauncherAppsLoader.launch(context, app.packageName, sourceBounds)
+                    activeFolderForDialog = null
+                },
+                onRenameFolder = { newName ->
+                    appsViewModel.renameFolder(folder.id, newName)
+                },
+                onRemoveApp = { pkg ->
+                    appsViewModel.removeAppFromFolder(folder.id, pkg)
+                },
+                onAddApp = { pkg ->
+                    appsViewModel.addAppToFolder(folder.id, pkg)
+                },
+                onReorderApp = { fromIdx, toIdx ->
+                    appsViewModel.reorderInFolder(folder.id, fromIdx, toIdx)
+                },
+                onDeleteFolder = {
+                    appsViewModel.deleteFolder(folder.id)
+                }
+            )
+        }
     }
 }
 
 @Composable
 private fun HomeVerticalPager(
     vPagerState: PagerState,
+    isFolderDialogOpen: Boolean,
+    onOpenFolder: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
     onPlayerClick: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -182,11 +225,14 @@ private fun HomeVerticalPager(
         state = vPagerState,
         modifier = Modifier
             .fillMaxSize()
-            .verticalFadingEdge(top = 48.dp, bottom = 48.dp),
+            .verticalFadingEdge(enabled = !isFolderDialogOpen),
         beyondViewportPageCount = 1
     ) { vPage ->
         when (vPage) {
-            0 -> HomeContent(onPlayerClick = onPlayerClick)
+            0 -> HomeContent(
+                onOpenFolder = onOpenFolder,
+                onPlayerClick = onPlayerClick
+            )
             1 -> AllAppsScreen(vPagerState = vPagerState)
         }
     }
@@ -194,6 +240,7 @@ private fun HomeVerticalPager(
 
 @Composable
 private fun HomeContent(
+    onOpenFolder: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
     onPlayerClick: () -> Unit
 ) {
     val navController = LocalNavController.current
@@ -222,7 +269,6 @@ private fun HomeContent(
 
     var isOverviewMode by remember { mutableStateOf(false) }
     var overviewLevel by remember { mutableStateOf(OverviewMenuLevel.ROOT) }
-    var activeFolderForDialog by remember { mutableStateOf<LauncherAppsViewModel.PinnedGridEntry.Folder?>(null) }
 
     val libraryEntries = remember {
         listOf(
@@ -418,7 +464,7 @@ private fun HomeContent(
                         },
                         onFolderClick = { folder ->
                             if (!isOverviewMode) {
-                                activeFolderForDialog = folder
+                                onOpenFolder(folder)
                             }
                         },
                         onReorder = { fromIdx, toIdx ->
@@ -431,7 +477,7 @@ private fun HomeContent(
                             appsViewModel.unpinItem(idx)
                         },
                         onRenameFolderRequest = { folder ->
-                            activeFolderForDialog = folder
+                            onOpenFolder(folder)
                         },
                         iconScale = appIconScale
                     )
@@ -470,48 +516,6 @@ private fun HomeContent(
                 wallpaperBlurRadius = wallpaperBlurRadius,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
-
-            activeFolderForDialog?.let { folder ->
-                val currentFolder = homeApps.entries
-                    .filterIsInstance<LauncherAppsViewModel.PinnedGridEntry.Folder>()
-                    .firstOrNull { it.id == folder.id } ?: folder
-
-                val folderIndex = homeApps.entries.indexOfFirst {
-                    it is LauncherAppsViewModel.PinnedGridEntry.Folder && it.id == folder.id
-                }
-                val totalPinnedRows = if (homeApps.entries.isNotEmpty()) (homeApps.entries.size + 3) / 4 else 1
-                val folderRowIndex = if (folderIndex >= 0) folderIndex / 4 else 0
-                val rowsFromBottom = (totalPinnedRows - 1 - folderRowIndex).coerceAtLeast(0)
-
-                FolderDialog(
-                    folder = currentFolder,
-                    allApps = allApps,
-                    showFolderLabels = showFolderLabels,
-                    showPinnedLabels = showPinnedLabels,
-                    appIconScale = appIconScale,
-                    rowsFromBottom = rowsFromBottom,
-                    onDismiss = { activeFolderForDialog = null },
-                    onAppClick = { app, sourceBounds ->
-                        LauncherAppsLoader.launch(context, app.packageName, sourceBounds)
-                        activeFolderForDialog = null
-                    },
-                    onRenameFolder = { newName ->
-                        appsViewModel.renameFolder(folder.id, newName)
-                    },
-                    onRemoveApp = { pkg ->
-                        appsViewModel.removeAppFromFolder(folder.id, pkg)
-                    },
-                    onAddApp = { pkg ->
-                        appsViewModel.addAppToFolder(folder.id, pkg)
-                    },
-                    onReorderApp = { fromIdx, toIdx ->
-                        appsViewModel.reorderInFolder(folder.id, fromIdx, toIdx)
-                    },
-                    onDeleteFolder = {
-                        appsViewModel.deleteFolder(folder.id)
-                    }
-                )
-            }
         }
     }
 }

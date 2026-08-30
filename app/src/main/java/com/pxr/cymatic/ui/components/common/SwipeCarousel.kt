@@ -31,6 +31,7 @@ fun SwipeCarousel(
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onTap: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
     content: @Composable () -> Unit,
     prevContent: @Composable () -> Unit,
     nextContent: @Composable () -> Unit
@@ -67,8 +68,16 @@ fun SwipeCarousel(
     Box(
         modifier = modifier
             .clipToBounds()
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { onTap() })
+            .pointerInput(onTap, onLongPress) {
+                detectTapGestures(
+                    onTap = { onTap() },
+                    onLongPress = {
+                        if (onLongPress != null) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onLongPress()
+                        }
+                    }
+                )
             }
             .pointerInput(hasPrev, hasNext) {
                 var accumulatedDrag = 0f

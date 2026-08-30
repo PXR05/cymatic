@@ -22,7 +22,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pxr.cymatic.ui.theme.PixelCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -189,7 +188,7 @@ fun FolderDialog(
                 .padding(bottom = adaptiveBottomOffsetDp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            val dialogShape = PixelCornerShape(cornerRadius = 28.dp)
+            val dialogShape = RoundedCornerShape(20.dp)
             Column(
                 modifier = Modifier
                     .animateEnterExit(
