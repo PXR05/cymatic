@@ -15,6 +15,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -53,6 +54,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.launcher.LibraryWallpaperBackdrop
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -178,7 +180,12 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 Screen.Playlists.route to { PlaylistsScreen() },
-                Screen.AllApps.route to { AllAppsScreen() },
+                Screen.AllApps.route to {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LibraryWallpaperBackdrop()
+                        AllAppsScreen()
+                    }
+                },
                 Screen.PlaylistSongs.route to { entry ->
                     val playlistId = entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
                     val scrollId = entry.arguments?.getString("scrollId")
@@ -247,10 +254,22 @@ class MainActivity : ComponentActivity() {
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
                     val isHomeRoute = currentRoute == null || currentRoute == Screen.Home.route
+                    val isLibraryRoute = currentRoute?.let { route ->
+                        route.startsWith("all_songs") ||
+                        route.startsWith("artists") ||
+                        route.startsWith("artist/") ||
+                        route.startsWith("albums") ||
+                        route.startsWith("album/") ||
+                        route.startsWith("playlists") ||
+                        route.startsWith("playlist/") ||
+                        route.startsWith("queue")
+                    } ?: false
+                    val isAllAppsRoute = currentRoute == Screen.AllApps.route
+                    val isTransparentRoute = isHomeRoute || isLibraryRoute || isAllAppsRoute
 
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = if (isHomeRoute) Color.Transparent else MaterialTheme.colorScheme.background
+                        color = if (isTransparentRoute) Color.Transparent else MaterialTheme.colorScheme.background
                     ) {
                         when {
                             hideSystemBars -> {

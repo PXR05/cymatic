@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.pxr.cymatic.data.store.LauncherStore
+import com.pxr.cymatic.ui.locals.LocalMediaController
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun rememberWallpaperBitmap(): Bitmap? {
@@ -220,4 +224,31 @@ fun WallpaperBackdrop(
             }
         }
     }
+}
+
+@Composable
+fun LibraryWallpaperBackdrop(modifier: Modifier = Modifier) {
+    val mediaController = LocalMediaController.current
+    val playbackState = rememberPlaybackState(mediaController)
+    val wallpaperDarkenOpacity by LauncherStore.wallpaperDarkenOpacityFlow.collectAsState(initial = 0.0f)
+    val wallpaperGradientEnabled by LauncherStore.wallpaperGradientEnabledFlow.collectAsState(initial = false)
+    val wallpaperBlurRadius by LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0.0f)
+    val useSongWallpaper by LauncherStore.useSongWallpaperFlow.collectAsState(initial = false)
+    val wallpaperBitmap = rememberWallpaperBitmap()
+
+    val currentArtworkUri = remember(playbackState.currentMediaId, mediaController) {
+        mediaController?.currentMediaItem?.mediaMetadata?.artworkUri
+    }
+    val isSongWallpaperActive = useSongWallpaper && currentArtworkUri != null
+
+    WallpaperBackdrop(
+        isSongWallpaperActive = isSongWallpaperActive,
+        currentArtworkUri = currentArtworkUri,
+        nonHomeOffset = 1.0f,
+        wallpaperBlurRadius = wallpaperBlurRadius,
+        wallpaperDarkenOpacity = wallpaperDarkenOpacity,
+        wallpaperGradientEnabled = wallpaperGradientEnabled,
+        wallpaperBitmap = wallpaperBitmap,
+        modifier = modifier
+    )
 }

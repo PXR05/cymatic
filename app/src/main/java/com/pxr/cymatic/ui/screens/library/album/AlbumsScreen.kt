@@ -66,7 +66,8 @@ fun AlbumsScreen(
         searchQuery = viewModel.searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         isSearchActive = viewModel.isSearchActive,
-        onSearchActiveChange = viewModel::onSearchActiveChange
+        onSearchActiveChange = viewModel::onSearchActiveChange,
+        showWallpaperBackdrop = true
     ) {
         if (!hasPermission) {
             PermissionDeniedState(

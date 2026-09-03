@@ -134,6 +134,7 @@ fun QueueScreen(
         title = "Queue",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
+        showWallpaperBackdrop = true,
         actions = {
             if (queueItems.isNotEmpty()) {
                 Text(

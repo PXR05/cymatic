@@ -50,7 +50,8 @@ fun PlaylistSongsScreen(
         title = playlist?.name ?: "Playlist",
         onBackClick = { navController.popBackStack() },
         onTitleClick = { showHeaderMenu = true },
-        modifier = modifier
+        modifier = modifier,
+        showWallpaperBackdrop = true
     ) {
         if (errorMessage != null) {
             ErrorState(

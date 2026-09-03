@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.common.AppActionPopup
+import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -291,7 +292,6 @@ fun AllAppsScreen(
                 .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
                 .clip(searchShape)
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), searchShape)
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
                 .padding(horizontal = 12.dp, vertical = 2.dp)
         ) {
             TextField(
@@ -302,8 +302,10 @@ fun AllAppsScreen(
                     Text(
                         text = "SEARCH APPS",
                         color = MaterialTheme.colorScheme.secondary,
-                        fontSize = 12.sp,
-                        letterSpacing = 2.sp
+                        fontFamily = PixelFontFamily,
+                        fontSize = 14.sp,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(start = 2.dp)
                     )
                 },
                 singleLine = true,
@@ -317,8 +319,10 @@ fun AllAppsScreen(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
-                textStyle = androidx.compose.ui.text.TextStyle(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = PixelFontFamily,
                     fontSize = 14.sp,
+                    letterSpacing = 2.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )

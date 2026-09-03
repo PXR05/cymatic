@@ -71,7 +71,8 @@ fun AlbumSongsScreen(
         title = albumName,
         onBackClick = { navController.popBackStack() },
         onTitleClick = { showHeaderMenu = true },
-        modifier = modifier
+        modifier = modifier,
+        showWallpaperBackdrop = true
     ) {
         if (!hasPermission) {
             PermissionDeniedState(

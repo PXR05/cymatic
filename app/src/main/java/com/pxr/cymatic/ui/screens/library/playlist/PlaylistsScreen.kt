@@ -52,6 +52,7 @@ fun PlaylistsScreen(
         onSearchQueryChange = viewModel::onSearchQueryChange,
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
+        showWallpaperBackdrop = true,
         actions = {
             Text(
                 text = "+",
