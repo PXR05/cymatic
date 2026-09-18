@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Cymatic</string>
+    <string name="update_asset_prefix" translatable="false">cymatic-player-</string>
+</resources>

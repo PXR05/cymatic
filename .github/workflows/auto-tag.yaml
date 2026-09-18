@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'app/build.gradle.kts'
+      - 'gradle.properties'
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
       - name: Check version and tag
         id: tag
         run: |
-          VERSION=$(grep "versionName" app/build.gradle.kts | cut -d'"' -f2)
+          VERSION=$(sed -n 's/^cymaticVersionName=//p' gradle.properties | tr -d '\r')
           TAG="v$VERSION"
 
           if git rev-parse "$TAG" >/dev/null 2>&1; then
