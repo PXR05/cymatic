@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Cymatic Launcher" type="AndroidRunConfigurationType" factoryName="Android App">
+    <module name="cymatic.app-launcher" />
+    <option name="ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
+    <option name="DEPLOY" value="true" />
+    <option name="MODE" value="default_activity" />
+    <option name="CLEAR_APP_STORAGE" value="false" />
+    <method v="2">
+      <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,33 @@
+name: Verify both apps
+
+on:
+  pull_request:
+  push:
+    branches: [main, feature/launcher]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: "21"
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew
+      - name: Build both APKs and run shared tests
+        run: ./gradlew :app-player:assembleDebug :app-launcher:assembleDebug :app-player:assembleRelease :app-launcher:assembleRelease :shared:music:testDebugUnitTest :app-player:lintDebug :app-launcher:lintDebug
+      - name: Check product boundaries
+        run: |
+          python scripts/verify_app_separation.py debug
+          python scripts/verify_app_separation.py release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debug-apks
+          path: app-*/build/outputs/apk/debug/*.apk
