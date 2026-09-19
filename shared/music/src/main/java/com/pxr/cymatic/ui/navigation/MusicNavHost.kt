@@ -26,6 +26,7 @@ import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
@@ -33,6 +34,7 @@ import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 /** Registers shared music destinations, with product-specific entry points supplied by the host. */
 @Composable
 fun MusicNavHost(
+    releaseProduct: ReleaseProduct,
     home: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     settingsItems: List<NavigationItem> = emptyList(),
@@ -81,7 +83,7 @@ fun MusicNavHost(
         Screen.EQSettings.route to { EQSettingsScreen() },
         Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
         Screen.StorageSettings.route to { StorageSettingsScreen() },
-        Screen.VersionSettings.route to { VersionSettingsScreen() },
+        Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
         Screen.Queue.route to { QueueScreen() },
     ) + additionalRoutes
     NavHost(

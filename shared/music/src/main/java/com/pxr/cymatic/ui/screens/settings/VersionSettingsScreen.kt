@@ -36,7 +36,6 @@ import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.music.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -58,6 +57,7 @@ private data class ReleaseInfo(
 
 @Composable
 fun VersionSettingsScreen(
+    releaseProduct: ReleaseProduct,
     modifier: Modifier = Modifier
 ) {
     val navController = LocalNavController.current
@@ -135,7 +135,7 @@ fun VersionSettingsScreen(
                         isChecking = true
                         errorMessage = null
                         scope.launch {
-                            val result = fetchLatestRelease(context.getString(R.string.update_asset_prefix))
+                            val result = fetchLatestRelease(releaseProduct.assetPrefix)
                             isChecking = false
                             if (result != null) {
                                 latestRelease = result
@@ -198,7 +198,7 @@ fun VersionSettingsScreen(
                     if (release.apkUrl != null) {
                         Button(
                             onClick = {
-                                enqueueDownload(context, release).also {
+                                enqueueDownload(context, release, releaseProduct).also {
                                     downloadId = it
                                     downloadStatus = "Starting"
                                 }
@@ -318,7 +318,11 @@ private fun isVersionNewer(latest: String, current: String): Boolean {
     return false
 }
 
-private fun enqueueDownload(context: Context, release: ReleaseInfo): Long {
+private fun enqueueDownload(
+    context: Context,
+    release: ReleaseInfo,
+    releaseProduct: ReleaseProduct,
+): Long {
     val downloadManager = context.getSystemService(DownloadManager::class.java)
     val request = DownloadManager.Request(release.apkUrl?.toUri())
         .setTitle("Cymatic update ${release.versionName}")
@@ -326,7 +330,7 @@ private fun enqueueDownload(context: Context, release: ReleaseInfo): Long {
         .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
         .setDestinationInExternalPublicDir(
             Environment.DIRECTORY_DOWNLOADS,
-            "${context.getString(R.string.update_asset_prefix)}${release.versionName}.apk"
+            "${releaseProduct.assetPrefix}${release.versionName}.apk"
         )
     return downloadManager.enqueue(request)
 }

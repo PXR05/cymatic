@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Cymatic Launcher</string>
-    <string name="update_asset_prefix" translatable="false">cymatic-launcher-</string>
     <string name="open_clock">Open clock</string>
     <string name="open_calendar">Open calendar</string>
     <string name="home_options">Home options</string>

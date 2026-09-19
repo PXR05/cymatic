@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.navigation.MusicNavHost
+import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.state.rememberMusicWindowState
 
@@ -28,7 +29,11 @@ class MainActivity : MusicActivity() {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column {
                 if (!state.isExpanded) {
-                    MusicNavHost(home = { HomeScreen() }, modifier = Modifier.weight(1f))
+                    MusicNavHost(
+                        releaseProduct = ReleaseProduct.PLAYER,
+                        home = { HomeScreen() },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 Column(

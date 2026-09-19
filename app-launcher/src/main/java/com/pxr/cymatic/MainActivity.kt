@@ -28,6 +28,7 @@ import com.pxr.cymatic.ui.screens.home.AllAppsScreen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
 import com.pxr.cymatic.ui.screens.settings.LauncherSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.PermissionsScreen
+import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.state.rememberMusicWindowState
 
 class MainActivity : MusicActivity() {
@@ -81,6 +82,7 @@ class MainActivity : MusicActivity() {
 
                     else -> {
                         MusicNavHost(
+                            releaseProduct = ReleaseProduct.LAUNCHER,
                             home = { HomeScreen() },
                             modifier = Modifier.fillMaxSize(),
                             animate = true,

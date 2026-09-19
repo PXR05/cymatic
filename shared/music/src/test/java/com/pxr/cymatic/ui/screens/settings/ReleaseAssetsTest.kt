@@ -7,11 +7,11 @@ import org.junit.Test
 class ReleaseAssetsTest {
     @Test
     fun selectsOnlyTheRequestedProductFromCombinedRelease() {
-        for (product in listOf("player", "launcher")) {
-            val prefix = "cymatic-$product-"
+        for (product in ReleaseProduct.entries) {
+            val prefix = product.assetPrefix
             assertTrue(isProductApk("${prefix}v0.2.0.apk", prefix))
-            val other = if (product == "player") "launcher" else "player"
-            assertFalse(isProductApk("cymatic-$other-v0.2.0.apk", prefix))
+            val other = ReleaseProduct.entries.first { it != product }
+            assertFalse(isProductApk("${other.assetPrefix}v0.2.0.apk", prefix))
             assertFalse(isProductApk("cymatic-release-v0.1.9.2.apk", prefix))
             assertFalse(isProductApk("${prefix}v0.2.0.apk.sha256", prefix))
         }

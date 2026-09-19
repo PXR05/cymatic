@@ -1,5 +1,9 @@
 package com.pxr.cymatic.ui.screens.settings
 
-/** Fail closed: never offer another product's APK or an unclassified legacy asset. */
+enum class ReleaseProduct(val assetPrefix: String) {
+    PLAYER("cymatic-player-"),
+    LAUNCHER("cymatic-launcher-"),
+}
+
 internal fun isProductApk(name: String, assetPrefix: String): Boolean =
     assetPrefix.isNotBlank() && name.startsWith(assetPrefix) && name.endsWith(".apk")
