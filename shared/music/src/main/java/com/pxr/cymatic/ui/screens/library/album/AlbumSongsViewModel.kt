@@ -12,6 +12,7 @@ import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.screens.library.filterByAlbum
+import com.pxr.cymatic.ui.screens.library.filterByArtistAndAlbum
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,9 @@ class AlbumSongsViewModel(
 ) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
     private val albumName: String = Uri.decode(savedStateHandle.get<String>("albumName").orEmpty())
+    private val artistName: String? = savedStateHandle.get<String>("artistName")
+        ?.let(Uri::decode)
+        ?.takeIf(String::isNotBlank)
 
     private val _songs = MutableStateFlow<List<AudioFile>>(emptyList())
     val songs: StateFlow<List<AudioFile>> = _songs
@@ -37,17 +41,17 @@ class AlbumSongsViewModel(
     init {
         val cached = repository.getCachedAudio()
         if (cached != null) {
-            _songs.value = filterByAlbum(cached, albumName)
+            _songs.value = filterSongs(cached, albumName, artistName)
             _isLoading.value = false
         }
         viewModelScope.launch {
             SettingsStore.lastScanTimeMsFlow.collect {
-                loadAlbumSongs(albumName)
+                loadAlbumSongs(albumName, artistName)
             }
         }
     }
 
-    fun loadAlbumSongs(albumName: String) {
+    fun loadAlbumSongs(albumName: String, artistName: String? = this.artistName) {
         viewModelScope.launch(Dispatchers.IO) {
             if (_songs.value.isEmpty()) {
                 _isLoading.value = true
@@ -55,12 +59,20 @@ class AlbumSongsViewModel(
             _errorMessage.value = null
             try {
                 val allSongs = repository.getAllAudio()
-                _songs.value = filterByAlbum(allSongs, albumName)
+                _songs.value = filterSongs(allSongs, albumName, artistName)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load album songs"
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    private fun filterSongs(songs: List<AudioFile>, albumName: String, artistName: String?): List<AudioFile> {
+        return if (artistName == null) {
+            filterByAlbum(songs, albumName)
+        } else {
+            filterByArtistAndAlbum(songs, artistName, albumName)
         }
     }
 }

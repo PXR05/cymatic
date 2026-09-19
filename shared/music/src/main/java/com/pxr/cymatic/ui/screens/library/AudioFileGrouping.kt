@@ -33,4 +33,14 @@ internal fun filterByAlbum(audioFiles: List<AudioFile>, albumName: String): List
     return audioFiles.filter { albumDisplayName(it) == albumName }
 }
 
+internal fun filterByArtistAndAlbum(
+    audioFiles: List<AudioFile>,
+    artistName: String,
+    albumName: String,
+): List<AudioFile> {
+    return audioFiles.filter {
+        artistDisplayName(it) == artistName && albumDisplayName(it) == albumName
+    }
+}
+
 

@@ -53,7 +53,7 @@ fun ArtistsScreen(
         NavigationItem(
             label = artistName,
             onClick = {
-                navController.navigate(Screen.ArtistSongs.createRoute(artistName))
+                navController.navigate(Screen.ArtistAlbums.createRoute(artistName))
             },
             onLongClick = { selectedArtist = artistName }
         )

@@ -39,6 +39,7 @@ import com.pxr.cymatic.ui.navigation.Screen
 @Composable
 fun AlbumSongsScreen(
     albumName: String,
+    artistName: String? = null,
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
     viewModel: AlbumSongsViewModel = viewModel()
@@ -46,7 +47,11 @@ fun AlbumSongsScreen(
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
-    val queueSource = Screen.AlbumSongs.createRoute(albumName)
+    val queueSource = if (artistName == null) {
+        Screen.AlbumSongs.createRoute(albumName)
+    } else {
+        Screen.ArtistAlbumSongs.createRoute(artistName, albumName)
+    }
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -54,12 +59,12 @@ fun AlbumSongsScreen(
     ) { isGranted ->
         hasPermission = isGranted
         if (isGranted) {
-            viewModel.loadAlbumSongs(albumName)
+            viewModel.loadAlbumSongs(albumName, artistName)
         }
     }
 
-    LaunchedEffect(albumName) {
-        viewModel.loadAlbumSongs(albumName)
+    LaunchedEffect(albumName, artistName) {
+        viewModel.loadAlbumSongs(albumName, artistName)
     }
 
     var showHeaderMenu by remember { mutableStateOf(false) }
@@ -89,7 +94,7 @@ fun AlbumSongsScreen(
         } else if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadAlbumSongs(albumName) }
+                onRetry = { viewModel.loadAlbumSongs(albumName, artistName) }
             )
         } else if (isLoading) {
             LoadingState()

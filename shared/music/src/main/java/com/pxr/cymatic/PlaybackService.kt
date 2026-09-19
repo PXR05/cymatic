@@ -22,6 +22,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.session.CommandButton
+import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -35,6 +36,7 @@ import com.pxr.cymatic.data.store.PlaybackStore
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.playback.FadingPlayer
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
+import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
 import com.pxr.cymatic.playback.createMediaItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -107,6 +109,7 @@ class PlaybackService : MediaLibraryService() {
         mediaLibrarySession = MediaLibrarySession.Builder(this, fadingPlayer, libraryCallback)
             .setId("audio_session")
             .setSessionActivity(pendingIntent)
+            .setBitmapLoader(CacheBitmapLoader(SquareArtworkBitmapLoader(this)))
             .setCustomLayout(buildLockScreenLayout())
             .build()
 

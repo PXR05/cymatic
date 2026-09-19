@@ -37,6 +37,13 @@ object SettingsStore {
     private const val DEFAULT_HIDE_ARTWORK = false
     private const val DEFAULT_FADE_ENABLED = true
     private const val DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT = false
+    const val DEFAULT_SYNC_URL = "https://audiostream.pxr.dpdns.org/"
+    const val DEFAULT_SYNC_USERNAME = "pxr"
+    private const val DEFAULT_SYNC_ADAPTER = "audiostream"
+    private const val DEFAULT_SYNC_NETWORK = "never"
+    private const val DEFAULT_SYNC_INTERVAL_HOURS = 24L
+    private const val DEFAULT_SYNC_LAYOUT = "artist_album_tracks"
+    private const val DEFAULT_SYNC_CONTENT_MODE = "all"
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val FADE_ENABLED_KEY = booleanPreferencesKey("FADE_ENABLED")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
@@ -51,6 +58,18 @@ object SettingsStore {
     private val EQ_ACTIVE_AUDIO_DEVICE_KEY = stringPreferencesKey("EQ_ACTIVE_AUDIO_DEVICE")
     private val EQ_DEVICE_PRESETS_KEY = stringPreferencesKey("EQ_DEVICE_PRESETS")
     private val RESUME_ON_BLUETOOTH_RECONNECT_KEY = booleanPreferencesKey("RESUME_ON_BLUETOOTH_RECONNECT")
+    private val SYNC_URL_KEY = stringPreferencesKey("SYNC_URL")
+    private val SYNC_USERNAME_KEY = stringPreferencesKey("SYNC_USERNAME")
+    private val SYNC_ADAPTER_KEY = stringPreferencesKey("SYNC_ADAPTER")
+    private val SYNC_NETWORK_KEY = stringPreferencesKey("SYNC_NETWORK")
+    private val SYNC_INTERVAL_HOURS_KEY = longPreferencesKey("SYNC_INTERVAL_HOURS")
+    private val SYNC_LAYOUT_KEY = stringPreferencesKey("SYNC_LAYOUT")
+    private val SYNC_DIRECTORY_KEY = stringPreferencesKey("SYNC_DIRECTORY")
+    private val SYNC_LAST_TIME_KEY = longPreferencesKey("SYNC_LAST_TIME")
+    private val SYNC_LAST_RESULT_KEY = stringPreferencesKey("SYNC_LAST_RESULT")
+    private val SYNC_PLAYLIST_IDS_KEY = stringPreferencesKey("SYNC_PLAYLIST_IDS")
+    private val SYNC_CONTENT_MODE_KEY = stringPreferencesKey("SYNC_CONTENT_MODE")
+    private val SYNC_SELECTED_PLAYLISTS_KEY = stringSetPreferencesKey("SYNC_SELECTED_PLAYLISTS")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore
@@ -118,6 +137,18 @@ object SettingsStore {
             prefs[FADE_ENABLED_KEY] ?: DEFAULT_FADE_ENABLED
         }
 
+    val syncUrlFlow: Flow<String> get() = store.data.map { it[SYNC_URL_KEY] ?: DEFAULT_SYNC_URL }
+    val syncUsernameFlow: Flow<String> get() = store.data.map { it[SYNC_USERNAME_KEY] ?: DEFAULT_SYNC_USERNAME }
+    val syncAdapterFlow: Flow<String> get() = store.data.map { it[SYNC_ADAPTER_KEY] ?: DEFAULT_SYNC_ADAPTER }
+    val syncNetworkFlow: Flow<String> get() = store.data.map { it[SYNC_NETWORK_KEY] ?: DEFAULT_SYNC_NETWORK }
+    val syncIntervalHoursFlow: Flow<Long> get() = store.data.map { it[SYNC_INTERVAL_HOURS_KEY] ?: DEFAULT_SYNC_INTERVAL_HOURS }
+    val syncLayoutFlow: Flow<String> get() = store.data.map { it[SYNC_LAYOUT_KEY] ?: DEFAULT_SYNC_LAYOUT }
+    val syncDirectoryFlow: Flow<String> get() = store.data.map { it[SYNC_DIRECTORY_KEY].orEmpty() }
+    val syncLastTimeFlow: Flow<Long> get() = store.data.map { it[SYNC_LAST_TIME_KEY] ?: 0L }
+    val syncLastResultFlow: Flow<String> get() = store.data.map { it[SYNC_LAST_RESULT_KEY] ?: "Not synced yet" }
+    val syncContentModeFlow: Flow<String> get() = store.data.map { it[SYNC_CONTENT_MODE_KEY] ?: DEFAULT_SYNC_CONTENT_MODE }
+    val syncSelectedPlaylistsFlow: Flow<Set<String>> get() = store.data.map { it[SYNC_SELECTED_PLAYLISTS_KEY] ?: emptySet() }
+
     val currentLocked: Boolean
         get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
 
@@ -147,6 +178,16 @@ object SettingsStore {
 
     val currentFadeEnabled: Boolean
         get() = _prefs.value?.get(FADE_ENABLED_KEY) ?: DEFAULT_FADE_ENABLED
+
+    val currentSyncUrl: String get() = _prefs.value?.get(SYNC_URL_KEY) ?: DEFAULT_SYNC_URL
+    val currentSyncUsername: String get() = _prefs.value?.get(SYNC_USERNAME_KEY) ?: DEFAULT_SYNC_USERNAME
+    val currentSyncAdapter: String get() = _prefs.value?.get(SYNC_ADAPTER_KEY) ?: DEFAULT_SYNC_ADAPTER
+    val currentSyncNetwork: String get() = _prefs.value?.get(SYNC_NETWORK_KEY) ?: DEFAULT_SYNC_NETWORK
+    val currentSyncIntervalHours: Long get() = _prefs.value?.get(SYNC_INTERVAL_HOURS_KEY) ?: DEFAULT_SYNC_INTERVAL_HOURS
+    val currentSyncLayout: String get() = _prefs.value?.get(SYNC_LAYOUT_KEY) ?: DEFAULT_SYNC_LAYOUT
+    val currentSyncDirectory: String get() = _prefs.value?.get(SYNC_DIRECTORY_KEY).orEmpty()
+    val currentSyncContentMode: String get() = _prefs.value?.get(SYNC_CONTENT_MODE_KEY) ?: DEFAULT_SYNC_CONTENT_MODE
+    val currentSyncSelectedPlaylists: Set<String> get() = _prefs.value?.get(SYNC_SELECTED_PLAYLISTS_KEY) ?: emptySet()
 
     private fun getEqPresetsList(prefs: Preferences): List<EqPreset> {
         val jsonStr = prefs[EQ_PRESETS_KEY] ?: "[]"
@@ -277,6 +318,38 @@ object SettingsStore {
         }
     }
 
+    suspend fun setSyncUrl(value: String) = store.edit { it[SYNC_URL_KEY] = value.trim() }
+    suspend fun setSyncUsername(value: String) = store.edit { it[SYNC_USERNAME_KEY] = value.trim() }
+    suspend fun setSyncAdapter(value: String) = store.edit { it[SYNC_ADAPTER_KEY] = value }
+    suspend fun setSyncNetwork(value: String) = store.edit { it[SYNC_NETWORK_KEY] = value }
+    suspend fun setSyncIntervalHours(value: Long) = store.edit { it[SYNC_INTERVAL_HOURS_KEY] = value.coerceAtLeast(1L) }
+    suspend fun setSyncLayout(value: String) = store.edit { it[SYNC_LAYOUT_KEY] = value }
+    suspend fun setSyncDirectory(value: String) = store.edit { it[SYNC_DIRECTORY_KEY] = value }
+    suspend fun setSyncContentMode(value: String) = store.edit { it[SYNC_CONTENT_MODE_KEY] = value }
+    suspend fun setSyncSelectedPlaylists(value: Set<String>) = store.edit { it[SYNC_SELECTED_PLAYLISTS_KEY] = value }
+    suspend fun setSyncResult(time: Long, result: String) = store.edit {
+        it[SYNC_LAST_TIME_KEY] = time
+        it[SYNC_LAST_RESULT_KEY] = result
+    }
+
+    suspend fun getSyncUrl(): String = syncUrlFlow.first()
+    suspend fun getSyncUsername(): String = syncUsernameFlow.first()
+    suspend fun getSyncAdapter(): String = syncAdapterFlow.first()
+    suspend fun getSyncNetwork(): String = syncNetworkFlow.first()
+    suspend fun getSyncIntervalHours(): Long = syncIntervalHoursFlow.first()
+    suspend fun getSyncLayout(): String = syncLayoutFlow.first()
+    suspend fun getSyncDirectory(): String = syncDirectoryFlow.first()
+    suspend fun getSyncContentMode(): String = syncContentModeFlow.first()
+    suspend fun getSyncSelectedPlaylists(): Set<String> = syncSelectedPlaylistsFlow.first()
+    suspend fun getSyncPlaylistIds(): Map<String, Long> =
+        parseLongMap(store.data.first()[SYNC_PLAYLIST_IDS_KEY])
+
+    suspend fun setSyncPlaylistIds(value: Map<String, Long>) = store.edit { prefs ->
+        val json = org.json.JSONObject()
+        value.forEach { (remoteId, localId) -> json.put(remoteId, localId) }
+        prefs[SYNC_PLAYLIST_IDS_KEY] = json.toString()
+    }
+
     suspend fun addScanDirectory(value: String) {
         store.edit { prefs ->
             val current = prefs[SCAN_DIRECTORIES_KEY] ?: emptySet()
@@ -366,5 +439,13 @@ object SettingsStore {
             }
         }
         return json.toString()
+    }
+
+    private fun parseLongMap(jsonStr: String?): Map<String, Long> {
+        if (jsonStr.isNullOrBlank()) return emptyMap()
+        return runCatching {
+            val json = org.json.JSONObject(jsonStr)
+            json.keys().asSequence().associateWith(json::getLong)
+        }.getOrDefault(emptyMap())
     }
 }

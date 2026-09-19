@@ -54,13 +54,11 @@ for product, package in (("player", "com.pxr.cymatic"), ("launcher", "com.pxr.cy
     apks = list((ROOT / f"app-{product}/build/outputs/apk/{VARIANT}").glob("*.apk"))
     assert len(apks) == 1, f"Expected one assembled {product} APK"
     with zipfile.ZipFile(apks[0]) as apk:
-        resources = apk.read("resources.arsc")
+        dex = b"".join(apk.read(name) for name in apk.namelist() if name.endswith(".dex"))
     prefix = f"cymatic-{product}-"
-    assert any(prefix.encode(encoding) in resources for encoding in ("utf-8", "utf-16-le")), "Product update configuration missing from APK"
+    assert prefix.encode("utf-8") in dex, "Product update configuration missing from APK"
     if VARIANT == "debug":
         # Debug bytecode keeps source class names; check the actual packaged code.
-        with zipfile.ZipFile(apks[0]) as apk:
-            dex = b"".join(apk.read(name) for name in apk.namelist() if name.endswith(".dex"))
         assert b"Lcom/pxr/cymatic/PlaybackService;" in dex
         for launcher_class in (
             b"Lcom/pxr/cymatic/data/store/LauncherStore;",

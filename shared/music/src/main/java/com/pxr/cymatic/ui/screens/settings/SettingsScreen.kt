@@ -35,6 +35,10 @@ fun SettingsScreen(
                     label = "Storage",
                     onClick = { navController.navigate(Screen.StorageSettings.route) }
                 ),
+                NavigationItem(
+                    label = "Library sync",
+                    onClick = { navController.navigate(Screen.LibrarySyncSettings.route) }
+                ),
             ) + additionalItems + listOf(
                 NavigationItem(
                     label = "Version",

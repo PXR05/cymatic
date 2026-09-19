@@ -13,10 +13,21 @@ sealed class Screen(val route: String) {
 
     object Artists : Screen("artists")
 
-    object ArtistSongs : Screen("artist/{artistName}?scrollId={scrollId}") {
+    object ArtistAlbums : Screen("artist/{artistName}") {
+        fun createRoute(artistName: String): String = "artist/${Uri.encode(artistName)}"
+    }
+
+    object ArtistSongs : Screen("artist/{artistName}/all?scrollId={scrollId}") {
         fun createRoute(artistName: String, scrollId: Long? = null): String {
             val encodedName = Uri.encode(artistName)
-            return if (scrollId != null) "artist/$encodedName?scrollId=$scrollId" else "artist/$encodedName"
+            return if (scrollId != null) "artist/$encodedName/all?scrollId=$scrollId" else "artist/$encodedName/all"
+        }
+    }
+
+    object ArtistAlbumSongs : Screen("artist/{artistName}/album/{albumName}?scrollId={scrollId}") {
+        fun createRoute(artistName: String, albumName: String, scrollId: Long? = null): String {
+            val base = "artist/${Uri.encode(artistName)}/album/${Uri.encode(albumName)}"
+            return if (scrollId != null) "$base?scrollId=$scrollId" else base
         }
     }
 
@@ -44,6 +55,8 @@ sealed class Screen(val route: String) {
     object PlaybackSettings : Screen("setting/playback")
 
     object StorageSettings : Screen("setting/storage")
+
+    object LibrarySyncSettings : Screen("setting/library-sync")
 
     object VersionSettings : Screen("setting/version")
 

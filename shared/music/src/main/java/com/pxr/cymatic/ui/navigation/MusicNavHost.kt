@@ -21,11 +21,13 @@ import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
+import com.pxr.cymatic.ui.screens.library.artist.ArtistAlbumsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.LibrarySyncSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
@@ -51,6 +53,10 @@ fun MusicNavHost(
             )
         },
         Screen.Artists.route to { ArtistsScreen() },
+        Screen.ArtistAlbums.route to { entry ->
+            val artistName = entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
+            ArtistAlbumsScreen(artistName = artistName)
+        },
         Screen.ArtistSongs.route to { entry ->
             val rawName = entry.arguments?.getString("artistName")
             val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
@@ -58,6 +64,16 @@ fun MusicNavHost(
             ArtistSongsScreen(
                 artistName = artistName,
                 scrollTargetId = scrollId?.toLongOrNull()
+            )
+        },
+        Screen.ArtistAlbumSongs.route to { entry ->
+            val artistName = entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
+            val albumName = entry.arguments?.getString("albumName")?.let(Uri::decode) ?: UnknownAlbum
+            val scrollId = entry.arguments?.getString("scrollId")
+            AlbumSongsScreen(
+                albumName = albumName,
+                artistName = artistName,
+                scrollTargetId = scrollId?.toLongOrNull(),
             )
         },
         Screen.Albums.route to { AlbumsScreen() },
@@ -83,6 +99,7 @@ fun MusicNavHost(
         Screen.EQSettings.route to { EQSettingsScreen() },
         Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
         Screen.StorageSettings.route to { StorageSettingsScreen() },
+        Screen.LibrarySyncSettings.route to { LibrarySyncSettingsScreen() },
         Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
         Screen.Queue.route to { QueueScreen() },
     ) + additionalRoutes
