@@ -76,7 +76,7 @@ object SyncPathPlanner {
         val artist = track.artist.safeSegment("Unknown artist")
         val album = track.album.safeSegment("Unknown album")
         val number = track.trackNumber?.takeIf { it > 0 }?.toString()?.padStart(2, '0')
-        val numberedName = listOfNotNull(number, title).joinToString(" - ") + "." + extension
+        val numberedName = listOfNotNull(number, title).joinToString(". ") + "." + extension
         return when (layout) {
             SyncLayout.FLAT -> listOf(SyncTarget("$artist - $title.$extension", track))
             SyncLayout.ARTIST_ALBUM_TRACKS -> listOf(SyncTarget("$artist/$album/$numberedName", track))
@@ -86,7 +86,7 @@ object SyncPathPlanner {
                 placements.map { placement ->
                     val playlist = placement.name.safeSegment("Unnamed playlist")
                     val prefix = if (placement.position >= 0) (placement.position + 1).toString().padStart(2, '0') else null
-                    val name = listOfNotNull(prefix, title).joinToString(" - ") + "." + extension
+                    val name = listOfNotNull(prefix, title).joinToString(". ") + "." + extension
                     SyncTarget("$playlist/$name", track)
                 }
             }

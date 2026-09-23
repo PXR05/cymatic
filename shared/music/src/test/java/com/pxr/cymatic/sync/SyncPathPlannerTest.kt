@@ -18,7 +18,7 @@ class SyncPathPlannerTest {
     @Test
     fun artistAlbumLayoutSanitizesSegments() {
         val target = SyncPathPlanner.targets(track, SyncLayout.ARTIST_ALBUM_TRACKS).single()
-        assertEquals("Artist_Name/Album_/03 - Song_ One.flac", target.relativePath)
+        assertEquals("Artist_Name/Album_/03. Song_ One.flac", target.relativePath)
     }
 
     @Test
@@ -28,13 +28,13 @@ class SyncPathPlannerTest {
             SyncLayout.PLAYLIST_TRACKS,
             listOf(PlaylistPlacement("Morning", 0), PlaylistPlacement("Night", 4)),
         )
-        assertEquals(listOf("Morning/01 - Song_ One.flac", "Night/05 - Song_ One.flac"), targets.map { it.relativePath })
+        assertEquals(listOf("Morning/01. Song_ One.flac", "Night/05. Song_ One.flac"), targets.map { it.relativePath })
     }
 
     @Test
     fun playlistLayoutKeepsUnassignedTracks() {
         val target = SyncPathPlanner.targets(track, SyncLayout.PLAYLIST_TRACKS).single()
-        assertEquals("Not in a playlist/01 - Song_ One.flac", target.relativePath)
+        assertEquals("Not in a playlist/01. Song_ One.flac", target.relativePath)
     }
 
     @Test
