@@ -1,5 +1,6 @@
 package com.pxr.cymatic
 
+import android.content.Intent
 import android.os.Build
 import android.view.WindowManager
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.pxr.cymatic.data.launcher.LauncherHomePressBus
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.launcher.LibraryWallpaperBackdrop
 import com.pxr.cymatic.ui.components.list.NavigationItem
@@ -24,19 +26,40 @@ import com.pxr.cymatic.ui.components.player.PlayerBar
 import com.pxr.cymatic.ui.components.screen.LocalScreenBackdrop
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.MusicNavHost
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.screens.home.AllAppsScreen
 import com.pxr.cymatic.ui.screens.home.HomeScreen
+import com.pxr.cymatic.ui.screens.settings.HiddenAppsScreen
 import com.pxr.cymatic.ui.screens.settings.LauncherSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.PermissionsScreen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.state.rememberMusicWindowState
 
 class MainActivity : MusicActivity() {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN &&
+            intent.hasCategory(Intent.CATEGORY_HOME)
+        ) {
+            LauncherHomePressBus.notifyHomePressed()
+        }
+    }
+
     @Composable
     override fun AppContent() {
         val navController = LocalNavController.current
         val state = rememberMusicWindowState(window)
         val wallpaperBlurRadius by LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0f)
+
+        LaunchedEffect(navController) {
+            LauncherHomePressBus.events.collect {
+                try {
+                    navController.popBackStack(Screen.Home.route, false)
+                } catch (_: Exception) {
+                }
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             LaunchedEffect(wallpaperBlurRadius) {
@@ -99,6 +122,7 @@ class MainActivity : MusicActivity() {
                                 },
                                 LauncherRoutes.Permissions to { PermissionsScreen() },
                                 LauncherRoutes.Settings to { LauncherSettingsScreen() },
+                                LauncherRoutes.HiddenApps to { HiddenAppsScreen() },
                             ),
                         )
                     }

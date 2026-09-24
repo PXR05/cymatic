@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
+import com.pxr.cymatic.data.launcher.LauncherHomePressBus
 import com.pxr.cymatic.data.launcher.SystemShadeHelper
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.common.verticalFadingEdge
@@ -114,11 +115,29 @@ fun HomeScreen() {
     val appsViewModel: LauncherAppsViewModel = viewModel()
     val context = LocalContext.current
     val homeApps by appsViewModel.homeApps.collectAsState()
-    val allApps by appsViewModel.allApps.collectAsState()
+    val allApps by appsViewModel.visibleApps.collectAsState()
     val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
     val showFolderLabels by LauncherStore.showFolderLabelsFlow.collectAsState(initial = true)
     val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
     var activeFolderForDialog by remember { mutableStateOf<LauncherAppsViewModel.PinnedGridEntry.Folder?>(null) }
+
+    LaunchedEffect(Unit) {
+        LauncherHomePressBus.events.collect {
+            activeFolderForDialog = null
+            try {
+                if (hPagerState.currentPage != 0) {
+                    hPagerState.animateScrollToPage(0, animationSpec = CymaticMotion.spatial())
+                }
+            } catch (_: Exception) {
+            }
+            try {
+                if (vPagerState.currentPage != 0) {
+                    vPagerState.animateScrollToPage(0, animationSpec = CymaticMotion.spatial())
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         WallpaperBackdrop(
@@ -201,6 +220,9 @@ fun HomeScreen() {
                 },
                 onDeleteFolder = {
                     appsViewModel.deleteFolder(folder.id)
+                },
+                onHideApp = { pkg ->
+                    appsViewModel.hideApp(pkg)
                 }
             )
         }
@@ -255,7 +277,7 @@ private fun HomeContent(
     val showPinnedLabels by LauncherStore.showPinnedLabelsFlow.collectAsState(initial = false)
     val showFolderLabels by LauncherStore.showFolderLabelsFlow.collectAsState(initial = true)
     val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
-    val allApps by appsViewModel.allApps.collectAsState()
+    val allApps by appsViewModel.visibleApps.collectAsState()
 
     val showClock by LauncherStore.showClockFlow.collectAsState(initial = true)
     val showDay by LauncherStore.showDayFlow.collectAsState(initial = true)
@@ -268,6 +290,13 @@ private fun HomeContent(
 
     var isOverviewMode by remember { mutableStateOf(false) }
     var overviewLevel by remember { mutableStateOf(OverviewMenuLevel.ROOT) }
+
+    LaunchedEffect(Unit) {
+        LauncherHomePressBus.events.collect {
+            isOverviewMode = false
+            overviewLevel = OverviewMenuLevel.ROOT
+        }
+    }
 
     val libraryEntries = remember {
         listOf(
@@ -480,6 +509,9 @@ private fun HomeContent(
                         },
                         onRenameFolderRequest = { folder ->
                             onOpenFolder(folder)
+                        },
+                        onHideApp = { pkg ->
+                            appsViewModel.hideApp(pkg)
                         },
                         iconScale = appIconScale
                     )

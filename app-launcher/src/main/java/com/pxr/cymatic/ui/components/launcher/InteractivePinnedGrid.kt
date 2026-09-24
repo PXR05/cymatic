@@ -77,6 +77,7 @@ fun InteractivePinnedGrid(
     onMergeFolder: (sourceIndex: Int, targetIndex: Int) -> Unit,
     onUnpinItem: (Int) -> Unit,
     onRenameFolderRequest: (LauncherAppsViewModel.PinnedGridEntry.Folder) -> Unit,
+    onHideApp: ((String) -> Unit)? = null,
     onEmptySpaceLongPress: () -> Unit = {},
     modifier: Modifier = Modifier,
     iconScale: Float = 1.0f
@@ -340,12 +341,22 @@ fun InteractivePinnedGrid(
                                     is LauncherAppsViewModel.PinnedGridEntry.App -> {
                                         CymaticDropdownMenuItem(
                                             text = "Unpin from Home",
-                                            leadingIcon = R.drawable.ic_pixel_trash,
+                                            leadingIcon = R.drawable.ic_pixel_minus,
                                             onClick = {
                                                 selectedItemIndexForMenu = null
                                                 onUnpinItem(itemIndex)
                                             }
                                         )
+                                        if (onHideApp != null) {
+                                            CymaticDropdownMenuItem(
+                                                text = "Hide App",
+                                                leadingIcon = R.drawable.ic_pixel_eye,
+                                                onClick = {
+                                                    selectedItemIndexForMenu = null
+                                                    onHideApp(entry.app.packageName)
+                                                }
+                                            )
+                                        }
                                         CymaticDropdownMenuItem(
                                             text = "App Info",
                                             leadingIcon = R.drawable.ic_pixel_info,
@@ -372,7 +383,7 @@ fun InteractivePinnedGrid(
                                         )
                                         CymaticDropdownMenuItem(
                                             text = "Unpin Folder",
-                                            leadingIcon = R.drawable.ic_pixel_trash,
+                                            leadingIcon = R.drawable.ic_pixel_minus,
                                             onClick = {
                                                 selectedItemIndexForMenu = null
                                                 onUnpinItem(itemIndex)

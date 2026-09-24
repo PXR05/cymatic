@@ -434,38 +434,56 @@ private fun SettingsRow(
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                subtitle,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.secondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        SettingsText(title, subtitle, Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
+        SettingsPill(value, enabled, onClick)
+    }
+}
+
+@Composable
+private fun SettingsText(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
+        Text(title, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
+        Spacer(Modifier.height(4.dp))
         Text(
-            value,
+            subtitle,
             fontSize = 12.sp,
-            color = if (enabled) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .border(
-                    1.dp,
-                    if (enabled) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,
-                    RoundedCornerShape(8.dp),
-                )
-                .clickable(
-                    enabled = enabled,
-                    indication = null,
-                    interactionSource = null,
-                    onClick = onClick,
-                )
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+@Composable
+private fun SettingsPill(
+    value: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Text(
+        value,
+        fontSize = 12.sp,
+        color = if (enabled) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                1.dp,
+                if (enabled) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.secondary,
+                RoundedCornerShape(8.dp),
+            )
+            .clickable(
+                enabled = enabled,
+                indication = null,
+                interactionSource = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
@@ -478,20 +496,29 @@ private fun PickerRow(
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth()) {
-        SettingsRow(title, subtitle, value, enabled) { expanded = true }
-        CymaticDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                CymaticDropdownMenuItem(
-                    text = if (option == value) "•  $option" else option,
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SettingsText(title, subtitle, Modifier.weight(1f))
+        Spacer(Modifier.width(12.dp))
+        Box {
+            SettingsPill(value, enabled) { expanded = true }
+            CymaticDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEach { option ->
+                    CymaticDropdownMenuItem(
+                        text = if (option == value) "•  $option" else option,
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }

@@ -45,11 +45,36 @@ class LauncherAppsViewModel(application: Application) : AndroidViewModel(applica
 
     private val _mostUsed = MutableStateFlow<List<String>>(emptyList())
 
+    val hiddenPackages: StateFlow<Set<String>> = LauncherStore.hiddenPackagesFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptySet()
+        )
+
+    val visibleApps: StateFlow<List<LauncherAppsLoader.LauncherApp>> =
+        combine(_allApps, hiddenPackages) { apps, hidden ->
+            if (hidden.isEmpty()) apps else apps.filter { it.packageName !in hidden }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
+    val hiddenApps: StateFlow<List<LauncherAppsLoader.LauncherApp>> =
+        combine(_allApps, hiddenPackages) { apps, hidden ->
+            if (hidden.isEmpty()) emptyList() else apps.filter { it.packageName in hidden }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
     val mostUsedApps: StateFlow<List<LauncherAppsLoader.LauncherApp>> =
-        combine(_allApps, _mostUsed) { apps, mostUsed ->
+        combine(_allApps, _mostUsed, hiddenPackages) { apps, mostUsed, hidden ->
             val byPkg = apps.associateBy { it.packageName }
-            val ranked = mostUsed.mapNotNull { byPkg[it] }
-            (ranked + apps.filter { app -> ranked.none { it.packageName == app.packageName } }).take(8)
+            val ranked = mostUsed.mapNotNull { byPkg[it] }.filter { it.packageName !in hidden }
+            (ranked + apps.filter { app -> app.packageName !in hidden && ranked.none { it.packageName == app.packageName } }).take(8)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -57,13 +82,20 @@ class LauncherAppsViewModel(application: Application) : AndroidViewModel(applica
         )
 
     val homeApps: StateFlow<HomeAppsState> =
-        combine(_allApps, _mostUsed, LauncherStore.pinnedLayoutFlow, LauncherStore.hasStoredPinnedLayoutFlow) { apps, mostUsed, customPins, hasStored ->
-            val byPkg = apps.associateBy { it.packageName }
+        combine(
+            _allApps,
+            _mostUsed,
+            LauncherStore.pinnedLayoutFlow,
+            LauncherStore.hasStoredPinnedLayoutFlow,
+            hiddenPackages
+        ) { apps, mostUsed, customPins, hasStored, hidden ->
+            val visibleApps = if (hidden.isEmpty()) apps else apps.filter { it.packageName !in hidden }
+            val byPkg = visibleApps.associateBy { it.packageName }
             if (!hasStored || customPins.isEmpty()) {
                 val ranked = mostUsed.mapNotNull { byPkg[it] }
                 val defaults = buildList {
                     addAll(ranked)
-                    apps.forEach { app ->
+                    visibleApps.forEach { app ->
                         if (none { it.packageName == app.packageName }) {
                             add(app)
                         }
@@ -277,6 +309,52 @@ class LauncherAppsViewModel(application: Application) : AndroidViewModel(applica
 
     fun resetToMostUsed() {
         LauncherStore.clearPinnedLayout()
+    }
+
+    fun hideApp(packageName: String) {
+        LauncherStore.setHiddenPackageHidden(packageName, true)
+        viewModelScope.launch {
+            val list = getCurrentLayout()
+            var changed = false
+            val iterator = list.listIterator()
+            while (iterator.hasNext()) {
+                val item = iterator.next()
+                when (item) {
+                    is PinnedItem.App -> if (item.packageName == packageName) {
+                        iterator.remove()
+                        changed = true
+                    }
+                    is PinnedItem.Folder -> if (packageName in item.packages) {
+                        val remaining = item.packages.filter { it != packageName }
+                        when {
+                            remaining.isEmpty() -> {
+                                iterator.remove()
+                                changed = true
+                            }
+                            remaining.size == 1 -> {
+                                iterator.set(PinnedItem.App(remaining.first()))
+                                changed = true
+                            }
+                            else -> {
+                                iterator.set(item.copy(packages = remaining))
+                                changed = true
+                            }
+                        }
+                    }
+                }
+            }
+            if (changed) {
+                LauncherStore.setPinnedLayout(list)
+            }
+        }
+    }
+
+    fun unhideApp(packageName: String) {
+        LauncherStore.setHiddenPackageHidden(packageName, false)
+    }
+
+    fun isHidden(packageName: String): Boolean {
+        return packageName in hiddenPackages.value
     }
 
     fun isPinned(packageName: String): Boolean {

@@ -1,22 +1,21 @@
 package com.pxr.cymatic.ui.components.primitives
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 
 @Composable
 fun CymaticDropdownMenu(
@@ -56,11 +55,14 @@ fun CymaticDropdownMenuItem(
             )
         },
         leadingIcon = leadingIcon,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
         onClick = onClick,
-        modifier = modifier
+        modifier = Modifier.height(MenuItemHeight).then(modifier)
     )
 }
+
+/** Compact row height shared by every dropdown menu. */
+val MenuItemHeight = 40.dp
 
 @Composable
 fun CymaticDropdownMenuItem(

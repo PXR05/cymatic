@@ -104,7 +104,8 @@ fun FolderDialog(
     onRemoveApp: (String) -> Unit,
     onAddApp: (String) -> Unit,
     onReorderApp: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
-    onDeleteFolder: () -> Unit = {}
+    onDeleteFolder: () -> Unit = {},
+    onHideApp: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -522,12 +523,22 @@ fun FolderDialog(
                                     ) {
                                         CymaticDropdownMenuItem(
                                             text = "Remove from Folder",
-                                            leadingIcon = R.drawable.ic_pixel_trash,
+                                            leadingIcon = R.drawable.ic_pixel_minus,
                                             onClick = {
                                                 selectedPackageForAction = null
                                                 onRemoveApp(app.packageName)
                                             }
                                         )
+                                        if (onHideApp != null) {
+                                            CymaticDropdownMenuItem(
+                                                text = "Hide App",
+                                                leadingIcon = R.drawable.ic_pixel_eye,
+                                                onClick = {
+                                                    selectedPackageForAction = null
+                                                    onHideApp(app.packageName)
+                                                }
+                                            )
+                                        }
                                         CymaticDropdownMenuItem(
                                             text = "App Info",
                                             leadingIcon = R.drawable.ic_pixel_info,

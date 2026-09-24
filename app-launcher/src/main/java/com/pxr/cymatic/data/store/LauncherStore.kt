@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pxr.cymatic.data.launcher.PinnedItem
 import com.pxr.cymatic.data.launcher.PinnedLayoutCodec
@@ -41,6 +42,7 @@ object LauncherStore {
     private val WALLPAPER_GRADIENT_ENABLED_KEY = booleanPreferencesKey("WALLPAPER_GRADIENT_ENABLED")
     private val WALLPAPER_BLUR_RADIUS_KEY = floatPreferencesKey("WALLPAPER_BLUR_RADIUS")
     private val USE_SONG_WALLPAPER_KEY = booleanPreferencesKey("USE_SONG_WALLPAPER")
+    private val HIDDEN_PACKAGES_KEY = stringSetPreferencesKey("HIDDEN_PACKAGES")
 
     fun init(context: Context) {
         dataStore = context.applicationContext.launcherDataStore
@@ -260,6 +262,34 @@ object LauncherStore {
         scope.launch {
             store.edit { prefs ->
                 prefs[USE_SONG_WALLPAPER_KEY] = value
+            }
+        }
+    }
+
+    val hiddenPackagesFlow: Flow<Set<String>>
+        get() = store.data.map { prefs ->
+            prefs[HIDDEN_PACKAGES_KEY] ?: emptySet()
+        }
+
+    suspend fun getHiddenPackages(): Set<String> = hiddenPackagesFlow.first()
+
+    fun setHiddenPackages(packages: Set<String>) {
+        scope.launch {
+            store.edit { prefs ->
+                prefs[HIDDEN_PACKAGES_KEY] = packages
+            }
+        }
+    }
+
+    fun setHiddenPackageHidden(packageName: String, hidden: Boolean) {
+        scope.launch {
+            store.edit { prefs ->
+                val current = prefs[HIDDEN_PACKAGES_KEY] ?: emptySet()
+                prefs[HIDDEN_PACKAGES_KEY] = if (hidden) {
+                    current + packageName
+                } else {
+                    current - packageName
+                }
             }
         }
     }

@@ -2,16 +2,19 @@ package com.pxr.cymatic.ui.screens.home
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,11 +22,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -54,15 +59,24 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.LauncherRoutes
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
+import com.pxr.cymatic.data.launcher.LauncherHomePressBus
 import com.pxr.cymatic.data.store.LauncherStore
+import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.AppActionPopup
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
+import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
+import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlinx.coroutines.launch
 
@@ -76,13 +90,25 @@ fun AllAppsScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val allApps by viewModel.allApps.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val navController = LocalNavController.current
+    val allApps by viewModel.visibleApps.collectAsState()
     val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
     val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    var isOptionsMenuOpen by rememberSaveable { mutableStateOf(false) }
     val isSearching = searchQuery.isNotBlank()
+
+    BackHandler(enabled = isSearching) {
+        searchQuery = ""
+        selectedPackage = null
+        keyboardController?.hide()
+    }
+    BackHandler(enabled = !isSearching && selectedPackage != null) {
+        selectedPackage = null
+    }
 
     val filteredApps = remember(allApps, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -114,6 +140,19 @@ fun AllAppsScreen(
 
     LaunchedEffect(isSearching) {
         gridState.scrollToItem(0)
+    }
+
+    LaunchedEffect(Unit) {
+        LauncherHomePressBus.events.collect {
+            searchQuery = ""
+            selectedPackage = null
+            isOptionsMenuOpen = false
+            keyboardController?.hide()
+            try {
+                gridState.scrollToItem(0)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     val nestedScrollConnection = remember(vPagerState, gridState, isSearching) {
@@ -273,6 +312,9 @@ fun AllAppsScreen(
                                         }
                                     context.startActivity(infoIntent)
                                 },
+                                onHide = {
+                                    viewModel.hideApp(app.packageName)
+                                },
                                 onUninstall = if (app.canUninstall) {
                                     {
                                         LauncherAppsLoader.uninstall(context, app.packageName)
@@ -289,43 +331,103 @@ fun AllAppsScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+                .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
                 .clip(searchShape)
                 .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), searchShape)
-                .padding(horizontal = 12.dp, vertical = 2.dp)
+                .padding(start = 4.dp, top = 2.dp, bottom = 2.dp, end = 4.dp)
         ) {
-            TextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        text = "SEARCH APPS",
-                        color = MaterialTheme.colorScheme.secondary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            text = "SEARCH APPS",
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontFamily = PixelFontFamily,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.onBackground,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
                         fontFamily = PixelFontFamily,
                         fontSize = 14.sp,
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.padding(start = 2.dp)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
-                },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.onBackground,
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = PixelFontFamily,
-                    fontSize = 14.sp,
-                    letterSpacing = 2.sp,
-                    color = MaterialTheme.colorScheme.onBackground
                 )
-            )
+
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 10.dp)
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))
+                )
+
+                Box {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pixel_more),
+                        contentDescription = "App list options",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .clickable(
+                                onClick = { isOptionsMenuOpen = true },
+                                indication = null,
+                                interactionSource = null
+                            )
+                            .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
+                            .size(20.dp)
+                    )
+                    CymaticDropdownMenu(
+                        expanded = isOptionsMenuOpen,
+                        onDismissRequest = { isOptionsMenuOpen = false }
+                    ) {
+                        CymaticDropdownMenuItem(
+                            text = "Settings",
+                            leadingIcon = R.drawable.ic_pixel_settings,
+                            onClick = {
+                                isOptionsMenuOpen = false
+                                navController.navigate(Screen.Settings.route)
+                            }
+                        )
+                        CymaticDropdownMenuItem(
+                            text = "Launcher settings",
+                            leadingIcon = R.drawable.ic_pixel_apps,
+                            onClick = {
+                                isOptionsMenuOpen = false
+                                navController.navigate(LauncherRoutes.Settings)
+                            }
+                        )
+                        CymaticDropdownMenuItem(
+                            text = "Hidden apps",
+                            leadingIcon = R.drawable.ic_pixel_eye,
+                            onClick = {
+                                isOptionsMenuOpen = false
+                                navController.navigate(LauncherRoutes.HiddenApps)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        BackHandler(enabled = isOptionsMenuOpen) {
+            isOptionsMenuOpen = false
         }
     }
 }

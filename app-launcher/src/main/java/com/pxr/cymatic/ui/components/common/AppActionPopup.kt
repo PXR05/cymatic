@@ -19,6 +19,8 @@ fun AppActionPopup(
     modifier: Modifier = Modifier,
     onPin: (() -> Unit)? = null,
     onUnpin: (() -> Unit)? = null,
+    onHide: (() -> Unit)? = null,
+    onUnhide: (() -> Unit)? = null,
     onUninstall: (() -> Unit)? = null
 ) {
     CymaticDropdownMenu(
@@ -48,7 +50,7 @@ fun AppActionPopup(
                 text = "Unpin from Home",
                 leadingIcon = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_pixel_trash),
+                        painter = painterResource(R.drawable.ic_pixel_minus),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(16.dp)
@@ -75,6 +77,40 @@ fun AppActionPopup(
                 onAppInfo()
             }
         )
+        if (onHide != null) {
+            CymaticDropdownMenuItem(
+                text = "Hide App",
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pixel_eye),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                onClick = {
+                    onDismissRequest()
+                    onHide()
+                }
+            )
+        }
+        if (onUnhide != null) {
+            CymaticDropdownMenuItem(
+                text = "Unhide App",
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pixel_eye),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                onClick = {
+                    onDismissRequest()
+                    onUnhide()
+                }
+            )
+        }
         if (onUninstall != null) {
             CymaticDropdownMenuItem(
                 text = "Uninstall",
