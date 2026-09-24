@@ -38,6 +38,7 @@ import com.pxr.cymatic.ui.screens.home.LauncherAppsViewModel
 @Composable
 fun HiddenAppsScreen(
     modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
     viewModel: LauncherAppsViewModel = viewModel()
 ) {
     val navController = LocalNavController.current
@@ -66,7 +67,11 @@ fun HiddenAppsScreen(
 
     BaseScreen(
         title = "Hidden Apps",
-        onBackClick = { navController.popBackStack() },
+        onBackClick = if (showBackButton) {
+            { navController.popBackStack() }
+        } else {
+            null
+        },
         modifier = modifier,
         searchQuery = searchQuery,
         onSearchQueryChange = { searchQuery = it },

@@ -19,7 +19,7 @@ val LocalScreenBackdrop = staticCompositionLocalOf<(@Composable () -> Unit)?> { 
 @Composable
 fun BaseScreen(
     title: String,
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onTitleClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},

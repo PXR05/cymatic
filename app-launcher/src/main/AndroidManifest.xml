@@ -33,6 +33,7 @@
             android:name="com.pxr.cymatic.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:excludeFromRecents="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.App.Starting">
             <intent-filter>
@@ -42,6 +43,20 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.pxr.cymatic.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:documentLaunchMode="intoExisting"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Cymatic" />
+        <activity
+            android:name="com.pxr.cymatic.HiddenAppsActivity"
+            android:exported="false"
+            android:label="@string/hidden_apps_title"
+            android:documentLaunchMode="intoExisting"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Cymatic" />
 
     </application>
 

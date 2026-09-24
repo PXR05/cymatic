@@ -67,7 +67,9 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.HiddenAppsActivity
 import com.pxr.cymatic.LauncherRoutes
+import com.pxr.cymatic.SettingsActivity
 import com.pxr.cymatic.data.launcher.LauncherAppsLoader
 import com.pxr.cymatic.data.launcher.LauncherHomePressBus
 import com.pxr.cymatic.data.store.LauncherStore
@@ -75,8 +77,6 @@ import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.AppActionPopup
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
-import com.pxr.cymatic.ui.locals.LocalNavController
-import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlinx.coroutines.launch
 
@@ -91,7 +91,6 @@ fun AllAppsScreen(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-    val navController = LocalNavController.current
     val allApps by viewModel.visibleApps.collectAsState()
     val showAllAppsLabels by LauncherStore.showAllAppsLabelsFlow.collectAsState(initial = true)
     val appIconScale by LauncherStore.appIconScaleFlow.collectAsState(initial = 1.0f)
@@ -402,7 +401,7 @@ fun AllAppsScreen(
                             leadingIcon = R.drawable.ic_pixel_settings,
                             onClick = {
                                 isOptionsMenuOpen = false
-                                navController.navigate(Screen.Settings.route)
+                                SettingsActivity.launch(context)
                             }
                         )
                         CymaticDropdownMenuItem(
@@ -410,7 +409,7 @@ fun AllAppsScreen(
                             leadingIcon = R.drawable.ic_pixel_apps,
                             onClick = {
                                 isOptionsMenuOpen = false
-                                navController.navigate(LauncherRoutes.Settings)
+                                SettingsActivity.launch(context, LauncherRoutes.Settings)
                             }
                         )
                         CymaticDropdownMenuItem(
@@ -418,7 +417,7 @@ fun AllAppsScreen(
                             leadingIcon = R.drawable.ic_pixel_eye,
                             onClick = {
                                 isOptionsMenuOpen = false
-                                navController.navigate(LauncherRoutes.HiddenApps)
+                                HiddenAppsActivity.launch(context)
                             }
                         )
                     }

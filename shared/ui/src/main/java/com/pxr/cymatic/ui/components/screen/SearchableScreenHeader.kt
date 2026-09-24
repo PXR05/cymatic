@@ -33,7 +33,7 @@ import com.pxr.cymatic.design.R
 fun SearchableScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)?,
     onTitleClick: (() -> Unit)? = null,
     isSearchActive: Boolean,
     onSearchActiveChange: (Boolean) -> Unit,
@@ -136,19 +136,21 @@ fun SearchableScreenHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "<",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clickable(
-                        onClick = onBackClick,
-                        indication = null,
-                        interactionSource = null
-                    )
-                    .padding(24.dp, 16.dp)
-            )
+            if (onBackClick != null) {
+                Text(
+                    text = "<",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clickable(
+                            onClick = onBackClick,
+                            indication = null,
+                            interactionSource = null
+                        )
+                        .padding(24.dp, 16.dp)
+                )
+            }
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -158,7 +160,9 @@ fun SearchableScreenHeader(
                 modifier = Modifier
                     .weight(1f)
                     .padding(
-                        vertical = 16.dp
+                        start = if (onBackClick != null) 0.dp else 24.dp,
+                        top = 16.dp,
+                        bottom = 16.dp
                     )
                     .then(
                         if (onTitleClick != null) {

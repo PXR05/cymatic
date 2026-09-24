@@ -543,7 +543,6 @@ private fun HomeContent(
                 },
                 context = context,
                 haptic = haptic,
-                navController = navController,
                 useSongWallpaper = useSongWallpaper,
                 wallpaperDarkenOpacity = wallpaperDarkenOpacity,
                 wallpaperGradientEnabled = wallpaperGradientEnabled,

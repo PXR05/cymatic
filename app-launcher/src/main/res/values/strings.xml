@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Cymatic Launcher</string>
+    <string name="settings_title">Cymatic Settings</string>
+    <string name="hidden_apps_title">Hidden Apps</string>
     <string name="open_clock">Open clock</string>
     <string name="open_calendar">Open calendar</string>
     <string name="home_options">Home options</string>

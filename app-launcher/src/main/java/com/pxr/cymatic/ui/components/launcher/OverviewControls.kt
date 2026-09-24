@@ -43,11 +43,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import com.pxr.cymatic.SettingsActivity
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.data.store.LauncherStore
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
-import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.motion.CymaticMotion
 import com.pxr.cymatic.ui.theme.PixelFontFamily
 import kotlin.math.roundToInt
@@ -141,7 +140,6 @@ fun OverviewBottomActions(
     onCloseOverview: () -> Unit,
     context: Context,
     haptic: HapticFeedback,
-    navController: NavController,
     useSongWallpaper: Boolean,
     wallpaperDarkenOpacity: Float,
     wallpaperGradientEnabled: Boolean,
@@ -211,7 +209,7 @@ fun OverviewBottomActions(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                                 onCloseOverview()
-                                navController.navigate(Screen.Settings.route)
+                                SettingsActivity.launch(context)
                             },
                             modifier = Modifier.weight(1f)
                         )

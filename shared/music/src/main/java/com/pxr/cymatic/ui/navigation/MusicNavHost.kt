@@ -42,6 +42,8 @@ fun MusicNavHost(
     settingsItems: List<NavigationItem> = emptyList(),
     additionalRoutes: Map<String, @Composable (NavBackStackEntry) -> Unit> = emptyMap(),
     animate: Boolean = false,
+    startDestination: String = Screen.Home.route,
+    settingsIsTaskRoot: Boolean = false,
 ) {
     val pageDistancePx = with(LocalDensity.current) { 24.dp.roundToPx() }
     val routes = mapOf<String, @Composable (NavBackStackEntry) -> Unit>(
@@ -95,7 +97,7 @@ fun MusicNavHost(
                 scrollTargetId = scrollId?.toLongOrNull()
             )
         },
-        Screen.Settings.route to { SettingsScreen(additionalItems = settingsItems) },
+        Screen.Settings.route to { SettingsScreen(additionalItems = settingsItems, showBackButton = !settingsIsTaskRoot) },
         Screen.EQSettings.route to { EQSettingsScreen() },
         Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
         Screen.StorageSettings.route to { StorageSettingsScreen() },
@@ -105,7 +107,7 @@ fun MusicNavHost(
     ) + additionalRoutes
     NavHost(
         navController = LocalNavController.current,
-        startDestination = Screen.Home.route,
+        startDestination = startDestination,
         enterTransition = {
             if (!animate) EnterTransition.None else CymaticMotion.pageEnter(pageDistancePx)
         },
