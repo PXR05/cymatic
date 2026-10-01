@@ -10,11 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.Timeline
 import androidx.media3.session.MediaController
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
+import com.pxr.cymatic.playback.PlaybackQueue
+import com.pxr.cymatic.playback.playbackQueue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -29,7 +29,8 @@ data class PlaybackState(
     val repeatMode: Int,
     val currentIndex: Int,
     val totalTracks: Int,
-    val queueSource: String?
+    val queueSource: String?,
+    val queue: PlaybackQueue
 )
 
 @Composable
@@ -48,6 +49,7 @@ fun rememberPlaybackState(
     var currentIndex by remember { mutableIntStateOf(mediaController?.currentMediaItemIndex ?: 0) }
     var totalTracks by remember { mutableIntStateOf(mediaController?.mediaItemCount ?: 0) }
     var queueSource by remember { mutableStateOf(mediaController.queueSourceOrNull()) }
+    var queue by remember { mutableStateOf(mediaController?.playbackQueue() ?: PlaybackQueue()) }
 
     fun resetState() {
         currentMediaId = null
@@ -61,9 +63,10 @@ fun rememberPlaybackState(
         currentIndex = 0
         totalTracks = 0
         queueSource = null
+        queue = PlaybackQueue()
     }
 
-    fun updateFromController(controller: MediaController) {
+    fun updateFromController(controller: MediaController, refreshQueue: Boolean = true) {
         currentMediaId = controller.currentMediaItem?.mediaId
         isPlaying = controller.isPlaying
         playbackState = controller.playbackState
@@ -75,6 +78,7 @@ fun rememberPlaybackState(
         currentIndex = controller.currentMediaItemIndex
         totalTracks = controller.mediaItemCount
         queueSource = controller.queueSourceOrNull()
+        if (refreshQueue) queue = controller.playbackQueue()
     }
 
     DisposableEffect(mediaController) {
@@ -86,42 +90,13 @@ fun rememberPlaybackState(
         updateFromController(mediaController)
 
         val listener = object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                currentMediaId = mediaItem?.mediaId
-                currentIndex = mediaController.currentMediaItemIndex
-                durationMs = mediaController.durationOrNull()
-                queueSource = mediaController.queueSourceOrNull()
-            }
-
-            override fun onIsPlayingChanged(isPlayingNow: Boolean) {
-                isPlaying = isPlayingNow
-            }
-
-            override fun onPlaybackStateChanged(state: Int) {
-                playbackState = state
-                durationMs = mediaController.durationOrNull()
-            }
-
-            override fun onRepeatModeChanged(repeatModeNow: Int) {
-                repeatMode = repeatModeNow
-            }
-
-            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                isShuffling = shuffleModeEnabled
-            }
-
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                totalTracks = mediaController.mediaItemCount
-                currentIndex = mediaController.currentMediaItemIndex
-            }
-
-            override fun onPositionDiscontinuity(
-                oldPosition: Player.PositionInfo,
-                newPosition: Player.PositionInfo,
-                reason: Int
-            ) {
-                currentPositionMs = mediaController.currentPosition
-                bufferedPositionMs = mediaController.bufferedPosition
+            override fun onEvents(player: Player, events: Player.Events) {
+                val refreshQueue = events.contains(Player.EVENT_TIMELINE_CHANGED) ||
+                    events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
+                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                    events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
+                updateFromController(mediaController, refreshQueue)
             }
         }
 
@@ -152,7 +127,8 @@ fun rememberPlaybackState(
         repeatMode = repeatMode,
         currentIndex = currentIndex,
         totalTracks = totalTracks,
-        queueSource = queueSource
+        queueSource = queueSource,
+        queue = queue
     )
 }
 

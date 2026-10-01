@@ -230,7 +230,7 @@ fun PlayerBar(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TrackQueueIndex(
-                            currentIndex = playbackState.currentIndex,
+                            currentIndex = playbackState.queue.currentIndex,
                             totalTracks = playbackState.totalTracks,
                             queueSource = playbackState.queueSource,
                             currentMediaId = playbackState.currentMediaId,
@@ -289,7 +289,7 @@ fun PlayerBar(
                         .padding(horizontal = 24.dp)
                 ) {
                     TrackQueueIndex(
-                        currentIndex = playbackState.currentIndex,
+                        currentIndex = playbackState.queue.currentIndex,
                         totalTracks = playbackState.totalTracks,
                         queueSource = playbackState.queueSource,
                         currentMediaId = playbackState.currentMediaId,

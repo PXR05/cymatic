@@ -16,13 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,14 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.common.Timeline
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun QueueScreen(
@@ -47,84 +39,12 @@ fun QueueScreen(
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
 
-    var queueItems by remember { mutableStateOf(emptyList<Pair<MediaItem, Int>>()) }
-    var currentIndex by remember { mutableIntStateOf(mediaController?.currentMediaItemIndex ?: -1) }
-    var currentId by remember { mutableStateOf(mediaController?.currentMediaItem?.mediaId ?: "") }
-
-    fun updateQueue() {
-        mediaController?.let { controller ->
-            val timeline = controller.currentTimeline
-            val indices = mutableListOf<Int>()
-
-            if (controller.shuffleModeEnabled && !timeline.isEmpty) {
-                var idx = timeline.getFirstWindowIndex(true)
-                while (idx >= 0 && idx < timeline.windowCount && idx < controller.mediaItemCount) {
-                    indices.add(idx)
-                    val nextIdx = timeline.getNextWindowIndex(idx, Player.REPEAT_MODE_OFF, true)
-                    if (nextIdx == idx || indices.size >= timeline.windowCount) {
-                        break
-                    }
-                    idx = nextIdx
-                }
-            }
-
-            if (indices.isEmpty()) {
-                for (i in 0 until controller.mediaItemCount) {
-                    indices.add(i)
-                }
-            }
-
-            val items = mutableListOf<Pair<MediaItem, Int>>()
-            for (index in indices) {
-                if (index in 0 until controller.mediaItemCount) {
-                    items.add(controller.getMediaItemAt(index) to index)
-                }
-            }
-
-            queueItems = items
-            val currentTimelineIndex = controller.currentMediaItemIndex
-            currentIndex = indices.indexOf(currentTimelineIndex)
-            currentId = controller.currentMediaItem?.mediaId ?: ""
-        }
-    }
-
-    DisposableEffect(mediaController) {
-        if (mediaController == null) return@DisposableEffect onDispose { }
-
-        updateQueue()
-
-        val listener = object : Player.Listener {
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                updateQueue()
-            }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                updateQueue()
-            }
-
-            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                updateQueue()
-            }
-
-            override fun onEvents(player: Player, events: Player.Events) {
-                if (events.contains(Player.EVENT_TIMELINE_CHANGED) ||
-                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
-                    events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)
-                ) {
-                    updateQueue()
-                }
-            }
-        }
-
-        mediaController.addListener(listener)
-        onDispose {
-            mediaController.removeListener(listener)
-        }
-    }
-
+    val playbackState = rememberPlaybackState(mediaController)
+    val queueItems = playbackState.queue.items
+    val currentIndex = playbackState.queue.currentIndex
     val listState = rememberLazyListState()
 
-    LaunchedEffect(currentId) {
+    LaunchedEffect(currentIndex, queueItems) {
         if (currentIndex >= 0 && currentIndex < queueItems.size) {
             listState.animateScrollToItem(currentIndex)
         }
@@ -168,11 +88,11 @@ fun QueueScreen(
             ) {
                 items(
                     count = queueItems.size,
-                    key = { i -> "${queueItems[i].first.mediaId}_$i" }
+                    key = { i -> "${queueItems[i].mediaItem.mediaId}_$i" }
                 ) { i ->
                     val (item, originalIndex) = queueItems[i]
                     val isActive = i == currentIndex
-                    val isShuffling = mediaController?.shuffleModeEnabled == true
+                    val isShuffling = playbackState.isShuffling
                     val isFirst = i == 0 || isShuffling
                     val isLast = i == queueItems.size - 1 || isShuffling
 

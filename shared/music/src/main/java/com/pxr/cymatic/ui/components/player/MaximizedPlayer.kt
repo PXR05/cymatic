@@ -365,11 +365,11 @@ fun MaximizedPlayer(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(count = mediaController.mediaItemCount, key = { it }) { index ->
-                            val item = mediaController.getMediaItemAt(index)
+                        items(count = playbackState.queue.items.size, key = { playbackState.queue.items[it].mediaItemIndex }) { index ->
+                            val (item, mediaItemIndex) = playbackState.queue.items[index]
                             val itemTitle = item.mediaMetadata.title?.toString() ?: "Unknown Title"
                             val itemArtist = item.mediaMetadata.artist?.toString() ?: ""
-                            val isCurrent = index == playbackState.currentIndex
+                            val isCurrent = index == playbackState.queue.currentIndex
 
                             val itemShape = RoundedCornerShape(12.dp)
                             Row(
@@ -385,10 +385,10 @@ fun MaximizedPlayer(
                                         }
                                     )
                                     .combinedClickable(
-                                        onClick = { mediaController.seekTo(index, 0L) },
+                                        onClick = { mediaController.seekTo(mediaItemIndex, 0L) },
                                         onLongClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            selectedQueueIndex = index
+                                            selectedQueueIndex = mediaItemIndex
                                         },
                                         indication = null,
                                         interactionSource = null
@@ -438,6 +438,7 @@ fun MaximizedPlayer(
                     totalCount = mediaController.mediaItemCount,
                     mediaItem = selectedItem,
                     isCurrent = selectedIdx == playbackState.currentIndex,
+                    allowReordering = !playbackState.isShuffling,
                     onDismiss = { selectedQueueIndex = null },
                     onPlay = { mediaController.seekTo(selectedIdx, 0L) },
                     onMoveUp = {

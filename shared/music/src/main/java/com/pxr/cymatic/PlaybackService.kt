@@ -396,7 +396,7 @@ class PlaybackService : MediaLibraryService() {
         withContext(Dispatchers.Main) {
             player.shuffleModeEnabled = stored.shuffleEnabled
             player.repeatMode = stored.repeatMode
-            player.setMediaItems(mediaItems, safeIndex, stored.positionMs)
+            fadingPlayer.setMediaItems(mediaItems, safeIndex, stored.positionMs)
             player.playWhenReady = stored.wasPlaying
             player.prepare()
         }

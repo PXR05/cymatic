@@ -45,6 +45,7 @@ fun QueueItemContextMenu(
     onMoveToTop: () -> Unit,
     onMoveToBottom: () -> Unit,
     onRemove: () -> Unit,
+    allowReordering: Boolean = true,
 ) {
     val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown Title"
     val audioId = mediaItem.mediaId.toLongOrNull()
@@ -97,7 +98,7 @@ fun QueueItemContextMenu(
                     )
                 }
 
-                if (index > 0) {
+                if (allowReordering && index > 0) {
                     QueueContextMenuAction(
                         iconRes = R.drawable.ic_pixel_arrow_up,
                         label = "Move Up",
@@ -118,7 +119,7 @@ fun QueueItemContextMenu(
                     }
                 }
 
-                if (index < totalCount - 1) {
+                if (allowReordering && index < totalCount - 1) {
                     QueueContextMenuAction(
                         iconRes = R.drawable.ic_pixel_arrow_down,
                         label = "Move Down",

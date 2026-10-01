@@ -59,7 +59,7 @@ fun HomePlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
     ) {
         Column {
             Text(
-                text = "${playbackState.currentIndex + 1}/${playbackState.totalTracks}",
+                text = "${playbackState.queue.currentIndex + 1}/${playbackState.totalTracks}",
                 color = MaterialTheme.colorScheme.secondary,
                 fontSize = 10.sp,
                 letterSpacing = 3.sp
