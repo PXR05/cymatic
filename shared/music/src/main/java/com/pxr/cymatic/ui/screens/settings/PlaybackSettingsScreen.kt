@@ -36,6 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -131,6 +134,21 @@ fun PlaybackSettingsScreen(
                 e
             )
         }
+    }
+
+    if (LocalWheelNavigation.current != null) {
+        BaseScreen(title = "Playback", onBackClick = { navController.popBackStack() }, modifier = modifier) {
+            NavigationList(listOf(
+                NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
+                NavigationItem("Auto-resume", if (resumeOnBt) "On" else "Off") {
+                    scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
+                },
+                NavigationItem("Fade in / out", if (fadeEnabled) "On" else "Off") {
+                    scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }
+                }
+            ))
+        }
+        return
     }
 
     BaseScreen(

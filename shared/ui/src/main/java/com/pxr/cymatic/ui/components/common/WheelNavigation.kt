@@ -17,7 +17,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 data class WheelActions(
     val onRotate: (Int) -> Unit,
     val onSelect: () -> Unit,
-    val onContext: () -> Unit = {}
+    val onContext: () -> Unit = {},
+    val onMovementStarted: () -> Unit = {}
 )
 
 class WheelNavigation {
@@ -53,12 +54,23 @@ fun rememberWheelSelection(
     val select by rememberUpdatedState(onSelect)
     val context by rememberUpdatedState(onContext)
     val actions = remember(wheel, listState) {
+        var canWrap = false
         WheelActions(
             onRotate = { steps ->
-                if (count > 0) selection = Math.floorMod(selection + steps, count)
+                if (count > 0 && steps != 0) {
+                    val last = count - 1
+                    val current = selection.coerceIn(0, last)
+                    selection = when {
+                        canWrap && steps > 0 && current == last -> (steps - 1).coerceIn(0, last)
+                        canWrap && steps < 0 && current == 0 -> (last + steps + 1).coerceIn(0, last)
+                        else -> (current + steps).coerceIn(0, last)
+                    }
+                    canWrap = false
+                }
             },
             onSelect = { if (count > 0) select(selection.coerceIn(0, count - 1)) },
-            onContext = { if (count > 0) context(selection.coerceIn(0, count - 1)) }
+            onContext = { if (count > 0) context(selection.coerceIn(0, count - 1)) },
+            onMovementStarted = { canWrap = true }
         )
     }
 

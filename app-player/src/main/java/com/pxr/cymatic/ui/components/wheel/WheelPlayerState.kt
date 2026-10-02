@@ -29,6 +29,7 @@ internal class WheelPlayerState(
     panel: WheelPanel = WheelPanel.BROWSER,
     previousPanel: WheelPanel = WheelPanel.BROWSER,
     coverVisible: Boolean = true,
+    coverDefault: Boolean = true,
     browserRoute: String = MUSIC_BROWSER_ROUTE,
     browserRoot: String = MUSIC_BROWSER_ROUTE
 ) {
@@ -37,6 +38,8 @@ internal class WheelPlayerState(
     var previousPanel by mutableStateOf(previousPanel)
         private set
     var coverVisible by mutableStateOf(coverVisible)
+        private set
+    var coverDefault by mutableStateOf(coverDefault)
         private set
     var browserRoute by mutableStateOf(browserRoute)
         private set
@@ -120,12 +123,19 @@ internal class WheelPlayerState(
     fun toggleCover() {
         coverVisible = !coverVisible
     }
+
+    fun updateCoverDefault(visible: Boolean) {
+        if (coverDefault == visible) return
+        coverDefault = visible
+        coverVisible = visible
+    }
 }
 
 @Composable
 internal fun rememberWheelPlayerState(
     nav: NavHostController,
-    wheel: WheelNavigation
+    wheel: WheelNavigation,
+    coverDefault: Boolean
 ): WheelPlayerState {
     val saver = remember(nav, wheel) {
         listSaver<WheelPlayerState, Any>(
@@ -135,7 +145,8 @@ internal fun rememberWheelPlayerState(
                     it.previousPanel.name,
                     it.coverVisible,
                     it.browserRoute,
-                    it.browserRoot
+                    it.browserRoot,
+                    it.coverDefault
                 )
             },
             restore = {
@@ -145,13 +156,17 @@ internal fun rememberWheelPlayerState(
                     panel = WheelPanel.valueOf(it[0] as String),
                     previousPanel = WheelPanel.valueOf(it[1] as String),
                     coverVisible = it[2] as Boolean,
+                    coverDefault = it.getOrNull(5) as? Boolean ?: coverDefault,
                     browserRoute = it[3] as String,
                     browserRoot = it[4] as String
                 )
             }
         )
     }
-    val state = rememberSaveable(nav, wheel, saver = saver) { WheelPlayerState(nav, wheel) }
+    val state = rememberSaveable(nav, wheel, saver = saver) {
+        WheelPlayerState(nav, wheel, coverVisible = coverDefault, coverDefault = coverDefault)
+    }
+    LaunchedEffect(coverDefault) { state.updateCoverDefault(coverDefault) }
     val entry by nav.currentBackStackEntryAsState()
     LaunchedEffect(entry) { state.rememberBrowser(entry) }
     return state

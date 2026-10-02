@@ -9,6 +9,10 @@ internal class WheelPlayerControls(
     private val volume: MusicVolumeState,
     private val durationMs: Long?
 ) {
+    fun beginMovement() {
+        if (!state.controlsPlayback) state.wheel.actions?.onMovementStarted?.invoke()
+    }
+
     fun rotate(steps: Int) {
         if (state.controlsPlayback) {
             volume.adjust(steps)

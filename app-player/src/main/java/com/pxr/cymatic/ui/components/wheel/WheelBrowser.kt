@@ -11,6 +11,8 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.MusicNavHost
 import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
+import com.pxr.cymatic.ui.screens.settings.INTERFACE_SETTINGS_ROUTE
+import com.pxr.cymatic.ui.screens.settings.InterfaceSettingsScreen
 
 @Composable
 internal fun WheelBrowser(state: WheelPlayerState) {
@@ -18,9 +20,11 @@ internal fun WheelBrowser(state: WheelPlayerState) {
         releaseProduct = ReleaseProduct.PLAYER,
         modifier = if (state.blocksBrowserInput) Modifier.clearAndSetSemantics {} else Modifier,
         home = { MainMenu(state) },
+        settingsItems = listOf(NavigationItem("Interface") { state.open(INTERFACE_SETTINGS_ROUTE) }),
         additionalRoutes = mapOf(
             MUSIC_BROWSER_ROUTE to { MusicMenu(state) },
-            Screen.Queue.route to { WheelQueueScreen(onNowPlaying = state::nowPlaying) }
+            Screen.Queue.route to { WheelQueueScreen(onNowPlaying = state::nowPlaying) },
+            INTERFACE_SETTINGS_ROUTE to { InterfaceSettingsScreen() }
         )
     )
     BackHandler(onBack = state::back)

@@ -63,6 +63,8 @@ import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogDivider
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.WheelReadingPage
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.launch
@@ -136,144 +138,197 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
         }.onFailure { message = "Could not access that folder" }
     }
 
+    var showStatus by remember { mutableStateOf(false) }
+
     BaseScreen(
         title = "Library sync",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
     ) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-        ) {
-            SectionLabel("Status")
-            Spacer(Modifier.height(8.dp))
-            SyncStatusCard(
-                progress = progress,
-                lastResult = message ?: lastResult,
-                lastTime = lastTime,
-                ready = hasPassword && (directory.isNotBlank() ||
-                    (contentMode == SyncContentMode.SELECTED_PLAYLISTS && selectedPlaylists.isEmpty())),
-                onStart = {
-                    message = null
-                    if (!LibrarySyncManager.start(context)) message = "A sync is already running"
-                },
-                onCancel = LibrarySyncManager::cancel,
-            )
-
-            Spacer(Modifier.height(24.dp))
-            SectionLabel("Connection")
-            SettingsGroup {
-                SettingsRow(
-                    title = "AudioStream",
-                    subtitle = if (hasPassword) "${hostLabel(url)}  •  $username" else "Password required",
-                    value = "EDIT",
-                    enabled = !isRunning,
-                    onClick = { showSourceDialog = true },
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-            SectionLabel("Schedule")
-            SettingsGroup {
-                PickerRow(
-                    title = "Automatic sync",
-                    subtitle = "Allowed network",
-                    value = network.label,
-                    options = SyncNetwork.entries.map { it.label },
-                    enabled = !isRunning,
-                ) { selected ->
+        if (LocalWheelNavigation.current != null) {
+            WheelSettingsList(buildList {
+                val ready = hasPassword && (directory.isNotBlank() ||
+                    (contentMode == SyncContentMode.SELECTED_PLAYLISTS && selectedPlaylists.isEmpty()))
+                add(WheelSetting("Sync status", statusHeadline(progress), onClick = { showStatus = true }))
+                add(WheelSetting(if (isRunning) "Stop sync" else "Sync now", enabled =
+                    if (isRunning) progress != SyncProgress.Cancelling else ready, onClick = {
+                    if (isRunning) LibrarySyncManager.cancel() else {
+                        message = null
+                        if (!LibrarySyncManager.start(context)) message = "A sync is already running"
+                    }
+                }))
+                add(WheelSetting("AudioStream", if (hasPassword) hostLabel(url) else "Password required",
+                    enabled = !isRunning, onClick = { showSourceDialog = true }))
+                add(WheelSetting("Automatic sync", network.label, !isRunning, SyncNetwork.entries.map { it.label }, onChoose = { selected ->
                     network = SyncNetwork.entries.first { it.label == selected }
-                    scope.launch {
-                        SettingsStore.setSyncNetwork(network.value)
-                        LibrarySyncJobService.reschedule(context)
-                    }
-                }
-                GroupDivider()
-                PickerRow(
-                    title = "Check for changes",
-                    subtitle = if (network == SyncNetwork.NEVER) "Used when automatic sync is enabled" else "Next checks follow this interval",
-                    value = syncIntervals[interval] ?: "Every $interval hours",
-                    options = syncIntervals.values.toList(),
-                    enabled = !isRunning,
-                ) { selected ->
+                    scope.launch { SettingsStore.setSyncNetwork(network.value); LibrarySyncJobService.reschedule(context) }
+                }))
+                add(WheelSetting("Check for changes", syncIntervals[interval] ?: "Every $interval hours", !isRunning,
+                    syncIntervals.values.toList(), onChoose = { selected ->
                     interval = syncIntervals.entries.first { it.value == selected }.key
-                    scope.launch {
-                        SettingsStore.setSyncIntervalHours(interval)
-                        LibrarySyncJobService.reschedule(context)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            SectionLabel("Content")
-            SettingsGroup {
-                PickerRow(
-                    title = "Sync content",
-                    subtitle = if (contentMode == SyncContentMode.ALL) {
-                        "Download the complete remote library"
-                    } else {
-                        "Refresh metadata, then download your choices"
-                    },
-                    value = contentMode.label,
-                    options = SyncContentMode.entries.map { it.label },
-                    enabled = !isRunning,
-                ) { selected ->
+                    scope.launch { SettingsStore.setSyncIntervalHours(interval); LibrarySyncJobService.reschedule(context) }
+                }))
+                add(WheelSetting("Sync content", contentMode.label, !isRunning, SyncContentMode.entries.map { it.label }, onChoose = { selected ->
                     contentMode = SyncContentMode.entries.first { it.label == selected }
                     scope.launch { SettingsStore.setSyncContentMode(contentMode.value) }
-                }
+                }))
                 if (contentMode == SyncContentMode.SELECTED_PLAYLISTS) {
-                    GroupDivider()
-                    SettingsRow(
-                        title = "Choose playlists",
-                        subtitle = when {
-                            availablePlaylists.isEmpty() -> "Refresh the playlist list first"
-                            selectedPlaylists.isEmpty() -> "Metadata only — nothing selected"
-                            else -> "${selectedPlaylists.size} of ${availablePlaylists.size} selected"
-                        },
-                        value = "CHOOSE",
-                        enabled = !isRunning && availablePlaylists.isNotEmpty(),
-                        onClick = { showPlaylistDialog = true },
-                    )
-                    GroupDivider()
-                    SettingsRow(
-                        title = "Refresh playlist list",
-                        subtitle = "Downloads names and track metadata only",
-                        value = "REFRESH",
-                        enabled = !isRunning && hasPassword,
-                        onClick = {
-                            message = null
-                            if (!LibrarySyncManager.refreshMetadata(context)) message = "A sync is already running"
-                        },
-                    )
+                    add(WheelSetting("Choose playlists", "${selectedPlaylists.size} selected", !isRunning && availablePlaylists.isNotEmpty(),
+                        onClick = { showPlaylistDialog = true }))
+                    add(WheelSetting("Refresh playlist list", enabled = !isRunning && hasPassword, onClick = {
+                        message = null
+                        if (!LibrarySyncManager.refreshMetadata(context)) message = "A sync is already running"
+                    }))
                 }
-            }
-
-            Spacer(Modifier.height(24.dp))
-            SectionLabel("Files")
-            SettingsGroup {
-                SettingsRow(
-                    title = "Download folder",
-                    subtitle = if (directory.isBlank()) "Choose a folder on this device" else folderLabel(directory),
-                    value = if (directory.isBlank()) "CHOOSE" else "CHANGE",
-                    enabled = !isRunning,
-                    onClick = { directoryPicker.launch(null) },
-                )
-                GroupDivider()
-                PickerRow(
-                    title = "Folder layout",
-                    subtitle = layoutExample(layout),
-                    value = layout.label,
-                    options = SyncLayout.entries.map { it.label },
-                    enabled = !isRunning,
-                ) { selected ->
+                add(WheelSetting("Download folder", if (directory.isBlank()) "Choose a folder" else folderLabel(directory),
+                    !isRunning, onClick = { directoryPicker.launch(null) }))
+                add(WheelSetting("Folder layout", layout.label, !isRunning, SyncLayout.entries.map { it.label }, onChoose = { selected ->
                     layout = SyncLayout.entries.first { it.label == selected }
                     scope.launch { SettingsStore.setSyncLayout(layout.value) }
+                }))
+            })
+        } else {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            ) {
+                SectionLabel("Status")
+                Spacer(Modifier.height(8.dp))
+                SyncStatusCard(
+                    progress = progress,
+                    lastResult = message ?: lastResult,
+                    lastTime = lastTime,
+                    ready = hasPassword && (directory.isNotBlank() ||
+                        (contentMode == SyncContentMode.SELECTED_PLAYLISTS && selectedPlaylists.isEmpty())),
+                    onStart = {
+                        message = null
+                        if (!LibrarySyncManager.start(context)) message = "A sync is already running"
+                    },
+                    onCancel = LibrarySyncManager::cancel,
+                )
+
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("Connection")
+                SettingsGroup {
+                    SettingsRow(
+                        title = "AudioStream",
+                        subtitle = if (hasPassword) "${hostLabel(url)}  •  $username" else "Password required",
+                        value = "EDIT",
+                        enabled = !isRunning,
+                        onClick = { showSourceDialog = true },
+                    )
                 }
+
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("Schedule")
+                SettingsGroup {
+                    PickerRow(
+                        title = "Automatic sync",
+                        subtitle = "Allowed network",
+                        value = network.label,
+                        options = SyncNetwork.entries.map { it.label },
+                        enabled = !isRunning,
+                    ) { selected ->
+                        network = SyncNetwork.entries.first { it.label == selected }
+                        scope.launch {
+                            SettingsStore.setSyncNetwork(network.value)
+                            LibrarySyncJobService.reschedule(context)
+                        }
+                    }
+                    PickerRow(
+                        title = "Check for changes",
+                        subtitle = if (network == SyncNetwork.NEVER) "Used when automatic sync is enabled" else "Next checks follow this interval",
+                        value = syncIntervals[interval] ?: "Every $interval hours",
+                        options = syncIntervals.values.toList(),
+                        enabled = !isRunning,
+                    ) { selected ->
+                        interval = syncIntervals.entries.first { it.value == selected }.key
+                        scope.launch {
+                            SettingsStore.setSyncIntervalHours(interval)
+                            LibrarySyncJobService.reschedule(context)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("Content")
+                SettingsGroup {
+                    PickerRow(
+                        title = "Sync content",
+                        subtitle = if (contentMode == SyncContentMode.ALL) {
+                            "Download the complete remote library"
+                        } else {
+                            "Refresh metadata, then download your choices"
+                        },
+                        value = contentMode.label,
+                        options = SyncContentMode.entries.map { it.label },
+                        enabled = !isRunning,
+                    ) { selected ->
+                        contentMode = SyncContentMode.entries.first { it.label == selected }
+                        scope.launch { SettingsStore.setSyncContentMode(contentMode.value) }
+                    }
+                    if (contentMode == SyncContentMode.SELECTED_PLAYLISTS) {
+                            SettingsRow(
+                            title = "Choose playlists",
+                            subtitle = when {
+                                availablePlaylists.isEmpty() -> "Refresh the playlist list first"
+                                selectedPlaylists.isEmpty() -> "Metadata only — nothing selected"
+                                else -> "${selectedPlaylists.size} of ${availablePlaylists.size} selected"
+                            },
+                            value = "CHOOSE",
+                            enabled = !isRunning && availablePlaylists.isNotEmpty(),
+                            onClick = { showPlaylistDialog = true },
+                        )
+                            SettingsRow(
+                            title = "Refresh playlist list",
+                            subtitle = "Downloads names and track metadata only",
+                            value = "REFRESH",
+                            enabled = !isRunning && hasPassword,
+                            onClick = {
+                                message = null
+                                if (!LibrarySyncManager.refreshMetadata(context)) message = "A sync is already running"
+                            },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("Files")
+                SettingsGroup {
+                    SettingsRow(
+                        title = "Download folder",
+                        subtitle = if (directory.isBlank()) "Choose a folder on this device" else folderLabel(directory),
+                        value = if (directory.isBlank()) "CHOOSE" else "CHANGE",
+                        enabled = !isRunning,
+                        onClick = { directoryPicker.launch(null) },
+                    )
+                    PickerRow(
+                        title = "Folder layout",
+                        subtitle = layoutExample(layout),
+                        value = layout.label,
+                        options = SyncLayout.entries.map { it.label },
+                        enabled = !isRunning,
+                    ) { selected ->
+                        layout = SyncLayout.entries.first { it.label == selected }
+                        scope.launch { SettingsStore.setSyncLayout(layout.value) }
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
             }
-            Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showStatus) WheelReadingPage("Sync status", { showStatus = false }) {
+        val detail = when (val current = progress) {
+            is SyncProgress.Preparing -> current.message
+            is SyncProgress.Downloading -> "${current.current} of ${current.total}\n${current.title}\n${bytesLabel(current.bytesDownloaded, current.totalBytes)}"
+            SyncProgress.Cancelling -> "Stopping sync"
+            else -> statusDetail(current, message ?: lastResult)
+        }
+        Text(detail)
+        if (lastTime > 0) Text("Last run ${DateFormat.getMediumDateFormat(context).format(Date(lastTime))} ${DateFormat.getTimeFormat(context).format(Date(lastTime))}")
     }
 
     if (showSourceDialog) {
@@ -531,6 +586,10 @@ private fun PlaylistSelectionDialog(
     onDismiss: () -> Unit,
     onSave: (Set<String>) -> Unit,
 ) {
+    if (LocalWheelNavigation.current != null) {
+        WheelSyncPlaylists(playlists, initialSelection, onDismiss, onSave)
+        return
+    }
     var selection by remember(playlists, initialSelection) {
         mutableStateOf(initialSelection.intersect(playlists.mapTo(mutableSetOf()) { it.id }))
     }
@@ -601,11 +660,6 @@ private fun PlaylistSelectionDialog(
 }
 
 @Composable
-private fun GroupDivider() {
-    // Rows are separated with whitespace to match the other settings screens.
-}
-
-@Composable
 private fun SectionLabel(value: String) {
     Text(value, fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
 }
@@ -618,6 +672,10 @@ private fun SourceDialog(
     onDismiss: () -> Unit,
     onSave: (String, String, String) -> Unit,
 ) {
+    if (LocalWheelNavigation.current != null) {
+        WheelSyncConnection(initialUrl, initialUsername, hasSavedPassword, onDismiss, onSave)
+        return
+    }
     var url by remember { mutableStateOf(initialUrl) }
     var username by remember { mutableStateOf(initialUsername) }
     var password by remember { mutableStateOf("") }

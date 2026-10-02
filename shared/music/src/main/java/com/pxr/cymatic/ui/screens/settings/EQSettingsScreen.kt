@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.eq.EqBandRow
@@ -97,6 +98,24 @@ fun EQSettingsScreen(
                 viewModel.importPreset(context, uri, fileName)
             }
         }
+    }
+
+    if (LocalWheelNavigation.current != null) {
+        WheelEqSettingsScreen(state, activePreset, viewModel,
+            onImport = {
+                importLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                })
+            },
+            onExport = {
+                exportLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TITLE, "${state.selectedPresetName}.txt")
+                })
+            }, modifier = modifier)
+        return
     }
 
     if (showAddDialog) {

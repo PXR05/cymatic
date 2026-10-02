@@ -28,7 +28,8 @@ fun WheelContextMenu(title: String, items: List<NavigationItem>, onDismiss: () -
         )
     }
     DisposableEffect(wheel, overlay) {
+        val previous = wheel.overlay
         wheel.overlay = overlay
-        onDispose { if (wheel.overlay === overlay) wheel.overlay = null }
+        onDispose { if (wheel.overlay === overlay) wheel.overlay = previous }
     }
 }

@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -37,6 +38,7 @@ object SettingsStore {
     private const val DEFAULT_HIDE_ARTWORK = false
     private const val DEFAULT_FADE_ENABLED = true
     private const val DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT = false
+    private const val DEFAULT_WHEEL_SENSITIVITY = 1f
     const val DEFAULT_SYNC_URL = "https://audiostream.pxr.dpdns.org/"
     const val DEFAULT_SYNC_USERNAME = "pxr"
     private const val DEFAULT_SYNC_ADAPTER = "audiostream"
@@ -46,6 +48,7 @@ object SettingsStore {
     private const val DEFAULT_SYNC_CONTENT_MODE = "all"
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val FADE_ENABLED_KEY = booleanPreferencesKey("FADE_ENABLED")
+    private val WHEEL_SENSITIVITY_KEY = floatPreferencesKey("WHEEL_SENSITIVITY")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
     private val LAST_SCAN_COUNT_KEY = longPreferencesKey("LAST_SCAN_COUNT")
     private val LAST_SCAN_DURATION_MS_KEY = longPreferencesKey("LAST_SCAN_DURATION_MS")
@@ -86,7 +89,9 @@ object SettingsStore {
         }
     }
 
-    private val store: DataStore<Preferences>
+    internal val currentPreferences: Preferences? get() = _prefs.value
+
+    internal val store: DataStore<Preferences>
         get() {
             requireInit()
             return dataStore
@@ -137,6 +142,9 @@ object SettingsStore {
             prefs[FADE_ENABLED_KEY] ?: DEFAULT_FADE_ENABLED
         }
 
+    val wheelSensitivityFlow: Flow<Float>
+        get() = store.data.map { (it[WHEEL_SENSITIVITY_KEY] ?: DEFAULT_WHEEL_SENSITIVITY).coerceIn(0.25f, 3f) }
+
     val syncUrlFlow: Flow<String> get() = store.data.map { it[SYNC_URL_KEY] ?: DEFAULT_SYNC_URL }
     val syncUsernameFlow: Flow<String> get() = store.data.map { it[SYNC_USERNAME_KEY] ?: DEFAULT_SYNC_USERNAME }
     val syncAdapterFlow: Flow<String> get() = store.data.map { it[SYNC_ADAPTER_KEY] ?: DEFAULT_SYNC_ADAPTER }
@@ -175,6 +183,9 @@ object SettingsStore {
 
     val currentResumeOnBluetoothReconnect: Boolean
         get() = _prefs.value?.get(RESUME_ON_BLUETOOTH_RECONNECT_KEY) ?: DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT
+
+    val currentWheelSensitivity: Float
+        get() = (_prefs.value?.get(WHEEL_SENSITIVITY_KEY) ?: DEFAULT_WHEEL_SENSITIVITY).coerceIn(0.25f, 3f)
 
     val currentFadeEnabled: Boolean
         get() = _prefs.value?.get(FADE_ENABLED_KEY) ?: DEFAULT_FADE_ENABLED
@@ -310,6 +321,10 @@ object SettingsStore {
         store.edit { prefs ->
             prefs[RESUME_ON_BLUETOOTH_RECONNECT_KEY] = value
         }
+    }
+
+    suspend fun setWheelSensitivity(value: Float) {
+        store.edit { it[WHEEL_SENSITIVITY_KEY] = value.coerceIn(0.25f, 3f) }
     }
 
     suspend fun setFadeEnabled(value: Boolean) {

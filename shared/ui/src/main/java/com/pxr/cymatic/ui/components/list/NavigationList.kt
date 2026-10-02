@@ -20,6 +20,8 @@ data class NavigationItem(
     val label: String,
     val subLabel: String? = null,
     val icon: @Composable (() -> Unit)? = null,
+    val enabled: Boolean = true,
+    val key: Any? = null,
     val onLongClick: () -> Unit = { },
     val onClick: () -> Unit = { },
 )
@@ -34,26 +36,26 @@ fun NavigationList(
     val listState = rememberLazyListState()
     val selectedIndex = rememberWheelSelection(
         items.size, listState,
-        onSelect = { items[it].onClick() },
-        onContext = { items[it].onLongClick() }
+        onSelect = { if (items[it].enabled) items[it].onClick() },
+        onContext = { if (items[it].enabled) items[it].onLongClick() }
     )
     LazyColumn(state = listState, modifier = modifier) {
         items(
             count = items.size,
-            key = { i -> items[i].label }
+            key = { i -> items[i].key ?: items[i].label }
         ) { index ->
             val item = items[index]
             ListItem(
                 label = item.label,
                 subLabel = item.subLabel,
                 icon = item.icon,
-                trailing = ">",
+                trailing = if (item.enabled) ">" else "",
                 trailingStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp
                 ),
-                onClick = item.onClick,
-                onLongClick = item.onLongClick,
+                onClick = { if (item.enabled) item.onClick() },
+                onLongClick = { if (item.enabled) item.onLongClick() },
                 isActive = index == selectedIndex,
                 modifier = Modifier.height(
                     if (wheel != null) {

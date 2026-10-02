@@ -50,17 +50,28 @@ internal enum class WheelButton {
     SELECT
 }
 
+private const val RotationStep = 0.20f
+private const val MinimumMotionAngle = 0.005f
+
 @Composable
 internal fun ClickWheel(
     diameter: Dp,
     onRotate: (Int) -> Unit,
     onPress: (WheelButton) -> Unit,
     onHold: (WheelButton) -> Unit,
+    sensitivity: Float = 1f,
+    movementPauseMs: Long = 220L,
+    hapticsEnabled: Boolean = true,
+    onMovementStarted: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val rotate by rememberUpdatedState(onRotate)
     val press by rememberUpdatedState(onPress)
     val hold by rememberUpdatedState(onHold)
+    val currentSensitivity by rememberUpdatedState(sensitivity)
+    val currentPauseMs by rememberUpdatedState(movementPauseMs)
+    val feedbackEnabled by rememberUpdatedState(hapticsEnabled)
+    val movementStarted by rememberUpdatedState(onMovementStarted)
     val haptic = LocalHapticFeedback.current
     val colors = MaterialTheme.colorScheme
     var pressed by remember { mutableStateOf<WheelButton?>(null) }
@@ -89,11 +100,12 @@ internal fun ClickWheel(
                         var cancelled = false
                         var angle = atan2(start.y, start.x)
                         var accumulated = 0f
+                        var lastMotionTime = down.uptimeMillis
                         val holdJob = gestureScope.launch {
                             delay(viewConfiguration.longPressTimeoutMillis)
                             if (!rotated) {
                                 held = true
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (feedbackEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 hold(button)
                                 if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
                                     while (true) {
@@ -113,8 +125,12 @@ internal fun ClickWheel(
                                 }
                                 val position = change.position - center
                                 if (!held && button != WheelButton.SELECT &&
-                                    (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                                    (rotated || (change.position - down.position).getDistance() > viewConfiguration.touchSlop)
                                 ) {
+                                    if (!rotated) {
+                                        movementStarted()
+                                        lastMotionTime = change.uptimeMillis
+                                    }
                                     rotated = true
                                     pressed = null
                                     holdJob.cancel()
@@ -123,14 +139,22 @@ internal fun ClickWheel(
                                         var delta = nextAngle - angle
                                         if (delta > PI) delta -= (2 * PI).toFloat()
                                         if (delta < -PI) delta += (2 * PI).toFloat()
-                                        accumulated += delta
-                                        val steps = (accumulated / 0.20f).toInt()
-                                        if (steps != 0) {
-                                            rotate(steps)
-                                            accumulated -= steps * 0.20f
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        if (abs(delta) >= MinimumMotionAngle) {
+                                            if (change.uptimeMillis - lastMotionTime >= currentPauseMs) {
+                                                accumulated = 0f
+                                                movementStarted()
+                                            }
+                                            lastMotionTime = change.uptimeMillis
+                                            accumulated += delta
+                                            val stepAngle = RotationStep / currentSensitivity.coerceIn(0.25f, 3f)
+                                            val steps = (accumulated / stepAngle).toInt()
+                                            if (steps != 0) {
+                                                rotate(steps)
+                                                accumulated -= steps * stepAngle
+                                                if (feedbackEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            angle = nextAngle
                                         }
-                                        angle = nextAngle
                                     } else {
                                         angle = atan2(position.y, position.x)
                                         accumulated = 0f
@@ -139,7 +163,7 @@ internal fun ClickWheel(
                                 }
                             } while (event.changes.any { it.id == down.id && it.pressed })
                             if (!cancelled && !rotated && !held) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (feedbackEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 press(button)
                             }
                         } finally {

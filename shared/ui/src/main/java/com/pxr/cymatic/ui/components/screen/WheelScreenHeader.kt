@@ -40,7 +40,7 @@ fun WheelScreenHeader(
         if (onBackClick != null) {
             Box(
                 Modifier
-                    .padding(start = 16.dp)
+                    .padding(start = 12.dp)
                     .width(44.dp)
                     .fillMaxHeight()
                     .clickable(onClick = onBackClick),

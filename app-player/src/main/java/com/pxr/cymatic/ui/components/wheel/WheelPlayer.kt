@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -19,6 +21,10 @@ import com.pxr.cymatic.ui.components.rememberBatteryState
 import com.pxr.cymatic.ui.components.rememberMusicVolumeState
 import com.pxr.cymatic.ui.components.screen.LocalScreenHeaderStatus
 import com.pxr.cymatic.ui.locals.LocalMediaController
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.currentInterfaceSettings
+import com.pxr.cymatic.data.store.interfaceSettingsFlow
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.state.PlaybackState
 import com.pxr.cymatic.ui.state.rememberPlaybackState
@@ -27,9 +33,11 @@ import com.pxr.cymatic.ui.state.rememberPlaybackState
 fun WheelPlayer() {
     val controller = LocalMediaController.current
     val playback = rememberPlaybackState(controller)
+    val settings by SettingsStore.interfaceSettingsFlow.collectAsState(initial = SettingsStore.currentInterfaceSettings)
+    WheelScreenAwake(settings.screenAwakeMode, playback.isPlaying)
     val battery = rememberBatteryState()
     val wheel = remember { WheelNavigation() }
-    val state = rememberWheelPlayerState(LocalNavController.current, wheel)
+    val state = rememberWheelPlayerState(LocalNavController.current, wheel, settings.coverVisibleByDefault)
     val volume = rememberMusicVolumeState(poll = state.isNowPlaying)
     val controls = WheelPlayerControls(state, controller, volume, playback.durationMs)
 
@@ -41,6 +49,7 @@ fun WheelPlayer() {
     Surface(Modifier.fillMaxSize()) {
         CompositionLocalProvider(
             LocalWheelNavigation provides wheel,
+            LocalInterfaceSettings provides settings,
             LocalScreenHeaderStatus provides { BatteryIndicator(battery) }
         ) {
             WheelPlayerLayout(controls) {

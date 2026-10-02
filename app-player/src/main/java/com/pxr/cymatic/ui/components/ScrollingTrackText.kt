@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -45,6 +46,7 @@ fun ScrollingTrackText(
     color: Color = MaterialTheme.colorScheme.onBackground
 ) {
     val density = LocalDensity.current
+    val settings = LocalInterfaceSettings.current
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.bodyLarge.copy(
         fontSize = fontSize,
@@ -72,12 +74,12 @@ fun ScrollingTrackText(
         val distance = (layout.size.width - widthPx).coerceAtLeast(0).toFloat()
         val offset = remember(text, widthPx) { Animatable(0f) }
         var scrolling by remember(text, widthPx) { mutableStateOf(false) }
-        val speed = with(density) { 24.dp.toPx() }
-        LaunchedEffect(text, distance, speed, offset) {
+        val speed = with(density) { settings.textScrollSpeed.dp.toPx() }
+        LaunchedEffect(text, distance, speed, settings.textScrollDelayMs, offset) {
             scrolling = false
             offset.snapTo(0f)
             while (isActive && distance > 0f) {
-                delay(2200L)
+                delay(settings.textScrollDelayMs)
                 scrolling = true
                 offset.animateTo(
                     distance,

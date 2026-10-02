@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -21,11 +22,16 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
 private val ScreenMargin = 18.dp
 private val ScreenShape = RoundedCornerShape(22.dp)
@@ -36,6 +42,7 @@ internal fun WheelPlayerLayout(
     controls: WheelPlayerControls,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val settings = LocalInterfaceSettings.current
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
@@ -43,9 +50,10 @@ internal fun WheelPlayerLayout(
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Vertical))
             .imePadding()
     ) {
+        val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val landscape = maxWidth > maxHeight
         val wheelAreaSize = if (landscape) maxHeight else maxWidth
-        val wheelSize = minOf(MaxWheelSize, wheelAreaSize * 0.72f)
+        val baseWheelSize = minOf(MaxWheelSize, wheelAreaSize * 0.72f)
         val screenWidth = (
             if (landscape) maxWidth - wheelAreaSize - ScreenMargin else maxWidth - ScreenMargin * 2
         ).coerceAtLeast(1.dp)
@@ -53,8 +61,11 @@ internal fun WheelPlayerLayout(
             if (landscape) maxHeight - ScreenMargin * 2 else maxHeight - wheelAreaSize - ScreenMargin
         ).coerceAtLeast(1.dp)
         val screenHeight = minOf(screenWidth, availableScreenHeight)
+        val wheelHeight = if (landscape) maxHeight else (maxHeight - screenHeight - ScreenMargin).coerceAtLeast(1.dp)
+        val wheelSize = minOf(baseWheelSize * (settings.wheelSizePercent / 100), minOf(wheelAreaSize, wheelHeight) * 0.9f)
+        val displayHeight = if (keyboardVisible) maxHeight - ScreenMargin else screenHeight
 
-        if (landscape) {
+        if (landscape && !keyboardVisible) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 PlayerDisplay(
                     Modifier
@@ -72,10 +83,10 @@ internal fun WheelPlayerLayout(
                     Modifier
                         .fillMaxWidth()
                         .padding(start = ScreenMargin, end = ScreenMargin, top = ScreenMargin)
-                        .height(screenHeight),
+                        .height(displayHeight),
                     content
                 )
-                PlayerWheel(Modifier.weight(1f).fillMaxWidth(), wheelSize, controls)
+                if (!keyboardVisible) PlayerWheel(Modifier.weight(1f).fillMaxWidth(), wheelSize, controls)
             }
         }
     }
@@ -93,7 +104,15 @@ private fun PlayerDisplay(modifier: Modifier, content: @Composable ColumnScope.(
 
 @Composable
 private fun PlayerWheel(modifier: Modifier, diameter: Dp, controls: WheelPlayerControls) {
+    val settings = LocalInterfaceSettings.current
+    val sensitivity by SettingsStore.wheelSensitivityFlow.collectAsState(initial = SettingsStore.currentWheelSensitivity)
     Box(modifier, contentAlignment = Alignment.Center) {
-        ClickWheel(diameter, controls::rotate, controls::press, controls::hold)
+        ClickWheel(
+            diameter, controls::rotate, controls::press, controls::hold,
+            sensitivity = sensitivity,
+            movementPauseMs = settings.gesturePauseMs,
+            hapticsEnabled = settings.hapticsEnabled,
+            onMovementStarted = controls::beginMovement
+        )
     }
 }

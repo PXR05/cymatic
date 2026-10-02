@@ -34,6 +34,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.WheelReadingPage
+import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.Dispatchers
@@ -114,150 +118,177 @@ fun VersionSettingsScreen(
         }
     }
 
+    fun checkUpdates() {
+        if (isChecking) return
+        isChecking = true
+        errorMessage = null
+        scope.launch {
+            val result = fetchLatestRelease(releaseProduct.assetPrefix)
+            isChecking = false
+            if (result != null) latestRelease = result else errorMessage = "Unable to check for updates."
+        }
+    }
+
+    fun download(release: ReleaseInfo) {
+        enqueueDownload(context, release, releaseProduct).also {
+            downloadId = it
+            downloadStatus = "Starting"
+        }
+    }
+
     BaseScreen(
         title = "Version",
         onBackClick = { navController.popBackStack() },
         modifier = modifier
     ) {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Current version: ${currentVersion.name} (${currentVersion.code})"
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = {
-                        isChecking = true
-                        errorMessage = null
-                        scope.launch {
-                            val result = fetchLatestRelease(releaseProduct.assetPrefix)
-                            isChecking = false
-                            if (result != null) {
-                                latestRelease = result
-                            } else {
-                                errorMessage = "Unable to check for updates."
-                            }
-                        }
-                    },
-                    enabled = !isChecking,
-                    shape = sharpCorners,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Check updates"
-                    )
+        if (LocalWheelNavigation.current != null) {
+            NavigationList(buildList {
+                add(NavigationItem("Current version", "${currentVersion.name} (${currentVersion.code})", enabled = false))
+                add(NavigationItem("Check updates", if (isChecking) "Checking" else null, enabled = !isChecking, onClick = ::checkUpdates))
+                latestRelease?.let { release ->
+                    add(NavigationItem("Latest version", release.versionName, enabled = false))
+                    add(NavigationItem("GitHub") { openUrl(context, release.versionUrl) })
+                    add(NavigationItem("Changelog") { showChangelog = true })
+                    add(NavigationItem("Download", if (release.apkUrl == null) "No APK available" else downloadStatus,
+                        enabled = release.apkUrl != null && downloadId == null) { download(release) })
                 }
-
-                latestRelease?.versionUrl?.let { url ->
-                    OutlinedButton(
-                        onClick = { openUrl(context, url) },
-                        shape = sharpCorners,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "GitHub"
-                        )
-
-                    }
-                }
-            }
-
-            latestRelease?.let { release ->
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-
-                val isUpdateAvailable = isVersionNewer(release.versionName, currentVersion.name)
+                if (downloadedApkUri != null) add(NavigationItem("Install update") { installApk(context, downloadedApkUri) })
+                errorMessage?.let { add(NavigationItem("Update status", it, enabled = false)) }
+            })
+        } else {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    text = if (isUpdateAvailable) {
-                        "Update available: ${release.versionName}"
-                    } else {
-                        "You are on the latest version."
-                    }
+                    text = "Current version: ${currentVersion.name} (${currentVersion.code})"
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { showChangelog = !showChangelog },
+                    Button(
+                        onClick = {
+                            checkUpdates()
+                        },
+                        enabled = !isChecking,
                         shape = sharpCorners,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = if (showChangelog) "Hide changelog" else "Show changelog"
+                            text = "Check updates"
                         )
                     }
 
-                    if (release.apkUrl != null) {
-                        Button(
-                            onClick = {
-                                enqueueDownload(context, release, releaseProduct).also {
-                                    downloadId = it
-                                    downloadStatus = "Starting"
-                                }
-                            },
-                            enabled = downloadId == null,
+                    latestRelease?.versionUrl?.let { url ->
+                        OutlinedButton(
+                            onClick = { openUrl(context, url) },
                             shape = sharpCorners,
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "Download"
+                                text = "GitHub"
                             )
 
                         }
                     }
                 }
 
-                if (downloadId != null) {
-                    Text(
-                        text = "Download status: $downloadStatus"
-                    )
-                }
-
-                if (downloadedApkUri != null) {
-                    Button(
-                        onClick = { installApk(context, downloadedApkUri) },
-                        shape = sharpCorners,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Install update"
-                        )
-
-                    }
-                } else if (release.apkUrl == null) {
-                    Text(
-                        text = "No APK asset found in latest release."
-                    )
-                }
-
-                if (showChangelog) {
-                    val normalizedChangelog = release.changelog
-                        .replace("\r\n", "\n")
-                        .replace(Regex("\n{3,}"), "\n\n")
-
-                    Text(
-                        text = normalizedChangelog.ifBlank { "No changelog provided." },
+                latestRelease?.let { release ->
+                    HorizontalDivider(
                         modifier = Modifier
-                            .border(1.dp, MaterialTheme.colorScheme.secondary)
-                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+
+                    val isUpdateAvailable = isVersionNewer(release.versionName, currentVersion.name)
+                    Text(
+                        text = if (isUpdateAvailable) {
+                            "Update available: ${release.versionName}"
+                        } else {
+                            "You are on the latest version."
+                        }
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { showChangelog = !showChangelog },
+                            shape = sharpCorners,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = if (showChangelog) "Hide changelog" else "Show changelog"
+                            )
+                        }
+
+                        if (release.apkUrl != null) {
+                            Button(
+                                onClick = {
+                                    download(release)
+                                },
+                                enabled = downloadId == null,
+                                shape = sharpCorners,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Download"
+                                )
+
+                            }
+                        }
+                    }
+
+                    if (downloadId != null) {
+                        Text(
+                            text = "Download status: $downloadStatus"
+                        )
+                    }
+
+                    if (downloadedApkUri != null) {
+                        Button(
+                            onClick = { installApk(context, downloadedApkUri) },
+                            shape = sharpCorners,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Install update"
+                            )
+
+                        }
+                    } else if (release.apkUrl == null) {
+                        Text(
+                            text = "No APK asset found in latest release."
+                        )
+                    }
+
+                    if (showChangelog) {
+                        val normalizedChangelog = release.changelog
+                            .replace("\r\n", "\n")
+                            .replace(Regex("\n{3,}"), "\n\n")
+
+                        Text(
+                            text = normalizedChangelog.ifBlank { "No changelog provided." },
+                            modifier = Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.secondary)
+                                .padding(16.dp)
+                        )
+                    }
+                }
+
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
-
-            errorMessage?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+        }
+    }
+    if (LocalWheelNavigation.current != null && showChangelog) {
+        WheelReadingPage("Changelog", { showChangelog = false }) {
+            Text(latestRelease?.changelog?.replace("\r\n", "\n")?.replace(Regex("\n{3,}"), "\n\n")
+                ?.ifBlank { "No changelog provided." } ?: "No changelog provided.")
         }
     }
 }
