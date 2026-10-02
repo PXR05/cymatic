@@ -60,8 +60,17 @@ internal class WheelPlayerState(
 
     fun mainMenu() {
         wheel.overlay?.onDismiss?.invoke()
+        wheel.overlay = null
+        showPlaylistPicker = false
+        showTrackInfo = false
         panel = WheelPanel.BROWSER
-        nav.popBackStack(Screen.Home.route, false, saveState = true)
+        if (nav.currentDestination?.route == Screen.Home.route) return
+        if (!nav.popBackStack(Screen.Home.route, false, saveState = true)) {
+            nav.navigate(Screen.Home.route) {
+                popUpTo(nav.graph.id) { saveState = true }
+                launchSingleTop = true
+            }
+        }
     }
 
     fun back() {
@@ -69,7 +78,9 @@ internal class WheelPlayerState(
             wheel.overlay != null -> wheel.overlay?.onDismiss?.invoke()
             panel == WheelPanel.QUICK_SETTINGS || panel == WheelPanel.TRACK_ACTIONS -> panel = previousPanel
             isNowPlaying -> panel = WheelPanel.BROWSER
-            else -> nav.popBackStack()
+            nav.currentDestination?.route == Screen.Home.route -> Unit
+            nav.previousBackStackEntry == null -> mainMenu()
+            else -> if (!nav.popBackStack()) mainMenu()
         }
     }
 

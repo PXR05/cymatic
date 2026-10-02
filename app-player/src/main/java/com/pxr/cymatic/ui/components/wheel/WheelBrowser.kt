@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.components.wheel
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -22,6 +23,7 @@ internal fun WheelBrowser(state: WheelPlayerState) {
             Screen.Queue.route to { WheelQueueScreen(onNowPlaying = state::nowPlaying) }
         )
     )
+    BackHandler(onBack = state::back)
 }
 
 @Composable

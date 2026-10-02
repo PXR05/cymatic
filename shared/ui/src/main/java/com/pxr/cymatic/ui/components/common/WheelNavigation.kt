@@ -24,6 +24,7 @@ class WheelNavigation {
     private val handlers = mutableStateListOf<WheelActions>()
     val actions: WheelActions? get() = handlers.lastOrNull()
     var onPlaybackRequested: () -> Unit = {}
+    var onBackRequested: (() -> Unit)? = null
     var overlay by mutableStateOf<WheelOverlay?>(null)
 
     fun register(actions: WheelActions) {

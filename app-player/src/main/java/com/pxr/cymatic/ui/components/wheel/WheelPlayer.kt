@@ -1,6 +1,5 @@
 package com.pxr.cymatic.ui.components.wheel
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -34,8 +33,10 @@ fun WheelPlayer() {
     val volume = rememberMusicVolumeState(poll = state.isNowPlaying)
     val controls = WheelPlayerControls(state, controller, volume, playback.durationMs)
 
-    SideEffect { wheel.onPlaybackRequested = state::nowPlaying }
-    BackHandler(enabled = state.blocksBrowserInput, onBack = state::back)
+    SideEffect {
+        wheel.onPlaybackRequested = state::nowPlaying
+        wheel.onBackRequested = state::back
+    }
 
     Surface(Modifier.fillMaxSize()) {
         CompositionLocalProvider(

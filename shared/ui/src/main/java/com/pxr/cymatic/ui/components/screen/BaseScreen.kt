@@ -32,6 +32,8 @@ fun BaseScreen(
     showWallpaperBackdrop: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val wheel = LocalWheelNavigation.current
+    val back = if (onBackClick != null) wheel?.onBackRequested ?: onBackClick else null
     val backdrop = if (showWallpaperBackdrop) LocalScreenBackdrop.current else null
     Box(modifier = modifier.fillMaxSize()) {
         backdrop?.invoke()
@@ -50,7 +52,7 @@ fun BaseScreen(
                 if (searchQuery != null && onSearchQueryChange != null && onSearchActiveChange != null) {
                     SearchableScreenHeader(
                         title = title,
-                        onBackClick = onBackClick,
+                        onBackClick = back,
                         onTitleClick = onTitleClick,
                         isSearchActive = isSearchActive,
                         onSearchActiveChange = onSearchActiveChange,
@@ -61,7 +63,7 @@ fun BaseScreen(
                 } else {
                     ScreenHeader(
                         title = title,
-                        onBackClick = onBackClick,
+                        onBackClick = back,
                         onTitleClick = onTitleClick,
                         actions = actions
                     )
