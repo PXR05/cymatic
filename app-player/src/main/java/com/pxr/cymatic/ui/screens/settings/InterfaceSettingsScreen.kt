@@ -112,7 +112,7 @@ internal fun InterfaceSettingsScreen() {
 
     number?.let { edit ->
         WheelNumberEditor(edit.title, edit.value, edit.range, edit.step, edit.format,
-            onSave = { value -> scope.launch { edit.save(value) } },
+            onSave = edit.save,
             onDismiss = { number = null })
     }
 }

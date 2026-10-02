@@ -40,6 +40,7 @@ import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -68,16 +69,47 @@ fun WheelNumberEditor(
     range: ClosedFloatingPointRange<Float>,
     step: Float,
     format: (Float) -> String,
-    onSave: (Float) -> Unit,
+    onSave: suspend (Float) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var draft by remember { mutableFloatStateOf(value.coerceIn(range)) }
+    val draftState = remember(title, value, range) { mutableFloatStateOf(value.coerceIn(range)) }
+    var draft by draftState
+    val savingState = remember(draftState) { mutableStateOf(false) }
+    var saving by savingState
+    val errorState = remember(draftState) { mutableStateOf<String?>(null) }
+    var error by errorState
+    val scope = rememberCoroutineScope()
+    val currentRange by rememberUpdatedState(range)
+    val currentStep by rememberUpdatedState(step)
     val save by rememberUpdatedState(onSave)
     val dismiss by rememberUpdatedState(onDismiss)
     WheelSettingsOverlay(title, onDismiss) {
         val wheel = LocalWheelNavigation.current
-        val actions = remember(wheel) {
-            WheelActions({ draft = (draft + it * step).coerceIn(range) }, { save(draft); dismiss() })
+        val actions = remember(wheel, draftState, savingState, errorState, scope) {
+            WheelActions(
+                onRotate = {
+                    if (!saving) draft = (draft + it * currentStep).coerceIn(currentRange)
+                },
+                onSelect = {
+                    if (!saving) {
+                        val selectedValue = draft
+                        saving = true
+                        error = null
+                        scope.launch {
+                            try {
+                                save(selectedValue)
+                                dismiss()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                error = "Could not save. Select to retry."
+                            } finally {
+                                saving = false
+                            }
+                        }
+                    }
+                }
+            )
         }
         DisposableEffect(wheel, actions) {
             wheel?.register(actions)
@@ -89,8 +121,9 @@ fun WheelNumberEditor(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(format(draft), fontSize = 32.sp)
-            CymaticSlider(value = draft, onValueChange = { draft = it }, valueRange = range)
-            Text("Rotate to adjust · Select to save", color = MaterialTheme.colorScheme.secondary)
+            CymaticSlider(value = draft, onValueChange = { if (!saving) draft = it }, valueRange = range)
+            Text(error ?: if (saving) "Saving…" else "Rotate to adjust · Select to save",
+                color = MaterialTheme.colorScheme.secondary)
         }
     }
 }

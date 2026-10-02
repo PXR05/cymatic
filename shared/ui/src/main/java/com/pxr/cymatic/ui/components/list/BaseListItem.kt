@@ -32,6 +32,7 @@ fun ListItem(
     labelStyle: TextStyle = TextStyle.Default,
     subLabel: String? = null,
     subLabelStyle: TextStyle = TextStyle.Default,
+    subLabelMaxLines: Int = 1,
     trailing: String? = null,
     trailingStyle: TextStyle = TextStyle.Default,
     isActive: Boolean = false,
@@ -108,7 +109,7 @@ fun ListItem(
                     text = subLabel,
                     color = secondaryLabelColor,
                     overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
+                    maxLines = subLabelMaxLines,
                     style = subLabelFontStyle
                 )
             }

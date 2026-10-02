@@ -118,7 +118,8 @@ internal fun WheelEqSettingsScreen(
         viewModel.deletePreset(state.selectedPresetName); delete = false
     }), { delete = false })
     number?.let { edit ->
-        WheelNumberEditor(edit.title, edit.value, edit.range, edit.step, edit.format, edit.save, { number = null })
+        WheelNumberEditor(edit.title, edit.value, edit.range, edit.step, edit.format,
+            onSave = { edit.save(it) }, onDismiss = { number = null })
     }
     if (graph) WheelReadingPage("Response graph", { graph = false }) {
         EqBodePlot(preset, Modifier.fillMaxWidth().aspectRatio(16f / 9f))

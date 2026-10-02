@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +32,7 @@ fun CymaticSlider(
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
 ) {
     val density = LocalDensity.current
+    val changeValue by rememberUpdatedState(onValueChange)
     var barWidthPx by remember { mutableIntStateOf(0) }
     var isDragging by remember { mutableStateOf(false) }
     var dragPositionPx by remember { mutableIntStateOf(0) }
@@ -51,7 +53,7 @@ fun CymaticSlider(
                 
                 isDragging = true
                 dragPositionPx = startX.toInt()
-                onValueChange(targetValue)
+                changeValue(targetValue)
                 
                 drag(down.id) { change ->
                     val x = change.position.x.coerceIn(0f, width)
@@ -59,7 +61,7 @@ fun CymaticSlider(
                     val currentValue = valueRange.start + currentFraction * (valueRange.endInclusive - valueRange.start)
                     
                     dragPositionPx = x.toInt()
-                    onValueChange(currentValue)
+                    changeValue(currentValue)
                     change.consume()
                 }
                 isDragging = false

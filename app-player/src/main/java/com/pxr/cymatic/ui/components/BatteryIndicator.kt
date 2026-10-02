@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun BatteryIndicator(battery: BatteryState) {
     val color = MaterialTheme.colorScheme.onBackground
+    val background = MaterialTheme.colorScheme.background
     val percent = battery.percent?.let { "$it%" } ?: "--%"
     Row(
         Modifier.semantics(mergeDescendants = true) {
@@ -41,6 +43,19 @@ fun BatteryIndicator(battery: BatteryState) {
             val inset = 3.dp.toPx()
             val fill = (bodyWidth - inset * 2) * (battery.percent ?: 0) / 100f
             if (fill > 0) drawRect(color, Offset(inset, inset), Size(fill, size.height - inset * 2))
+            if (battery.charging) {
+                val bolt = Path().apply {
+                    moveTo(bodyWidth * 0.62f, size.height * 0.13f)
+                    lineTo(bodyWidth * 0.35f, size.height * 0.54f)
+                    lineTo(bodyWidth * 0.51f, size.height * 0.54f)
+                    lineTo(bodyWidth * 0.39f, size.height * 0.87f)
+                    lineTo(bodyWidth * 0.67f, size.height * 0.43f)
+                    lineTo(bodyWidth * 0.51f, size.height * 0.43f)
+                    close()
+                }
+                drawPath(bolt, background, style = Stroke(2.dp.toPx()))
+                drawPath(bolt, color)
+            }
         }
         Text(percent, fontSize = 11.sp, maxLines = 1)
     }

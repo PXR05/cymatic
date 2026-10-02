@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ fun NavigationList(
             ListItem(
                 label = item.label,
                 subLabel = item.subLabel,
+                subLabelMaxLines = 2,
                 icon = item.icon,
                 trailing = if (item.enabled) ">" else "",
                 trailingStyle = TextStyle(
@@ -57,8 +59,8 @@ fun NavigationList(
                 onClick = { if (item.enabled) item.onClick() },
                 onLongClick = { if (item.enabled) item.onLongClick() },
                 isActive = index == selectedIndex,
-                modifier = Modifier.height(
-                    if (wheel != null) {
+                modifier = Modifier.heightIn(
+                    min = if (wheel != null) {
                         if (item.subLabel != null) 64.dp else 52.dp
                     } else if (item.subLabel != null) 76.dp else 64.dp
                 )

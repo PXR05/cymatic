@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -77,7 +78,7 @@ fun AudioFileList(
                     wheel?.onPlaybackRequested?.invoke()
                 },
                 onLongClick = { onItemLongClick(audioFile) },
-                modifier = Modifier.height(if (wheel != null) 64.dp else 76.dp)
+                modifier = Modifier.heightIn(min = if (wheel != null) 64.dp else 76.dp)
             )
             if (i == audioFiles.size - 1 && bottomOffset > 0.dp) {
                 Box(modifier = Modifier.height(bottomOffset))
@@ -195,7 +196,7 @@ fun AudioFileItemPreview() {
             audioFile = sampleAudioFileCJK,
             isCurrent = false,
             onClick = {},
-            modifier = Modifier.height(76.dp)
+            modifier = Modifier.heightIn(min = 76.dp)
         )
         Box(
             modifier = Modifier

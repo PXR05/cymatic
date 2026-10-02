@@ -1,6 +1,7 @@
 package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -12,7 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.flow.first
 
 data class WheelActions(
     val onRotate: (Int) -> Unit,
@@ -79,11 +82,26 @@ fun rememberWheelSelection(
         onDispose { wheel?.unregister(actions) }
     }
 
-    LaunchedEffect(selection, itemCount, wheel) {
+    val viewport = listState.layoutInfo.viewportSize
+    LaunchedEffect(selection, itemCount, wheel, viewport) {
         if (wheel != null && itemCount > 0) {
             selection = selection.coerceIn(0, itemCount - 1)
-            val visible = listState.layoutInfo.visibleItemsInfo
-            if (visible.none { it.index == selection }) listState.scrollToItem(selection)
+            if (listState.layoutInfo.visibleItemsInfo.none { it.index == selection }) {
+                listState.scrollToItem(selection)
+            }
+            val layout = snapshotFlow { listState.layoutInfo }.first {
+                it.viewportEndOffset > it.viewportStartOffset &&
+                    it.visibleItemsInfo.any { item -> item.index == selection }
+            }
+            val item = layout.visibleItemsInfo.first { it.index == selection }
+            val start = layout.viewportStartOffset + layout.beforeContentPadding
+            val end = layout.viewportEndOffset - layout.afterContentPadding
+            val offset = when {
+                item.size > end - start || item.offset < start -> item.offset - start
+                item.offset + item.size > end -> item.offset + item.size - end
+                else -> 0
+            }
+            if (offset != 0) listState.scrollBy(offset.toFloat())
         }
     }
     return if (wheel == null || itemCount == 0) -1 else selection.coerceIn(0, itemCount - 1)
