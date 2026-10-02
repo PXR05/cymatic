@@ -20,20 +20,19 @@ import com.pxr.cymatic.ui.screens.library.UnknownAlbum
 import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
-import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistAlbumsScreen
+import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.LibrarySyncSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 
-/** Registers shared music destinations, with product-specific entry points supplied by the host. */
 @Composable
 fun MusicNavHost(
     releaseProduct: ReleaseProduct,

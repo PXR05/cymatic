@@ -25,9 +25,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.design.R
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 
@@ -51,6 +53,35 @@ fun AudioFileContextMenu(
                 showPlaylistPicker = false
                 onDismiss()
             }
+        )
+        return
+    }
+
+    val wheel = LocalWheelNavigation.current
+    if (wheel != null) {
+        WheelContextMenu(
+            title = title,
+            items = listOf(
+                NavigationItem("Play", onClick = {
+                    onPlay(audioFile)
+                    onDismiss()
+                    wheel.onPlaybackRequested()
+                }),
+                NavigationItem("Play Next", onClick = {
+                    onPlayNext(audioFile)
+                    onDismiss()
+                }),
+                NavigationItem("Add to Queue", onClick = {
+                    onAddToQueue(audioFile)
+                    onDismiss()
+                }),
+                NavigationItem("Add to Playlist", onClick = { showPlaylistPicker = true }),
+                NavigationItem("Track Info", onClick = {
+                    onTrackInfo(audioFile)
+                    onDismiss()
+                })
+            ),
+            onDismiss = onDismiss
         )
         return
     }

@@ -4,16 +4,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.runtime.staticCompositionLocalOf
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
-/** Optional background supplied by the host app for music/library screens. */
 val LocalScreenBackdrop = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
 @Composable
@@ -36,6 +38,8 @@ fun BaseScreen(
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = if (LocalWheelNavigation.current != null) WindowInsets(0, 0, 0, 0)
+                else ScaffoldDefaults.contentWindowInsets,
             containerColor = if (backdrop != null) Color.Transparent else MaterialTheme.colorScheme.background
         ) { innerPadding ->
             val topPadding = innerPadding.calculateTopPadding()
@@ -67,5 +71,3 @@ fun BaseScreen(
         }
     }
 }
-
-

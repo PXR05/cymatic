@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 
@@ -35,6 +36,29 @@ fun AlbumArtistContextMenu(
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit
 ) {
+    val wheel = LocalWheelNavigation.current
+    if (wheel != null) {
+        WheelContextMenu(
+            title = title,
+            items = listOf(
+                NavigationItem("Play", onClick = {
+                    onPlay()
+                    onDismiss()
+                    wheel.onPlaybackRequested()
+                }),
+                NavigationItem("Play Next", onClick = {
+                    onPlayNext()
+                    onDismiss()
+                }),
+                NavigationItem("Add to Queue", onClick = {
+                    onAddToQueue()
+                    onDismiss()
+                })
+            ),
+            onDismiss = onDismiss
+        )
+        return
+    }
     CymaticDialog(
         title = title,
         onDismissRequest = onDismiss,

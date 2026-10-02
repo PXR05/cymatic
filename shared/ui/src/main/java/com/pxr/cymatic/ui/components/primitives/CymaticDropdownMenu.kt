@@ -61,7 +61,6 @@ fun CymaticDropdownMenuItem(
     )
 }
 
-/** Compact row height shared by every dropdown menu. */
 val MenuItemHeight = 40.dp
 
 @Composable

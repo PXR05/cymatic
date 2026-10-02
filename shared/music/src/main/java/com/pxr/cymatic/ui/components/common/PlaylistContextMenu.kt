@@ -25,8 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.design.R
 import com.pxr.cymatic.data.media.Playlist
+import com.pxr.cymatic.design.R
+import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
@@ -95,6 +96,32 @@ fun PlaylistContextMenu(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+        )
+        return
+    }
+
+    val wheel = LocalWheelNavigation.current
+    if (wheel != null) {
+        WheelContextMenu(
+            title = playlist.name,
+            items = listOf(
+                NavigationItem("Play", onClick = {
+                    onPlay()
+                    onDismiss()
+                    wheel.onPlaybackRequested()
+                }),
+                NavigationItem("Play Next", onClick = {
+                    onPlayNext()
+                    onDismiss()
+                }),
+                NavigationItem("Add to Queue", onClick = {
+                    onAddToQueue()
+                    onDismiss()
+                }),
+                NavigationItem("Rename", onClick = { showRenameDialog = true }),
+                NavigationItem("Delete", onClick = { showDeleteConfirm = true })
+            ),
+            onDismiss = onDismiss
         )
         return
     }

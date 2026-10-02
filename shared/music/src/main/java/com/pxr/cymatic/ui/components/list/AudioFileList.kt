@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.rememberWheelSelection
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 
@@ -34,6 +36,15 @@ fun AudioFileList(
     val mediaController = LocalMediaController.current
     val playbackState = rememberPlaybackState(mediaController)
     val listState = rememberLazyListState()
+    val wheel = LocalWheelNavigation.current
+    val selectedIndex = rememberWheelSelection(
+        audioFiles.size, listState,
+        onSelect = {
+            onItemClick(audioFiles[it])
+            wheel?.onPlaybackRequested?.invoke()
+        },
+        onContext = { onItemLongClick(audioFiles[it]) }
+    )
 
     LaunchedEffect(scrollTargetId) {
         if (scrollTargetId != null) {
@@ -53,16 +64,20 @@ fun AudioFileList(
             key = { i -> audioFiles[i].id }
         ) { i ->
             val audioFile = audioFiles[i]
-            val isCurrent = playbackState.currentMediaId == audioFile.id.toString()
+            val isCurrent = if (wheel != null) i == selectedIndex
+                else playbackState.currentMediaId == audioFile.id.toString()
             if (i == 0 && topOffset > 0.dp) {
                 Box(modifier = Modifier.height(topOffset))
             }
             AudioFileItem(
                 audioFile = audioFile,
                 isCurrent = isCurrent,
-                onClick = { onItemClick(audioFile) },
+                onClick = {
+                    onItemClick(audioFile)
+                    wheel?.onPlaybackRequested?.invoke()
+                },
                 onLongClick = { onItemLongClick(audioFile) },
-                modifier = Modifier.height(76.dp)
+                modifier = Modifier.height(if (wheel != null) 64.dp else 76.dp)
             )
             if (i == audioFiles.size - 1 && bottomOffset > 0.dp) {
                 Box(modifier = Modifier.height(bottomOffset))
@@ -100,7 +115,6 @@ fun AudioFileItem(
         modifier = modifier
     )
 }
-
 
 @Preview(showBackground = true)
 @Composable
@@ -207,5 +221,3 @@ fun AudioFileItemPreview() {
         )
     }
 }
-
-

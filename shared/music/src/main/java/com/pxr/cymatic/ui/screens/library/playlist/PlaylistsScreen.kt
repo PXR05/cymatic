@@ -1,16 +1,19 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.design.R
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
@@ -54,18 +57,23 @@ fun PlaylistsScreen(
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showWallpaperBackdrop = true,
         actions = {
-            Text(
-                text = "+",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 24.sp,
+            Box(
                 modifier = Modifier
+                    .size(48.dp)
                     .clickable(
                         onClick = { viewModel.showCreateDialog = true },
                         indication = null,
                         interactionSource = null
-                    )
-                    .padding(vertical = 16.dp)
-            )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_pixel_plus),
+                    contentDescription = "Create playlist",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     ) {
         if (uiState.errorMessage != null) {

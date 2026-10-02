@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
 @Composable
 fun SearchableScreenHeader(
@@ -41,9 +42,24 @@ fun SearchableScreenHeader(
     onSearchQueryChange: (String) -> Unit,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    if (LocalWheelNavigation.current != null) {
+        WheelSearchableScreenHeader(
+            modifier = modifier,
+            title = title,
+            onBackClick = onBackClick,
+            onTitleClick = onTitleClick,
+            isSearchActive = isSearchActive,
+            onSearchActiveChange = onSearchActiveChange,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            actions = actions
+        )
+        return
+    }
+
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
     val isTitleCJK = title.contains(cjkRegex)
-    
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 

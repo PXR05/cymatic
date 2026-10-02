@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.rememberWheelSelection
 
 data class NavigationItem(
     val label: String,
@@ -27,7 +30,14 @@ fun NavigationList(
     modifier: Modifier = Modifier,
     separator: (@Composable () -> Unit)? = null,
 ) {
-    LazyColumn(modifier = modifier) {
+    val wheel = LocalWheelNavigation.current
+    val listState = rememberLazyListState()
+    val selectedIndex = rememberWheelSelection(
+        items.size, listState,
+        onSelect = { items[it].onClick() },
+        onContext = { items[it].onLongClick() }
+    )
+    LazyColumn(state = listState, modifier = modifier) {
         items(
             count = items.size,
             key = { i -> items[i].label }
@@ -44,8 +54,11 @@ fun NavigationList(
                 ),
                 onClick = item.onClick,
                 onLongClick = item.onLongClick,
+                isActive = index == selectedIndex,
                 modifier = Modifier.height(
-                    if (item.subLabel != null) 76.dp else 64.dp
+                    if (wheel != null) {
+                        if (item.subLabel != null) 64.dp else 52.dp
+                    } else if (item.subLabel != null) 76.dp else 64.dp
                 )
             )
             if (separator != null && index < items.size - 1) {
@@ -75,6 +88,3 @@ fun NavigationListPreview() {
         )
     })
 }
-
-
-
