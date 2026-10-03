@@ -16,20 +16,22 @@ fun WheelContextMenu(title: String, items: List<NavigationItem>, onDismiss: () -
     val currentTitle by rememberUpdatedState(title)
     val currentItems by rememberUpdatedState(items)
     val dismiss by rememberUpdatedState(onDismiss)
-    val overlay = remember(wheel) {
-        WheelOverlay(
-            content = {
-                BackHandler { dismiss() }
-                BaseScreen(title = currentTitle, onBackClick = { dismiss() }) {
-                    NavigationList(currentItems + NavigationItem("Cancel", onClick = { dismiss() }))
-                }
-            },
-            onDismiss = { dismiss() }
-        )
-    }
+    val overlay =
+        remember(wheel) {
+            WheelOverlay(
+                content = {
+                    BackHandler(enabled = wheel.overlay === LocalWheelOverlay.current) { dismiss() }
+                    BaseScreen(title = currentTitle, onBackClick = { dismiss() }) {
+                        NavigationList(
+                            currentItems + NavigationItem("Cancel", onClick = { dismiss() })
+                        )
+                    }
+                },
+                onDismiss = { dismiss() },
+            )
+        }
     DisposableEffect(wheel, overlay) {
-        val previous = wheel.overlay
-        wheel.overlay = overlay
-        onDispose { if (wheel.overlay === overlay) wheel.overlay = previous }
+        wheel.showOverlay(overlay)
+        onDispose { wheel.removeOverlay(overlay) }
     }
 }

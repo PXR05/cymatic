@@ -22,13 +22,17 @@ class LibrarySyncJobService : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         job = scope.launch {
             val result = runCatching { LibrarySyncManager.sync(applicationContext) }
-            result.exceptionOrNull()?.takeUnless { it is SyncCancelledException }?.let { error ->
-                SettingsStore.setSyncResult(
-                    System.currentTimeMillis(),
-                    "Automatic sync failed: ${error.message ?: "unknown error"}",
-                )
-            }
-            val shouldRetry = result.exceptionOrNull()?.let { it !is SyncCancelledException } == true
+            result
+                .exceptionOrNull()
+                ?.takeUnless { it is SyncCancelledException }
+                ?.let { error ->
+                    SettingsStore.setSyncResult(
+                        System.currentTimeMillis(),
+                        "Automatic sync failed: ${error.message ?: "unknown error"}",
+                    )
+                }
+            val shouldRetry =
+                result.exceptionOrNull()?.let { it !is SyncCancelledException } == true
             jobFinished(params, shouldRetry)
         }
         return true
@@ -54,24 +58,46 @@ class LibrarySyncJobService : JobService() {
             val scheduler = context.getSystemService(JobScheduler::class.java)
             scheduler.cancel(JOB_ID)
             val network = SyncNetwork.from(SettingsStore.syncNetworkFlow.first())
-            if (network == SyncNetwork.NEVER ||
-                SettingsStore.syncDirectoryFlow.first().isBlank() ||
-                !SyncCredentialStore.hasPassword(context)
-            ) return
-
-            val intervalMs = (SettingsStore.syncIntervalHoursFlow.first() * 60L * 60L * 1000L)
-                .coerceAtLeast(MINIMUM_INTERVAL_MS)
-            val info = JobInfo.Builder(
-                JOB_ID,
-                ComponentName(context, LibrarySyncJobService::class.java),
+            val directory = SettingsStore.syncDirectoryFlow.first()
+            if (
+                network == SyncNetwork.NEVER ||
+                    directory.isBlank() ||
+                    !SyncCredentialStore.hasPassword(context)
             )
-                .setRequiredNetworkType(
-                    if (network == SyncNetwork.WIFI) JobInfo.NETWORK_TYPE_UNMETERED
-                    else JobInfo.NETWORK_TYPE_ANY
+                return
+
+            if (!SettingsStore.getSyncContentConfigured()) return
+
+            if (
+                context.contentResolver.persistedUriPermissions.none {
+                    it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
+                }
+            )
+                return
+
+            if (
+                SyncContentMode.from(SettingsStore.syncContentModeFlow.first()) ==
+                    SyncContentMode.SELECTED_PLAYLISTS &&
+                    SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty()
+            )
+                return
+
+            val intervalMs =
+                (SettingsStore.syncIntervalHoursFlow.first() * 60L * 60L * 1000L).coerceAtLeast(
+                    MINIMUM_INTERVAL_MS
                 )
-                .setPeriodic(intervalMs)
-                .setPersisted(true)
-                .build()
+            val info =
+                JobInfo.Builder(
+                        JOB_ID,
+                        ComponentName(context, LibrarySyncJobService::class.java),
+                    )
+                    .setRequiredNetworkType(
+                        if (network == SyncNetwork.WIFI) JobInfo.NETWORK_TYPE_UNMETERED
+                        else JobInfo.NETWORK_TYPE_ANY
+                    )
+                    .setPeriodic(intervalMs)
+                    .setPersisted(true)
+                    .build()
             scheduler.schedule(info)
         }
     }

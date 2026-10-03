@@ -14,8 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,16 +49,19 @@ fun WheelSettingsOverlay(title: String, onDismiss: () -> Unit, content: @Composa
     val currentTitle by rememberUpdatedState(title)
     val dismiss by rememberUpdatedState(onDismiss)
     val body by rememberUpdatedState(content)
-    val overlay = remember(wheel) {
-        WheelOverlay({
-            BackHandler { dismiss() }
-            BaseScreen(title = currentTitle, onBackClick = { dismiss() }) { body() }
-        }, { dismiss() })
-    }
+    val overlay =
+        remember(wheel) {
+            WheelOverlay(
+                {
+                    BackHandler(enabled = wheel.overlay === LocalWheelOverlay.current) { dismiss() }
+                    BaseScreen(title = currentTitle, onBackClick = { dismiss() }) { body() }
+                },
+                { dismiss() },
+            )
+        }
     DisposableEffect(wheel, overlay) {
-        val previous = wheel.overlay
-        wheel.overlay = overlay
-        onDispose { if (wheel.overlay === overlay) wheel.overlay = previous }
+        wheel.showOverlay(overlay)
+        onDispose { wheel.removeOverlay(overlay) }
     }
 }
 
@@ -70,7 +73,7 @@ fun WheelNumberEditor(
     step: Float,
     format: (Float) -> String,
     onSave: suspend (Float) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val draftState = remember(title, value, range) { mutableFloatStateOf(value.coerceIn(range)) }
     var draft by draftState
@@ -85,45 +88,53 @@ fun WheelNumberEditor(
     val dismiss by rememberUpdatedState(onDismiss)
     WheelSettingsOverlay(title, onDismiss) {
         val wheel = LocalWheelNavigation.current
-        val actions = remember(wheel, draftState, savingState, errorState, scope) {
-            WheelActions(
-                onRotate = {
-                    if (!saving) draft = (draft + it * currentStep).coerceIn(currentRange)
-                },
-                onSelect = {
-                    if (!saving) {
-                        val selectedValue = draft
-                        saving = true
-                        error = null
-                        scope.launch {
-                            try {
-                                save(selectedValue)
-                                dismiss()
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                error = "Could not save. Select to retry."
-                            } finally {
-                                saving = false
+        val overlay = LocalWheelOverlay.current
+        val actions =
+            remember(wheel, draftState, savingState, errorState, scope) {
+                WheelActions(
+                    onRotate = {
+                        if (!saving) draft = (draft + it * currentStep).coerceIn(currentRange)
+                    },
+                    onSelect = {
+                        if (!saving) {
+                            val selectedValue = draft
+                            saving = true
+                            error = null
+                            scope.launch {
+                                try {
+                                    save(selectedValue)
+                                    dismiss()
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Exception) {
+                                    error = "Could not save. Select to retry."
+                                } finally {
+                                    saving = false
+                                }
                             }
                         }
-                    }
-                }
-            )
-        }
-        DisposableEffect(wheel, actions) {
-            wheel?.register(actions)
+                    },
+                )
+            }
+        DisposableEffect(wheel, actions, overlay) {
+            wheel?.register(actions, overlay)
             onDispose { wheel?.unregister(actions) }
         }
         Column(
             Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.SpaceEvenly,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(format(draft), fontSize = 32.sp)
-            CymaticSlider(value = draft, onValueChange = { if (!saving) draft = it }, valueRange = range)
-            Text(error ?: if (saving) "Saving…" else "Rotate to adjust · Select to save",
-                color = MaterialTheme.colorScheme.secondary)
+            CymaticSlider(
+                value = draft,
+                onValueChange = { if (!saving) draft = it },
+                valueRange = range,
+            )
+            Text(
+                error ?: if (saving) "Saving…" else "Rotate to adjust · Select to save",
+                color = MaterialTheme.colorScheme.secondary,
+            )
         }
     }
 }
@@ -134,7 +145,7 @@ fun WheelTextEditor(
     value: String,
     password: Boolean = false,
     onSave: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var draft by remember { mutableStateOf(value) }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -155,17 +166,36 @@ fun WheelTextEditor(
                 onValueChange = { draft = it },
                 modifier = Modifier.fillMaxWidth().padding(24.dp).focusRequester(requester),
                 singleLine = true,
-                visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (password) KeyboardType.Password else KeyboardType.Text,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = { keyboard?.hide(); focus.clearFocus() })
+                visualTransformation =
+                    if (password) PasswordVisualTransformation() else VisualTransformation.None,
+                keyboardOptions =
+                    KeyboardOptions(
+                        keyboardType = if (password) KeyboardType.Password else KeyboardType.Text,
+                        imeAction = ImeAction.Done,
+                    ),
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = {
+                            keyboard?.hide()
+                            focus.clearFocus()
+                        }
+                    ),
             )
-            NavigationList(listOf(
-                NavigationItem("Save") { keyboard?.hide(); focus.clearFocus(); onSave(draft); onDismiss() },
-                NavigationItem("Cancel") { keyboard?.hide(); focus.clearFocus(); onDismiss() }
-            ))
+            NavigationList(
+                listOf(
+                    NavigationItem("Save") {
+                        keyboard?.hide()
+                        focus.clearFocus()
+                        onSave(draft)
+                        onDismiss()
+                    },
+                    NavigationItem("Cancel") {
+                        keyboard?.hide()
+                        focus.clearFocus()
+                        onDismiss()
+                    },
+                )
+            )
         }
     }
 }
@@ -174,15 +204,20 @@ fun WheelTextEditor(
 fun WheelReadingPage(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     WheelSettingsOverlay(title, onDismiss) {
         val wheel = LocalWheelNavigation.current
+        val overlay = LocalWheelOverlay.current
         val scroll = rememberScrollState()
         val scope = rememberCoroutineScope()
         val distance = with(LocalDensity.current) { 48.dp.toPx().toInt() }
         val dismiss by rememberUpdatedState(onDismiss)
-        val actions = remember(wheel, scroll, distance) {
-            WheelActions({ steps -> scope.launch { scroll.scrollTo(scroll.value + steps * distance) } }, { dismiss() })
-        }
-        DisposableEffect(wheel, actions) {
-            wheel?.register(actions)
+        val actions =
+            remember(wheel, scroll, distance) {
+                WheelActions(
+                    { steps -> scope.launch { scroll.scrollTo(scroll.value + steps * distance) } },
+                    { dismiss() },
+                )
+            }
+        DisposableEffect(wheel, actions, overlay) {
+            wheel?.register(actions, overlay)
             onDispose { wheel?.unregister(actions) }
         }
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp)) { content() }

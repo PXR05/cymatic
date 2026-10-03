@@ -8,6 +8,11 @@ import java.io.File
 object SyncCatalogStore {
     private const val FILE_NAME = "audiostream-catalog.json"
 
+    fun clear(context: Context) {
+        val file = File(context.filesDir, FILE_NAME)
+        check(!file.exists() || file.delete()) { "Could not clear the previous playlist list" }
+    }
+
     fun read(context: Context): RemoteCatalog? = runCatching {
         val root = JSONObject(File(context.filesDir, FILE_NAME).readText())
         val tracksJson = root.getJSONArray("tracks")

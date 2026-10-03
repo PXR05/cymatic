@@ -7,7 +7,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,26 +23,48 @@ data class WheelActions(
 )
 
 class WheelNavigation {
-    private val handlers = mutableStateListOf<WheelActions>()
+    private data class Handler(val actions: WheelActions, val overlay: WheelOverlay?)
+
+    private val handlers = mutableStateListOf<Handler>()
+    private val overlayStack = mutableStateListOf<WheelOverlay>()
     val actions: WheelActions?
-        get() = handlers.lastOrNull()
+        get() = handlers.lastOrNull { it.overlay === overlay }?.actions
+
+    val overlays: List<WheelOverlay>
+        get() = overlayStack
+
+    val overlay: WheelOverlay?
+        get() = overlayStack.lastOrNull()
 
     var onPlaybackRequested: () -> Unit = {}
     var onBackRequested: (() -> Unit)? = null
-    var overlay by mutableStateOf<WheelOverlay?>(null)
 
-    fun register(actions: WheelActions) {
-        handlers.add(actions)
+    fun register(actions: WheelActions, overlay: WheelOverlay? = null) {
+        handlers.add(Handler(actions, overlay))
     }
 
     fun unregister(actions: WheelActions) {
-        handlers.remove(actions)
+        handlers.removeAll { it.actions === actions }
+    }
+
+    fun showOverlay(overlay: WheelOverlay) {
+        if (overlayStack.none { it === overlay }) overlayStack.add(overlay)
+    }
+
+    fun removeOverlay(overlay: WheelOverlay) {
+        overlayStack.removeAll { it === overlay }
+    }
+
+    fun clearOverlays() {
+        overlayStack.toList().asReversed().forEach { it.onDismiss() }
+        overlayStack.clear()
     }
 }
 
 data class WheelOverlay(val content: @Composable () -> Unit, val onDismiss: () -> Unit)
 
 val LocalWheelNavigation = staticCompositionLocalOf<WheelNavigation?> { null }
+val LocalWheelOverlay = staticCompositionLocalOf<WheelOverlay?> { null }
 
 @Composable
 fun rememberWheelSelection(
@@ -53,6 +74,7 @@ fun rememberWheelSelection(
     onContext: (Int) -> Unit = {},
 ): Int {
     val wheel = LocalWheelNavigation.current
+    val overlay = LocalWheelOverlay.current
     var selection by rememberSaveable { mutableIntStateOf(0) }
     var scrollDirection by remember { mutableIntStateOf(0) }
     val count by rememberUpdatedState(itemCount)
@@ -86,8 +108,8 @@ fun rememberWheelSelection(
             )
         }
 
-    DisposableEffect(wheel, actions) {
-        wheel?.register(actions)
+    DisposableEffect(wheel, actions, overlay) {
+        wheel?.register(actions, overlay)
         onDispose { wheel?.unregister(actions) }
     }
 
