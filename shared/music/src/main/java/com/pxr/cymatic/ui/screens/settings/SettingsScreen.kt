@@ -37,7 +37,11 @@ fun SettingsScreen(
                     onClick = { navController.navigate(Screen.PlaybackSettings.route) }
                 ),
                 NavigationItem(
-                    label = "Storage",
+                    label = "USB audio",
+                        onClick = { navController.navigate(Screen.UsbSettings.route) },
+                    ),
+                    NavigationItem(
+                        label = "Storage",
                     onClick = { navController.navigate(Screen.StorageSettings.route) }
                 ),
                 NavigationItem(
@@ -53,5 +57,3 @@ fun SettingsScreen(
         )
     }
 }
-
-

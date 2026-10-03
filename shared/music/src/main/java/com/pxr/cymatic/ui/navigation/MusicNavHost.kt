@@ -32,6 +32,7 @@ import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.UsbSettingsScreen
 
 @Composable
 fun MusicNavHost(
@@ -99,7 +100,8 @@ fun MusicNavHost(
         Screen.Settings.route to { SettingsScreen(additionalItems = settingsItems, showBackButton = !settingsIsTaskRoot) },
         Screen.EQSettings.route to { EQSettingsScreen() },
         Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
-        Screen.StorageSettings.route to { StorageSettingsScreen() },
+        Screen.UsbSettings.route to { UsbSettingsScreen() },
+            Screen.StorageSettings.route to { StorageSettingsScreen() },
         Screen.LibrarySyncSettings.route to { LibrarySyncSettingsScreen() },
         Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
         Screen.Queue.route to { QueueScreen() },

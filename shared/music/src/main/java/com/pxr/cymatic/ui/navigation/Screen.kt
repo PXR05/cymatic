@@ -54,6 +54,8 @@ sealed class Screen(val route: String) {
 
     object PlaybackSettings : Screen("setting/playback")
 
+    object UsbSettings : Screen("setting/usb")
+
     object StorageSettings : Screen("setting/storage")
 
     object LibrarySyncSettings : Screen("setting/library-sync")
