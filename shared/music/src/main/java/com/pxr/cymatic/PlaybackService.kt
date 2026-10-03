@@ -50,6 +50,14 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.math.abs
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.pxr.cymatic.audio.usb.UsbExtractorsFactory
+import com.pxr.cymatic.audio.usb.UsbPlaybackCoordinator
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import com.pxr.cymatic.audio.usb.UsbRenderersFactory
+import com.pxr.cymatic.audio.usb.UsbVolumeState
+import com.pxr.cymatic.data.store.UsbPlaybackSettings
+import kotlinx.coroutines.flow.first
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -67,6 +75,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var audioManager: AudioManager
     private var audioDeviceCallback: AudioDeviceCallback? = null
     private var lastSavedPositionMs = -1L
+    private lateinit var usbPlayback: UsbPlaybackCoordinator
 
     override fun onCreate() {
         super.onCreate()
@@ -79,6 +88,14 @@ class PlaybackService : MediaLibraryService() {
         )
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        UsbPlaybackState.enabled =
+            runBlocking(Dispatchers.IO) { UsbPlaybackSettings.enabledFlow.first() }
+        UsbVolumeState.initialize(
+            runBlocking(Dispatchers.IO) { UsbPlaybackSettings.volumePercentFlow.first() }
+        )
+        serviceScope.launch {
+            UsbVolumeState.requestedPercent.collect { UsbPlaybackSettings.setVolumePercent(it) }
+        }
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -86,13 +103,16 @@ class PlaybackService : MediaLibraryService() {
             .build()
 
         player = ExoPlayer.Builder(this)
-            .setRenderersFactory(createEqRenderersFactory())
+            .setReleaseTimeoutMs(3000L)
+                .setRenderersFactory(UsbRenderersFactory(this, eqAudioProcessor))
+                .setMediaSourceFactory(DefaultMediaSourceFactory(this, UsbExtractorsFactory()))
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
         fadingPlayer = FadingPlayer(player, serviceScope)
+        usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
 
         val audioRepository = AudioRepository.getInstance(this)
         val playlistRepository = PlaylistRepository.getInstance(this)
@@ -186,6 +206,7 @@ class PlaybackService : MediaLibraryService() {
             }
         })
 
+        usbPlayback.start(UsbPlaybackState.enabled)
         serviceScope.launch { restorePlaybackState() }
 
         serviceScope.launch {
@@ -214,6 +235,11 @@ class PlaybackService : MediaLibraryService() {
         }
 
         registerAudioDeviceTracking()
+        serviceScope.launch(Dispatchers.Main) {
+            UsbPlaybackSettings.enabledFlow.collect { enabled ->
+                usbPlayback.setEnabled(enabled)
+            }
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
@@ -255,26 +281,11 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         serviceScope.cancel()
+        usbPlayback.close()
         audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
         mediaLibrarySession.release()
         fadingPlayer.release()
         super.onDestroy()
-    }
-
-
-    private fun createEqRenderersFactory(): DefaultRenderersFactory {
-        return object : DefaultRenderersFactory(this) {
-            override fun buildAudioSink(
-                context: Context,
-                enableFloatOutput: Boolean,
-                enableOffload: Boolean
-            ): AudioSink {
-                return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(true)
-                    .setAudioProcessors(arrayOf(eqAudioProcessor))
-                    .build()
-            }
-        }
     }
 
     private suspend fun applyCurrentEqSettings(
@@ -328,7 +339,9 @@ class PlaybackService : MediaLibraryService() {
                 }
                 if (hasBluetooth) {
                     serviceScope.launch {
-                        if (SettingsStore.currentResumeOnBluetoothReconnect) {
+                        if (SettingsStore.currentResumeOnBluetoothReconnect &&
+                                        !UsbPlaybackState.routeToUsb
+                                ) {
                             delay(500L)
                             withContext(Dispatchers.Main) {
                                 if (player.mediaItemCount > 0 && !player.isPlaying) {

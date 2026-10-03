@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 import com.pxr.cymatic.data.store.SettingsStore
+import androidx.media3.common.Player
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
 
 @UnstableApi
 class FadingPlayer(
@@ -67,6 +69,7 @@ class FadingPlayer(
     }
 
     override fun play() {
+        if (player.playbackState == Player.STATE_IDLE) player.prepare()
         setPlayWhenReady(true)
     }
 
@@ -76,7 +79,7 @@ class FadingPlayer(
 
     override fun setPlayWhenReady(playWhenReady: Boolean) {
         fadeJob?.cancel()
-        if (!SettingsStore.currentFadeEnabled) {
+        if (!SettingsStore.currentFadeEnabled || UsbPlaybackState.routeToUsb) {
             player.volume = 1.0f
             super.setPlayWhenReady(playWhenReady)
             return
@@ -119,5 +122,10 @@ class FadingPlayer(
     override fun release() {
         fadeJob?.cancel()
         super.release()
+    }
+
+    fun cancelFade() {
+        fadeJob?.cancel()
+        player.volume = 1f
     }
 }

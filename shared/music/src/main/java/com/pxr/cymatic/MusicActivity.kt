@@ -29,6 +29,8 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.theme.CymaticTheme
+import com.pxr.cymatic.audio.usb.UsbConnectionManager
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
 
 abstract class MusicActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -112,6 +114,11 @@ abstract class MusicActivity : ComponentActivity() {
 
     @Composable
     protected abstract fun AppContent()
+
+    override fun onResume() {
+        super.onResume()
+        UsbConnectionManager.refresh(this)
+    }
 
     override fun onDestroy() {
         super.onDestroy()
