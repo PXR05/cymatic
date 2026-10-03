@@ -74,6 +74,11 @@ internal class UsbPcmTrimmer(private val format: Format) {
         output = storage
     }
 
+    fun releaseOutput() {
+        check(output?.hasRemaining() != true)
+        output = null
+    }
+
     fun discardTail() {
         tailSize = 0
     }

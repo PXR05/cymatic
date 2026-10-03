@@ -55,9 +55,9 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             validateDirectFormat(inputFormat, outputChannels)
             if (
                 device != null &&
-                format?.sampleRate == inputFormat.sampleRate &&
-                format?.usbPcmLayout() == inputFormat.usbPcmLayout() &&
-                !ended
+                    format?.sampleRate == inputFormat.sampleRate &&
+                    format?.usbPcmLayout() == inputFormat.usbPcmLayout() &&
+                    !ended
             ) {
                 format = inputFormat
                 configureTrimmer(inputFormat)
@@ -94,7 +94,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         val channels = IntArray(input.channelCount.coerceIn(0, 2)) { it }
         if (
             input.usbPcmLayout() == null ||
-            (outputChannels != null && !outputChannels.contentEquals(channels))
+                (outputChannels != null && !outputChannels.contentEquals(channels))
         ) {
             throw AudioSink.ConfigurationException(
                 "Direct USB requires precision-preserving mono/stereo integer PCM",
@@ -189,7 +189,10 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             throw AudioSink.WriteException(-22, checkNotNull(format), false)
         }
         val pcm = checkNotNull(trim.output)
-        if (!pcm.hasRemaining()) return !buffer.hasRemaining()
+        if (!pcm.hasRemaining()) {
+            trim.releaseOutput()
+            return !buffer.hasRemaining()
+        }
         val outputTimeUs = trim.outputTimeUs + outputStreamOffsetUs
         if (baseTimeUs == C.TIME_UNSET) baseTimeUs = outputTimeUs.coerceAtLeast(0)
         val expected = baseTimeUs + writtenFrames * 1_000_000 / checkNotNull(format).sampleRate
@@ -211,7 +214,9 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         }
         pcm.position(pcm.position() + consumed)
         writtenFrames += consumed / checkNotNull(checkNotNull(format).usbPcmLayout()).frameBytes
-        return !pcm.hasRemaining() && !buffer.hasRemaining()
+        if (pcm.hasRemaining()) return false
+        trim.releaseOutput()
+        return !buffer.hasRemaining()
     }
 
     override fun play() {
