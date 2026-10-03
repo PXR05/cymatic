@@ -92,7 +92,10 @@ internal fun WheelNowPlaying(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        WheelUsbIndicator()
                         if (!format.isNullOrBlank()) FormatBadge(format)
                         metadata?.bitRate?.takeIf { it > 0L }?.let { FormatBadge("${it / 1000}K") }
                     }

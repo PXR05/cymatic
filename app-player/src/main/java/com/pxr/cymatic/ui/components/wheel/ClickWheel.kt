@@ -41,6 +41,7 @@ import kotlin.math.atan2
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
 
 internal enum class WheelButton {
     MENU,
@@ -214,7 +215,9 @@ internal fun ClickWheel(
                 contentAlignment = Alignment.Center
             ) {
                 when (button) {
-                    WheelButton.MENU -> Text("MENU", fontSize = 12.sp, color = colors.onBackground)
+                    WheelButton.MENU -> Text("MENU", fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.onBackground)
                     WheelButton.PREVIOUS -> Icon(
                         painterResource(R.drawable.ic_pixel_previous),
                         null,
@@ -229,7 +232,12 @@ internal fun ClickWheel(
                         tint = colors.onBackground
                     )
 
-                    WheelButton.PLAY -> Text("▶ Ⅱ", fontSize = 15.sp, color = colors.onBackground)
+                    WheelButton.PLAY ->
+                        Icon(
+                            painterResource(R.drawable.ic_pixel_play_pause),
+                            null,
+                            Modifier.size(width = 28.dp, height = 21.dp),
+                            tint = colors.onBackground)
                     WheelButton.SELECT -> Unit
                 }
             }

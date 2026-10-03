@@ -18,6 +18,11 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.ui.components.PixelMeter
 import com.pxr.cymatic.ui.state.PlaybackState
 import kotlin.math.roundToLong
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import com.pxr.cymatic.audio.usb.UsbVolumeState
+import java.util.Locale
 
 @Composable
 internal fun WheelPlaybackMeters(
@@ -27,6 +32,9 @@ internal fun WheelPlaybackMeters(
     gap: Dp,
     onSeek: (Long) -> Unit
 ) {
+    val directUsb by UsbPlaybackState.active.collectAsState()
+    val usbVolume by UsbVolumeState.level.collectAsState()
+    val requestedVolume by UsbVolumeState.requestedPercent.collectAsState()
     val duration = (playback.durationMs ?: 0L).coerceAtLeast(0L)
     val position = playback.currentPositionMs.coerceIn(0L, duration)
     val volumeLimit = maxVolume.coerceAtLeast(1)
@@ -46,12 +54,20 @@ internal fun WheelPlaybackMeters(
                 modifier = Modifier.width(52.dp)
             )
             PixelMeter(
-                volume.toFloat() / volumeLimit,
-                "Volume",
+                if (directUsb) (usbVolume.percent ?: requestedVolume) / 100f
+                else volume.toFloat() / volumeLimit,
+                if (directUsb) usbVolume.message else "Volume",
                 Modifier.weight(1f)
             )
             Text(
-                "${volume * 100 / volumeLimit}%",
+                if (directUsb)
+                    when {
+                        usbVolume.muted -> "MUTE"
+                        usbVolume.decibels != null ->
+                            String.format(Locale.ROOT, "%.0f dB", usbVolume.decibels)
+                        else -> "$requestedVolume%"
+                    }
+                else "${volume * 100 / volumeLimit}%",
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.End,

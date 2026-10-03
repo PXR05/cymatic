@@ -50,5 +50,6 @@ internal fun WheelPlaybackBar(title: String?, isPlaying: Boolean, onNowPlaying: 
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        WheelUsbIndicator()
     }
 }

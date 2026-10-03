@@ -31,6 +31,8 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.theme.CymaticTheme
 import com.pxr.cymatic.audio.usb.UsbConnectionManager
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import android.view.KeyEvent
+import com.pxr.cymatic.audio.usb.UsbVolumeState
 
 abstract class MusicActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -118,6 +120,20 @@ abstract class MusicActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         UsbConnectionManager.refresh(this)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (
+            UsbPlaybackState.active.value &&
+                (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+                    event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
+        ) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                UsbVolumeState.adjust(if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) 2 else -2)
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onDestroy() {

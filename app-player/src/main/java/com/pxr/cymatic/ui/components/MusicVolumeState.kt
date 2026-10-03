@@ -11,17 +11,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import com.pxr.cymatic.audio.usb.UsbVolumeState
 
 internal class MusicVolumeState(private val audio: AudioManager) {
     var volume by mutableIntStateOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC))
         private set
-    val maxVolume: Int get() = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    val maxVolume: Int get() =
+            if (UsbPlaybackState.active.value) 100
+            else audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
     fun refresh() {
-        volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+        volume =
+            if (UsbPlaybackState.active.value) UsbVolumeState.requestedPercent.value
+            else audio.getStreamVolume(AudioManager.STREAM_MUSIC)
     }
 
     fun adjust(steps: Int) {
+        if (UsbPlaybackState.active.value) {
+            UsbVolumeState.adjust(steps * 2)
+            refresh()
+            return
+        }
         val next = (audio.getStreamVolume(AudioManager.STREAM_MUSIC) + steps).coerceIn(0, maxVolume)
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0)
         volume = next
