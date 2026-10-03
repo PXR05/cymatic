@@ -58,6 +58,7 @@ import com.pxr.cymatic.audio.usb.UsbRenderersFactory
 import com.pxr.cymatic.audio.usb.UsbVolumeState
 import com.pxr.cymatic.data.store.UsbPlaybackSettings
 import kotlinx.coroutines.flow.first
+import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -115,6 +116,7 @@ class PlaybackService : MediaLibraryService() {
         usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
 
         val audioRepository = AudioRepository.getInstance(this)
+        player.addListener(PlaybackTechnicalMetadata(player, audioRepository, serviceScope))
         val playlistRepository = PlaylistRepository.getInstance(this)
         val libraryCallback = AutoMediaLibraryCallback(audioRepository, playlistRepository, serviceScope)
 

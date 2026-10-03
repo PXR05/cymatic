@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.inspector)
     implementation(libs.androidx.media3.ui)
     api(libs.androidx.media3.common)
     implementation(libs.androidx.media3.datasource)

@@ -61,6 +61,11 @@ class AudioRepository private constructor(
         return ids.mapNotNull { results[it]?.toAudioFile() }
     }
 
+    internal suspend fun updateTechnicalMetadata(id: Long, metadata: AudioTechnicalMetadata) {
+        audioDao.updateTechnicalMetadata(id, metadata.bitRate, metadata.sampleRate, metadata.codec)
+        cacheMutex.withLock { cachedAudio = null }
+    }
+
     companion object {
         @Volatile
         private var instance: AudioRepository? = null

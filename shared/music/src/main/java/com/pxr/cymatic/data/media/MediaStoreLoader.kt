@@ -9,11 +9,20 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.media3.common.util.UnstableApi
+import com.pxr.cymatic.data.store.SettingsStore
+import kotlinx.coroutines.flow.first
+
+private val metadataReaderVersion = intPreferencesKey("AUDIO_METADATA_READER_VERSION")
+private const val CURRENT_METADATA_READER_VERSION = 2
 
 suspend fun loadCachedAudioFiles(context: Context): List<AudioFile> {
     return AudioRepository.getInstance(context).getAllAudio()
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 suspend fun syncAudioFilesToDb(
     context: Context,
     directories: List<String> = emptyList(),
@@ -27,6 +36,9 @@ suspend fun syncAudioFilesToDb(
     )
     val dbIndex = repository.getAudioIndex()
 
+    val refreshMetadata =
+        SettingsStore.store.data.first()[metadataReaderVersion] != CURRENT_METADATA_READER_VERSION
+
     val toDelete = dbIndex.keys - mediaIndex.keys
     Log.d(
         "MediaStoreLoader",
@@ -36,15 +48,18 @@ suspend fun syncAudioFilesToDb(
 
     val toUpsert = mediaIndex.filter { (id, mediaEntry) ->
         val dbEntry = dbIndex[id]
-        dbEntry == null ||
+                refreshMetadata ||
+                    dbEntry == null ||
                 dbEntry.dateModified != mediaEntry.dateModified ||
                 dbEntry.size != mediaEntry.size
     }.keys
 
     if (toUpsert.isNotEmpty()) {
         val records = queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
-        repository.upsertAudio(records)
+        repository.upsertAudio(enrichAudioMetadata(context, records))
     }
+    if (refreshMetadata)
+        SettingsStore.store.edit { it[metadataReaderVersion] = CURRENT_METADATA_READER_VERSION }
 
     return repository.getAllAudio()
 }
@@ -165,10 +180,10 @@ private fun Cursor.toAudioRecords(): List<AudioEntity> {
         val artist = getString(artistColumn)
         val album = getString(albumColumn)
         val duration = if (isNull(durationColumn)) null else getLong(durationColumn)
-        val bitRate = if (isNull(bitRateColumn)) null else getLong(bitRateColumn)
+        val bitRate = if (isNull(bitRateColumn)) null else getLong(bitRateColumn).takeIf { it > 0 }
         val sampleRate = if (sampleRateColumn >= 0 && !isNull(sampleRateColumn)) {
-            getLong(sampleRateColumn)
-        } else {
+            getLong(sampleRateColumn).takeIf { it > 0 }
+            } else {
             null
         }
         val format = getString(formatColumn)

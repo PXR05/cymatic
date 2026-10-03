@@ -47,7 +47,7 @@ internal fun WheelNowPlaying(
     onToggleCover: () -> Unit,
     onSeek: (Long) -> Unit
 ) {
-    val metadata = LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
+    val metadata = playback.metadata ?: LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
     val toggleCover by rememberUpdatedState(onToggleCover)
     Column(
         Modifier

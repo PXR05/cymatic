@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
+import com.pxr.cymatic.playback.formatSampleRate
 
 @Composable
 fun SongInfoDialog(
@@ -89,8 +90,8 @@ fun SongInfoDialog(
                     )
                     InfoItem(
                         label = "Sample Rate",
-                        value = audioFile?.metadata?.sampleRate?.let { "${it / 1000} kHz" }
-                            ?: "Unknown",
+                        value = audioFile?.metadata?.sampleRate?.takeIf { it > 0 }
+                                ?.let(::formatSampleRate) ?: "Unknown",
                     )
                     InfoItem(
                         label = "File Size",

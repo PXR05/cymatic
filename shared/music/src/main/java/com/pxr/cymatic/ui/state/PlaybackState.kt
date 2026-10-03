@@ -17,6 +17,8 @@ import com.pxr.cymatic.playback.PlaybackQueue
 import com.pxr.cymatic.playback.playbackQueue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import com.pxr.cymatic.data.model.AudioMetadata
+import com.pxr.cymatic.playback.toAudioMetadata
 
 data class PlaybackState(
     val currentMediaId: String?,
@@ -30,7 +32,8 @@ data class PlaybackState(
     val currentIndex: Int,
     val totalTracks: Int,
     val queueSource: String?,
-    val queue: PlaybackQueue
+    val queue: PlaybackQueue,
+    val metadata: AudioMetadata? = null,
 )
 
 @Composable
@@ -39,6 +42,8 @@ fun rememberPlaybackState(
     positionUpdateMs: Long = 500L
 ): PlaybackState {
     var currentMediaId by remember { mutableStateOf(mediaController?.currentMediaItem?.mediaId) }
+    var metadata by remember {
+        mutableStateOf(mediaController?.currentMediaItem?.toAudioMetadata()) }
     var isPlaying by remember { mutableStateOf(mediaController?.isPlaying == true) }
     var playbackState by remember { mutableIntStateOf(mediaController?.playbackState ?: Player.STATE_IDLE) }
     var currentPositionMs by remember { mutableLongStateOf(mediaController?.currentPosition ?: 0L) }
@@ -53,6 +58,7 @@ fun rememberPlaybackState(
 
     fun resetState() {
         currentMediaId = null
+        metadata = null
         isPlaying = false
         playbackState = Player.STATE_IDLE
         currentPositionMs = 0L
@@ -68,6 +74,7 @@ fun rememberPlaybackState(
 
     fun updateFromController(controller: MediaController, refreshQueue: Boolean = true) {
         currentMediaId = controller.currentMediaItem?.mediaId
+        metadata = controller.currentMediaItem?.toAudioMetadata()
         isPlaying = controller.isPlaying
         playbackState = controller.playbackState
         currentPositionMs = controller.currentPosition
@@ -128,7 +135,8 @@ fun rememberPlaybackState(
         currentIndex = currentIndex,
         totalTracks = totalTracks,
         queueSource = queueSource,
-        queue = queue
+        queue = queue,
+        metadata = metadata,
     )
 }
 
@@ -142,4 +150,3 @@ private fun MediaController?.queueSourceOrNull(): String? {
         ?.getString(QUEUE_SOURCE_KEY)
         ?.takeIf { it.isNotBlank() }
 }
-
