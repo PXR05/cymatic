@@ -1,7 +1,6 @@
 package com.pxr.cymatic.ui.components.common
 
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -21,12 +20,14 @@ data class WheelActions(
     val onRotate: (Int) -> Unit,
     val onSelect: () -> Unit,
     val onContext: () -> Unit = {},
-    val onMovementStarted: () -> Unit = {}
+    val onMovementStarted: () -> Unit = {},
 )
 
 class WheelNavigation {
     private val handlers = mutableStateListOf<WheelActions>()
-    val actions: WheelActions? get() = handlers.lastOrNull()
+    val actions: WheelActions?
+        get() = handlers.lastOrNull()
+
     var onPlaybackRequested: () -> Unit = {}
     var onBackRequested: (() -> Unit)? = null
     var overlay by mutableStateOf<WheelOverlay?>(null)
@@ -49,33 +50,41 @@ fun rememberWheelSelection(
     itemCount: Int,
     listState: LazyListState,
     onSelect: (Int) -> Unit,
-    onContext: (Int) -> Unit = {}
+    onContext: (Int) -> Unit = {},
 ): Int {
     val wheel = LocalWheelNavigation.current
     var selection by rememberSaveable { mutableIntStateOf(0) }
+    var scrollDirection by remember { mutableIntStateOf(0) }
     val count by rememberUpdatedState(itemCount)
     val select by rememberUpdatedState(onSelect)
     val context by rememberUpdatedState(onContext)
-    val actions = remember(wheel, listState) {
-        var canWrap = false
-        WheelActions(
-            onRotate = { steps ->
-                if (count > 0 && steps != 0) {
-                    val last = count - 1
-                    val current = selection.coerceIn(0, last)
-                    selection = when {
-                        canWrap && steps > 0 && current == last -> (steps - 1).coerceIn(0, last)
-                        canWrap && steps < 0 && current == 0 -> (last + steps + 1).coerceIn(0, last)
-                        else -> (current + steps).coerceIn(0, last)
+    val actions =
+        remember(wheel, listState) {
+            var canWrap = false
+            WheelActions(
+                onRotate = { steps ->
+                    if (count > 0 && steps != 0) {
+                        scrollDirection = if (steps > 0) 1 else -1
+                        val last = count - 1
+                        val current = selection.coerceIn(0, last)
+                        val next =
+                            when {
+                                canWrap && steps > 0 && current == last ->
+                                    (steps - 1).coerceIn(0, last)
+                                canWrap && steps < 0 && current == 0 ->
+                                    (last + steps + 1).coerceIn(0, last)
+                                else -> (current + steps).coerceIn(0, last)
+                            }
+                        listState.scrollWheelSelectionIntoView(next, scrollDirection)
+                        selection = next
+                        canWrap = false
                     }
-                    canWrap = false
-                }
-            },
-            onSelect = { if (count > 0) select(selection.coerceIn(0, count - 1)) },
-            onContext = { if (count > 0) context(selection.coerceIn(0, count - 1)) },
-            onMovementStarted = { canWrap = true }
-        )
-    }
+                },
+                onSelect = { if (count > 0) select(selection.coerceIn(0, count - 1)) },
+                onContext = { if (count > 0) context(selection.coerceIn(0, count - 1)) },
+                onMovementStarted = { canWrap = true },
+            )
+        }
 
     DisposableEffect(wheel, actions) {
         wheel?.register(actions)
@@ -83,25 +92,14 @@ fun rememberWheelSelection(
     }
 
     val viewport = listState.layoutInfo.viewportSize
-    LaunchedEffect(selection, itemCount, wheel, viewport) {
+    LaunchedEffect(itemCount, wheel, listState, viewport) {
         if (wheel != null && itemCount > 0) {
             selection = selection.coerceIn(0, itemCount - 1)
-            if (listState.layoutInfo.visibleItemsInfo.none { it.index == selection }) {
-                listState.scrollToItem(selection)
-            }
-            val layout = snapshotFlow { listState.layoutInfo }.first {
-                it.viewportEndOffset > it.viewportStartOffset &&
-                    it.visibleItemsInfo.any { item -> item.index == selection }
-            }
-            val item = layout.visibleItemsInfo.first { it.index == selection }
-            val start = layout.viewportStartOffset + layout.beforeContentPadding
-            val end = layout.viewportEndOffset - layout.afterContentPadding
-            val offset = when {
-                item.size > end - start || item.offset < start -> item.offset - start
-                item.offset + item.size > end -> item.offset + item.size - end
-                else -> 0
-            }
-            if (offset != 0) listState.scrollBy(offset.toFloat())
+            snapshotFlow { listState.layoutInfo }
+                .first {
+                    it.viewportSize.height > 0 && it.visibleItemsInfo.isNotEmpty()
+                }
+            listState.scrollWheelSelectionIntoView(selection, scrollDirection)
         }
     }
     return if (wheel == null || itemCount == 0) -1 else selection.coerceIn(0, itemCount - 1)
