@@ -309,6 +309,14 @@ object SettingsStore {
         }
     }
 
+    suspend fun setLastScanResult(timeMs: Long, count: Long, durationMs: Long) {
+        store.edit { prefs ->
+            prefs[LAST_SCAN_TIME_MS_KEY] = timeMs
+            prefs[LAST_SCAN_COUNT_KEY] = count
+            prefs[LAST_SCAN_DURATION_MS_KEY] = durationMs
+        }
+    }
+
     suspend fun setScanDirectories(value: Set<String>) {
         store.edit { prefs ->
             prefs[SCAN_DIRECTORIES_KEY] = value

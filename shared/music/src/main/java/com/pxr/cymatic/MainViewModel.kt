@@ -1,40 +1,61 @@
 package com.pxr.cymatic
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.SystemClock
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.store.SettingsStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val _isReady = MutableStateFlow(false)
-    val isReady: StateFlow<Boolean> = _isReady
+    private var initialScanStarted = false
 
     fun performInitialScan() {
-        viewModelScope.launch {
-            val context = getApplication<Application>()
-            val start = System.currentTimeMillis()
-            val scanDirectories = SettingsStore.getScanDirectories()
-            val scanAllMedia = SettingsStore.getScanAllMedia()
-
-            val syncedFiles = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        val permission =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                Manifest.permission.READ_MEDIA_AUDIO
+            else Manifest.permission.READ_EXTERNAL_STORAGE
+        if (
+            initialScanStarted ||
+                ContextCompat.checkSelfPermission(context, permission) !=
+                    PackageManager.PERMISSION_GRANTED
+        )
+            return
+        initialScanStarted = true
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AudioRepository.getInstance(context).getAllAudio()
                 PlaylistRepository.getInstance(context).getPlaylists()
-                syncAudioFilesToDb(context, scanDirectories, scanAllMedia)
+                val start = SystemClock.elapsedRealtime()
+                val syncedFiles =
+                    syncAudioFilesToDb(
+                        context,
+                        SettingsStore.getScanDirectories(),
+                        SettingsStore.getScanAllMedia(),
+                    )
+                val duration = SystemClock.elapsedRealtime() - start
+                SettingsStore.setLastScanResult(
+                    System.currentTimeMillis(),
+                    syncedFiles.size.toLong(),
+                    duration,
+                )
+                Log.d("MainViewModel", "Scanned ${syncedFiles.size} audio files in $duration ms")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Initial library scan failed", e)
             }
-            
-            val end = System.currentTimeMillis()
-            SettingsStore.setLastScanTimeMs(end)
-            SettingsStore.setLastScanCount(syncedFiles.size.toLong())
-            SettingsStore.setLastScanDurationMs(end - start)
-            Log.d("MainViewModel", "Scanned ${syncedFiles.size} audio files in ${end - start} ms")
-            _isReady.value = true
         }
     }
 }

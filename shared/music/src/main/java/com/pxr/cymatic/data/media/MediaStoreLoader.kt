@@ -13,10 +13,15 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 private val metadataReaderVersion = intPreferencesKey("AUDIO_METADATA_READER_VERSION")
 private const val CURRENT_METADATA_READER_VERSION = 2
+private val audioScanMutex = Mutex()
 
 suspend fun loadCachedAudioFiles(context: Context): List<AudioFile> {
     return AudioRepository.getInstance(context).getAllAudio()
@@ -27,44 +32,51 @@ suspend fun syncAudioFilesToDb(
     context: Context,
     directories: List<String> = emptyList(),
     scanAllMedia: Boolean = true,
-): List<AudioFile> {
-    val repository = AudioRepository.getInstance(context)
-    val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
-    Log.d(
-        "MediaStoreLoader",
-        "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
-    )
-    val dbIndex = repository.getAudioIndex()
-    val refreshMetadata =
-        SettingsStore.store.data.first()[metadataReaderVersion] != CURRENT_METADATA_READER_VERSION
+): List<AudioFile> =
+    withContext(Dispatchers.IO) {
+        audioScanMutex.withLock {
+            val repository = AudioRepository.getInstance(context)
+            val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
+            Log.d(
+                "MediaStoreLoader",
+                "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
+            )
+            val dbIndex = repository.getAudioIndex()
+            val refreshMetadata =
+                SettingsStore.store.data.first()[metadataReaderVersion] !=
+                    CURRENT_METADATA_READER_VERSION
 
-    val toDelete = dbIndex.keys - mediaIndex.keys
-    Log.d(
-        "MediaStoreLoader",
-        "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore",
-    )
-    repository.deleteByIds(toDelete)
+            val toDelete = dbIndex.keys - mediaIndex.keys
+            Log.d(
+                "MediaStoreLoader",
+                "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore",
+            )
+            repository.deleteByIds(toDelete)
 
-    val toUpsert =
-        mediaIndex
-            .filter { (id, mediaEntry) ->
-                val dbEntry = dbIndex[id]
-                refreshMetadata ||
-                    dbEntry == null ||
-                    dbEntry.dateModified != mediaEntry.dateModified ||
-                    dbEntry.size != mediaEntry.size
+            val toUpsert =
+                mediaIndex
+                    .filter { (id, mediaEntry) ->
+                        val dbEntry = dbIndex[id]
+                        refreshMetadata ||
+                            dbEntry == null ||
+                            dbEntry.dateModified != mediaEntry.dateModified ||
+                            dbEntry.size != mediaEntry.size
+                    }
+                    .keys
+
+            if (toUpsert.isNotEmpty()) {
+                val records =
+                    queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
+                repository.upsertAudio(enrichAudioMetadata(context, records))
             }
-            .keys
+            if (refreshMetadata)
+                SettingsStore.store.edit {
+                    it[metadataReaderVersion] = CURRENT_METADATA_READER_VERSION
+                }
 
-    if (toUpsert.isNotEmpty()) {
-        val records = queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
-        repository.upsertAudio(enrichAudioMetadata(context, records))
+            repository.getAllAudio()
+        }
     }
-    if (refreshMetadata)
-        SettingsStore.store.edit { it[metadataReaderVersion] = CURRENT_METADATA_READER_VERSION }
-
-    return repository.getAllAudio()
-}
 
 private fun queryMediaStoreIndex(
     context: Context,

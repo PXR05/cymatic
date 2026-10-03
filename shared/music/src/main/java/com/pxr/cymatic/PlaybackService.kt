@@ -86,15 +86,6 @@ class PlaybackService : MediaLibraryService() {
         )
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        UsbPlaybackState.enabled =
-            runBlocking(Dispatchers.IO) { UsbPlaybackSettings.enabledFlow.first() }
-        UsbVolumeState.initialize(
-            runBlocking(Dispatchers.IO) { UsbPlaybackSettings.volumePercentFlow.first() }
-        )
-        serviceScope.launch {
-            UsbVolumeState.requestedPercent.collect { UsbPlaybackSettings.setVolumePercent(it) }
-        }
-
         val audioAttributes =
             AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
@@ -227,8 +218,8 @@ class PlaybackService : MediaLibraryService() {
             }
         )
 
-        usbPlayback.start(UsbPlaybackState.enabled)
-        serviceScope.launch { restorePlaybackState() }
+        usbPlayback.start(false)
+        serviceScope.launch { initializePlayback() }
 
         serviceScope.launch {
             while (isActive) {
@@ -262,11 +253,22 @@ class PlaybackService : MediaLibraryService() {
         }
 
         registerAudioDeviceTracking()
-        serviceScope.launch(Dispatchers.Main) {
-            UsbPlaybackSettings.enabledFlow.collect { enabled ->
-                usbPlayback.setEnabled(enabled)
-            }
+    }
+
+    private suspend fun initializePlayback() {
+        val volumePercent = UsbPlaybackSettings.volumePercentFlow.first()
+        val directUsbEnabled = UsbPlaybackSettings.enabledFlow.first()
+        withContext(Dispatchers.Main) {
+            UsbVolumeState.initialize(volumePercent)
+            usbPlayback.setEnabled(directUsbEnabled)
         }
+        serviceScope.launch {
+            UsbVolumeState.requestedPercent.collect { UsbPlaybackSettings.setVolumePercent(it) }
+        }
+        serviceScope.launch(Dispatchers.Main) {
+            UsbPlaybackSettings.enabledFlow.collect { usbPlayback.setEnabled(it) }
+        }
+        restorePlaybackState()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
@@ -445,6 +447,7 @@ class PlaybackService : MediaLibraryService() {
             else stored.currentIndex.coerceIn(0, mediaItems.lastIndex)
 
         withContext(Dispatchers.Main) {
+            if (player.mediaItemCount > 0) return@withContext
             player.shuffleModeEnabled = stored.shuffleEnabled
             player.repeatMode = stored.repeatMode
             fadingPlayer.setMediaItems(mediaItems, safeIndex, stored.positionMs)
