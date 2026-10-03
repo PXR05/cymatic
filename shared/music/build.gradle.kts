@@ -16,6 +16,9 @@ android {
     }
 }
 dependencies {
+    implementation(project(":shared:usb"))
+    implementation(project(":shared:flac"))
+    implementation(project(":shared:alac"))
     api(project(":shared:ui"))
     configurations.configureEach {
         exclude(group = "com.intellij", module = "annotations")

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(cymatic_usb LANGUAGES CXX)
+add_library(cymatic_usb SHARED UsbIsochronousConnection.cpp UsbPcmStream.cpp)
+target_compile_features(cymatic_usb PRIVATE cxx_std_17)
+target_compile_options(cymatic_usb PRIVATE -Wall -Wextra -Werror)

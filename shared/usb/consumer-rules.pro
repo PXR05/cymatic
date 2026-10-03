@@ -1,0 +1,2 @@
+-keep class com.pxr.cymatic.usb.UsbIsochronousConnection { native <methods>; }
+-keep class com.pxr.cymatic.usb.UsbPcmStream { native <methods>; }

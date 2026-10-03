@@ -23,4 +23,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "cymatic"
-include(":app-player", ":app-launcher", ":shared:music", ":shared:ui")
+include(":app-player", ":app-launcher", ":shared:music", ":shared:ui",
+    ":shared:usb",
+    ":shared:flac",
+    ":shared:alac",
+)

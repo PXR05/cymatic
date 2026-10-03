@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(cymatic_flac LANGUAGES C CXX)
+
+include(FetchContent)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_CXXLIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(WITH_OGG OFF CACHE BOOL "" FORCE)
+set(ENABLE_MULTITHREADING OFF CACHE BOOL "" FORCE)
+set(INSTALL_MANPAGES OFF CACHE BOOL "" FORCE)
+set(INSTALL_PKGCONFIG_MODULES OFF CACHE BOOL "" FORCE)
+set(INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(flac
+    URL "${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party/flac-1.5.0.tar.xz"
+    URL_HASH SHA256=f2c1c76592a82ffff8413ba3c4a1299b6c7ab06c734dee03fd88630485c2b920)
+FetchContent_MakeAvailable(flac)
+target_compile_definitions(FLAC PRIVATE HAVE_FSEEKO=)
+
+add_library(cymatic_flac SHARED FlacFrameDecoder.cpp)
+target_compile_features(cymatic_flac PRIVATE cxx_std_17)
+target_compile_options(cymatic_flac PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(cymatic_flac PRIVATE FLAC::FLAC)
+target_link_options(cymatic_flac PRIVATE -Wl,--exclude-libs,ALL)
