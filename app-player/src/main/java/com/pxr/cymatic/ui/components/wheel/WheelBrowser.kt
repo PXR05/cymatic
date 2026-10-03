@@ -10,9 +10,9 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.MusicNavHost
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.INTERFACE_SETTINGS_ROUTE
 import com.pxr.cymatic.ui.screens.settings.InterfaceSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 
 @Composable
 internal fun WheelBrowser(state: WheelPlayerState) {
@@ -51,7 +51,9 @@ private fun MusicMenu(state: WheelPlayerState) {
     BaseScreen(title = "Music", onBackClick = { nav.popBackStack() }) {
         NavigationList(
             listOf(
-                NavigationItem("All Songs", onClick = { state.open(Screen.AllSongs.createRoute()) }),
+                NavigationItem(
+                    "All Songs",
+                    onClick = { state.open(Screen.AllSongs.createRoute()) }),
                 NavigationItem("Artists", onClick = { state.open(Screen.Artists.route) }),
                 NavigationItem("Albums", onClick = { state.open(Screen.Albums.route) })
             )

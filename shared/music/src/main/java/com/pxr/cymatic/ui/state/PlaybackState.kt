@@ -12,13 +12,13 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
-import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
+import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.playback.PlaybackQueue
+import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import com.pxr.cymatic.playback.playbackQueue
+import com.pxr.cymatic.playback.toAudioMetadata
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import com.pxr.cymatic.data.model.AudioMetadata
-import com.pxr.cymatic.playback.toAudioMetadata
 
 data class PlaybackState(
     val currentMediaId: String?,
@@ -39,18 +39,25 @@ data class PlaybackState(
 @Composable
 fun rememberPlaybackState(
     mediaController: MediaController?,
-    positionUpdateMs: Long = 500L
+    positionUpdateMs: Long = 500L,
 ): PlaybackState {
     var currentMediaId by remember { mutableStateOf(mediaController?.currentMediaItem?.mediaId) }
     var metadata by remember {
-        mutableStateOf(mediaController?.currentMediaItem?.toAudioMetadata()) }
+        mutableStateOf(mediaController?.currentMediaItem?.toAudioMetadata())
+    }
     var isPlaying by remember { mutableStateOf(mediaController?.isPlaying == true) }
-    var playbackState by remember { mutableIntStateOf(mediaController?.playbackState ?: Player.STATE_IDLE) }
+    var playbackState by remember {
+        mutableIntStateOf(mediaController?.playbackState ?: Player.STATE_IDLE)
+    }
     var currentPositionMs by remember { mutableLongStateOf(mediaController?.currentPosition ?: 0L) }
-    var bufferedPositionMs by remember { mutableLongStateOf(mediaController?.bufferedPosition ?: 0L) }
+    var bufferedPositionMs by remember {
+        mutableLongStateOf(mediaController?.bufferedPosition ?: 0L)
+    }
     var durationMs by remember { mutableStateOf(mediaController.durationOrNull()) }
     var isShuffling by remember { mutableStateOf(mediaController?.shuffleModeEnabled == true) }
-    var repeatMode by remember { mutableIntStateOf(mediaController?.repeatMode ?: Player.REPEAT_MODE_OFF) }
+    var repeatMode by remember {
+        mutableIntStateOf(mediaController?.repeatMode ?: Player.REPEAT_MODE_OFF)
+    }
     var currentIndex by remember { mutableIntStateOf(mediaController?.currentMediaItemIndex ?: 0) }
     var totalTracks by remember { mutableIntStateOf(mediaController?.mediaItemCount ?: 0) }
     var queueSource by remember { mutableStateOf(mediaController.queueSourceOrNull()) }
@@ -91,21 +98,23 @@ fun rememberPlaybackState(
     DisposableEffect(mediaController) {
         if (mediaController == null) {
             resetState()
-            return@DisposableEffect onDispose { }
+            return@DisposableEffect onDispose {}
         }
 
         updateFromController(mediaController)
 
-        val listener = object : Player.Listener {
-            override fun onEvents(player: Player, events: Player.Events) {
-                val refreshQueue = events.contains(Player.EVENT_TIMELINE_CHANGED) ||
-                    events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
-                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
-                    events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
-                    events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
-                updateFromController(mediaController, refreshQueue)
+        val listener =
+            object : Player.Listener {
+                override fun onEvents(player: Player, events: Player.Events) {
+                    val refreshQueue =
+                        events.contains(Player.EVENT_TIMELINE_CHANGED) ||
+                            events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
+                            events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                            events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                            events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
+                    updateFromController(mediaController, refreshQueue)
+                }
             }
-        }
 
         mediaController.addListener(listener)
         onDispose {
@@ -146,7 +155,7 @@ private fun MediaController?.durationOrNull(): Long? {
 }
 
 private fun MediaController?.queueSourceOrNull(): String? {
-    return this?.currentMediaItem?.mediaMetadata?.extras
-        ?.getString(QUEUE_SOURCE_KEY)
-        ?.takeIf { it.isNotBlank() }
+    return this?.currentMediaItem?.mediaMetadata?.extras?.getString(QUEUE_SOURCE_KEY)?.takeIf {
+        it.isNotBlank()
+    }
 }

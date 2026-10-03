@@ -3,11 +3,9 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.compose)
 }
+
 android {
     namespace = "com.pxr.cymatic.music"
-    // KSP's generated Kotlin sources are not reliably registered with AGP 9's
-    // built-in Kotlin compiler. Register them through the supported Android
-    // source-set DSL so Room implementations are always packaged.
     sourceSets.named("debug") {
         kotlin.directories += "build/generated/ksp/debug/kotlin"
     }
@@ -15,6 +13,7 @@ android {
         kotlin.directories += "build/generated/ksp/release/kotlin"
     }
 }
+
 dependencies {
     implementation(project(":shared:usb"))
     implementation(project(":shared:flac"))

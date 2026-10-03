@@ -9,15 +9,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.UsbVolumeState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 internal class MusicVolumeState(private val audio: AudioManager) {
     var volume by mutableIntStateOf(audio.getStreamVolume(AudioManager.STREAM_MUSIC))
         private set
-    val maxVolume: Int get() =
+
+    val maxVolume: Int
+        get() =
             if (UsbPlaybackState.active.value) 100
             else audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
@@ -42,9 +44,10 @@ internal class MusicVolumeState(private val audio: AudioManager) {
 @Composable
 internal fun rememberMusicVolumeState(poll: Boolean): MusicVolumeState {
     val context = LocalContext.current
-    val state = remember(context) {
-        MusicVolumeState(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager)
-    }
+    val state =
+        remember(context) {
+            MusicVolumeState(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager)
+        }
     LaunchedEffect(poll, state) {
         if (poll) {
             while (isActive) {

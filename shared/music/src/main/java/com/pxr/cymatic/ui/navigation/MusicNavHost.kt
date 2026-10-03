@@ -31,8 +31,8 @@ import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.UsbSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 
 @Composable
 fun MusicNavHost(
@@ -46,66 +46,81 @@ fun MusicNavHost(
     settingsIsTaskRoot: Boolean = false,
 ) {
     val pageDistancePx = with(LocalDensity.current) { 24.dp.roundToPx() }
-    val routes = mapOf<String, @Composable (NavBackStackEntry) -> Unit>(
-        Screen.Home.route to { home() },
-        Screen.AllSongs.route to { entry ->
-            val scrollId = entry.arguments?.getString("scrollId")
-            AllSongsScreen(
-                scrollTargetId = scrollId?.toLongOrNull()
-            )
-        },
-        Screen.Artists.route to { ArtistsScreen() },
-        Screen.ArtistAlbums.route to { entry ->
-            val artistName = entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
-            ArtistAlbumsScreen(artistName = artistName)
-        },
-        Screen.ArtistSongs.route to { entry ->
-            val rawName = entry.arguments?.getString("artistName")
-            val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
-            val scrollId = entry.arguments?.getString("scrollId")
-            ArtistSongsScreen(
-                artistName = artistName,
-                scrollTargetId = scrollId?.toLongOrNull()
-            )
-        },
-        Screen.ArtistAlbumSongs.route to { entry ->
-            val artistName = entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
-            val albumName = entry.arguments?.getString("albumName")?.let(Uri::decode) ?: UnknownAlbum
-            val scrollId = entry.arguments?.getString("scrollId")
-            AlbumSongsScreen(
-                albumName = albumName,
-                artistName = artistName,
-                scrollTargetId = scrollId?.toLongOrNull(),
-            )
-        },
-        Screen.Albums.route to { AlbumsScreen() },
-        Screen.AlbumSongs.route to { entry ->
-            val rawName = entry.arguments?.getString("albumName")
-            val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
-            val scrollId = entry.arguments?.getString("scrollId")
-            AlbumSongsScreen(
-                albumName = albumName,
-                scrollTargetId = scrollId?.toLongOrNull()
-            )
-        },
-        Screen.Playlists.route to { PlaylistsScreen() },
-        Screen.PlaylistSongs.route to { entry ->
-            val playlistId = entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
-            val scrollId = entry.arguments?.getString("scrollId")
-            PlaylistSongsScreen(
-                playlistId = playlistId,
-                scrollTargetId = scrollId?.toLongOrNull()
-            )
-        },
-        Screen.Settings.route to { SettingsScreen(additionalItems = settingsItems, showBackButton = !settingsIsTaskRoot) },
-        Screen.EQSettings.route to { EQSettingsScreen() },
-        Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
-        Screen.UsbSettings.route to { UsbSettingsScreen() },
+    val routes =
+        mapOf<String, @Composable (NavBackStackEntry) -> Unit>(
+            Screen.Home.route to { home() },
+            Screen.AllSongs.route to
+                { entry ->
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    AllSongsScreen(scrollTargetId = scrollId?.toLongOrNull())
+                },
+            Screen.Artists.route to { ArtistsScreen() },
+            Screen.ArtistAlbums.route to
+                { entry ->
+                    val artistName =
+                        entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
+                    ArtistAlbumsScreen(artistName = artistName)
+                },
+            Screen.ArtistSongs.route to
+                { entry ->
+                    val rawName = entry.arguments?.getString("artistName")
+                    val artistName = rawName?.let(Uri::decode) ?: UnknownArtist
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    ArtistSongsScreen(
+                        artistName = artistName,
+                        scrollTargetId = scrollId?.toLongOrNull(),
+                    )
+                },
+            Screen.ArtistAlbumSongs.route to
+                { entry ->
+                    val artistName =
+                        entry.arguments?.getString("artistName")?.let(Uri::decode) ?: UnknownArtist
+                    val albumName =
+                        entry.arguments?.getString("albumName")?.let(Uri::decode) ?: UnknownAlbum
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    AlbumSongsScreen(
+                        albumName = albumName,
+                        artistName = artistName,
+                        scrollTargetId = scrollId?.toLongOrNull(),
+                    )
+                },
+            Screen.Albums.route to { AlbumsScreen() },
+            Screen.AlbumSongs.route to
+                { entry ->
+                    val rawName = entry.arguments?.getString("albumName")
+                    val albumName = rawName?.let(Uri::decode) ?: UnknownAlbum
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    AlbumSongsScreen(
+                        albumName = albumName,
+                        scrollTargetId = scrollId?.toLongOrNull(),
+                    )
+                },
+            Screen.Playlists.route to { PlaylistsScreen() },
+            Screen.PlaylistSongs.route to
+                { entry ->
+                    val playlistId =
+                        entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
+                    val scrollId = entry.arguments?.getString("scrollId")
+                    PlaylistSongsScreen(
+                        playlistId = playlistId,
+                        scrollTargetId = scrollId?.toLongOrNull(),
+                    )
+                },
+            Screen.Settings.route to
+                {
+                    SettingsScreen(
+                        additionalItems = settingsItems,
+                        showBackButton = !settingsIsTaskRoot,
+                    )
+                },
+            Screen.EQSettings.route to { EQSettingsScreen() },
+            Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
+            Screen.UsbSettings.route to { UsbSettingsScreen() },
             Screen.StorageSettings.route to { StorageSettingsScreen() },
-        Screen.LibrarySyncSettings.route to { LibrarySyncSettingsScreen() },
-        Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
-        Screen.Queue.route to { QueueScreen() },
-    ) + additionalRoutes
+            Screen.LibrarySyncSettings.route to { LibrarySyncSettingsScreen() },
+            Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
+            Screen.Queue.route to { QueueScreen() },
+        ) + additionalRoutes
     NavHost(
         navController = LocalNavController.current,
         startDestination = startDestination,
@@ -121,7 +136,7 @@ fun MusicNavHost(
         popExitTransition = {
             if (!animate) ExitTransition.None else CymaticMotion.pageExit()
         },
-        modifier = modifier.clipToBounds()
+        modifier = modifier.clipToBounds(),
     ) {
         routes.forEach { (route, composable) ->
             composable(route) { backStackEntry ->

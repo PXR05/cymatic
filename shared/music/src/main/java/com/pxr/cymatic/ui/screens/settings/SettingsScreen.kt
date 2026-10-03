@@ -2,10 +2,9 @@ package com.pxr.cymatic.ui.screens.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
@@ -13,47 +12,51 @@ import com.pxr.cymatic.ui.navigation.Screen
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     additionalItems: List<NavigationItem> = emptyList(),
-    showBackButton: Boolean = true
+    showBackButton: Boolean = true,
 ) {
     val navController = LocalNavController.current
 
     BaseScreen(
         title = "Settings",
-        onBackClick = if (showBackButton) {
-            { navController.popBackStack() }
-        } else {
-            null
-        },
-        modifier = modifier
+        onBackClick =
+            if (showBackButton) {
+                { navController.popBackStack() }
+            } else {
+                null
+            },
+        modifier = modifier,
     ) {
         NavigationList(
-            items = listOf(
-                NavigationItem(
-                    label = "Equalizer",
-                    onClick = { navController.navigate(Screen.EQSettings.route) }
-                ),
-                NavigationItem(
-                    label = "Playback",
-                    onClick = { navController.navigate(Screen.PlaybackSettings.route) }
-                ),
-                NavigationItem(
-                    label = "USB audio",
+            items =
+                listOf(
+                    NavigationItem(
+                        label = "Equalizer",
+                        onClick = { navController.navigate(Screen.EQSettings.route) },
+                    ),
+                    NavigationItem(
+                        label = "Playback",
+                        onClick = { navController.navigate(Screen.PlaybackSettings.route) },
+                    ),
+                    NavigationItem(
+                        label = "USB audio",
                         onClick = { navController.navigate(Screen.UsbSettings.route) },
                     ),
                     NavigationItem(
                         label = "Storage",
-                    onClick = { navController.navigate(Screen.StorageSettings.route) }
-                ),
-                NavigationItem(
-                    label = "Library sync",
-                    onClick = { navController.navigate(Screen.LibrarySyncSettings.route) }
-                ),
-            ) + additionalItems + listOf(
-                NavigationItem(
-                    label = "Version",
-                    onClick = { navController.navigate(Screen.VersionSettings.route) }
-                ),
-            )
+                        onClick = { navController.navigate(Screen.StorageSettings.route) },
+                    ),
+                    NavigationItem(
+                        label = "Library sync",
+                        onClick = { navController.navigate(Screen.LibrarySyncSettings.route) },
+                    ),
+                ) +
+                    additionalItems +
+                    listOf(
+                        NavigationItem(
+                            label = "Version",
+                            onClick = { navController.navigate(Screen.VersionSettings.route) },
+                        )
+                    )
         )
     }
 }

@@ -45,26 +45,27 @@ internal fun WheelNowPlaying(
     maxVolume: Int,
     coverVisible: Boolean,
     onToggleCover: () -> Unit,
-    onSeek: (Long) -> Unit
+    onSeek: (Long) -> Unit,
 ) {
-    val metadata = playback.metadata ?: LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
+    val metadata =
+        playback.metadata ?: LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
     val toggleCover by rememberUpdatedState(onToggleCover)
     Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) { detectTapGestures(onDoubleTap = { toggleCover() }) }
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).pointerInput(Unit) {
+            detectTapGestures(onDoubleTap = { toggleCover() })
+        }
     ) {
         WheelScreenHeader {
             Icon(
-                painterResource(if (playback.isPlaying) R.drawable.ic_pixel_play else R.drawable.ic_pixel_pause),
+                painterResource(
+                    if (playback.isPlaying) R.drawable.ic_pixel_play else R.drawable.ic_pixel_pause
+                ),
                 if (playback.isPlaying) "Playing" else "Paused",
-                Modifier.size(18.dp)
+                Modifier.size(18.dp),
             )
         }
         BoxWithConstraints(
-            Modifier
-                .weight(1f)
+            Modifier.weight(1f)
                 .fillMaxWidth()
                 .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 20.dp)
         ) {
@@ -77,22 +78,24 @@ internal fun WheelNowPlaying(
             val artistHeight = trackTextHeight(artistSize, artistLineHeight, 1)
             val titleHeight = trackTextHeight(titleSize, titleLineHeight, 1, FontWeight.SemiBold)
             val albumHeight = trackTextHeight(12.sp, 18.sp, 1)
-            val format = when (val mime = metadata?.format?.substringAfterLast('/')?.uppercase()) {
-                "MPEG" -> "MP3"
-                else -> mime
-            }
+            val format =
+                when (val mime = metadata?.format?.substringAfterLast('/')?.uppercase()) {
+                    "MPEG" -> "MP3"
+                    else -> mime
+                }
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gap)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         "${(playback.queue.currentIndex + 1).coerceAtLeast(0)} OF ${playback.totalTracks}",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         WheelUsbIndicator()
@@ -101,36 +104,35 @@ internal fun WheelNowPlaying(
                     }
                 }
                 Column(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(
-                        gap / 2,
-                        if (coverVisible) Alignment.Top else Alignment.CenterVertically
-                    )
+                    Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            gap / 2,
+                            if (coverVisible) Alignment.Top else Alignment.CenterVertically,
+                        ),
                 ) {
                     if (coverVisible) {
                         BoxWithConstraints(
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(vertical = gap * 2),
-                            contentAlignment = Alignment.CenterStart
+                            Modifier.weight(1f).fillMaxWidth().padding(vertical = gap * 2),
+                            contentAlignment = Alignment.CenterStart,
                         ) {
                             Box(
-                                Modifier
-                                    .size(minOf(maxWidth, maxHeight))
+                                Modifier.size(minOf(maxWidth, maxHeight))
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text("♪", fontSize = 28.sp, color = MaterialTheme.colorScheme.secondary)
+                                Text(
+                                    "♪",
+                                    fontSize = 28.sp,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                )
                                 metadata?.artworkUri?.let {
                                     AsyncImage(
                                         it,
                                         metadata.album ?: "Album cover",
                                         Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Crop,
                                     )
                                 }
                             }
@@ -140,20 +142,20 @@ internal fun WheelNowPlaying(
                         metadata?.artist ?: "Browse your music",
                         fontSize = artistSize,
                         lineHeight = artistLineHeight,
-                        height = artistHeight
+                        height = artistHeight,
                     )
                     ScrollingTrackText(
                         metadata?.title ?: "No track selected",
                         fontSize = titleSize,
                         lineHeight = titleLineHeight,
-                        height = titleHeight
+                        height = titleHeight,
                     )
                     ScrollingTrackText(
                         metadata?.album ?: "",
                         fontSize = 12.sp,
                         lineHeight = 18.sp,
                         height = albumHeight,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
                     )
                 }
                 Spacer(Modifier.height(gap / 2))
@@ -171,8 +173,8 @@ private fun FormatBadge(text: String) {
         fontWeight = FontWeight.SemiBold,
         maxLines = 1,
         color = MaterialTheme.colorScheme.background,
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.onBackground)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+        modifier =
+            Modifier.background(MaterialTheme.colorScheme.onBackground)
+                .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }

@@ -24,22 +24,22 @@ import com.pxr.cymatic.design.R
 internal fun WheelPlaybackBar(title: String?, isPlaying: Boolean, onNowPlaying: () -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     Row(
-        Modifier
-            .fillMaxWidth()
+        Modifier.fillMaxWidth()
             .height(44.dp)
             .clickable(onClick = onNowPlaying)
             .padding(horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (title != null) {
             Icon(
-                painter = painterResource(
-                    if (isPlaying) R.drawable.ic_pixel_play else R.drawable.ic_pixel_pause
-                ),
+                painter =
+                    painterResource(
+                        if (isPlaying) R.drawable.ic_pixel_play else R.drawable.ic_pixel_pause
+                    ),
                 contentDescription = if (isPlaying) "Playing" else "Paused",
                 modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.secondary
+                tint = MaterialTheme.colorScheme.secondary,
             )
         }
         Text(
@@ -48,7 +48,7 @@ internal fun WheelPlaybackBar(title: String?, isPlaying: Boolean, onNowPlaying: 
             color = MaterialTheme.colorScheme.secondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         WheelUsbIndicator()
     }

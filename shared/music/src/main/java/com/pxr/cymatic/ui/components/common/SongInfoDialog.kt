@@ -22,14 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.playback.formatSampleRate
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
-import com.pxr.cymatic.playback.formatSampleRate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SongInfoDialog(
@@ -44,9 +44,10 @@ fun SongInfoDialog(
     var audioFile by remember { mutableStateOf<AudioFile?>(null) }
 
     LaunchedEffect(mediaId) {
-        audioFile = withContext(Dispatchers.IO) {
-            AudioRepository.getInstance(context).getAudioByIds(listOf(mediaId)).firstOrNull()
-        }
+        audioFile =
+            withContext(Dispatchers.IO) {
+                AudioRepository.getInstance(context).getAudioByIds(listOf(mediaId)).firstOrNull()
+            }
     }
 
     CymaticDialog(
@@ -57,9 +58,8 @@ fun SongInfoDialog(
         content = {
             if (audioFile != null) {
                 Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp),
+                    modifier =
+                        Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     InfoItem(
@@ -76,8 +76,8 @@ fun SongInfoDialog(
                     )
                     InfoItem(
                         label = "Duration",
-                        value = audioFile?.metadata?.duration?.let { formatDuration(it) }
-                            ?: "Unknown",
+                        value =
+                            audioFile?.metadata?.duration?.let { formatDuration(it) } ?: "Unknown",
                     )
                     InfoItem(
                         label = "Format",
@@ -85,12 +85,16 @@ fun SongInfoDialog(
                     )
                     InfoItem(
                         label = "Bit Rate",
-                        value = audioFile?.metadata?.bitRate?.let { "${it / 1000} kbps" }
-                            ?: "Unknown",
+                        value =
+                            audioFile?.metadata?.bitRate?.let { "${it / 1000} kbps" } ?: "Unknown",
                     )
                     InfoItem(
                         label = "Sample Rate",
-                        value = audioFile?.metadata?.sampleRate?.takeIf { it > 0 }
+                        value =
+                            audioFile
+                                ?.metadata
+                                ?.sampleRate
+                                ?.takeIf { it > 0 }
                                 ?.let(::formatSampleRate) ?: "Unknown",
                     )
                     InfoItem(
@@ -103,7 +107,7 @@ fun SongInfoDialog(
                     text = "Loading...",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
         },
@@ -111,9 +115,9 @@ fun SongInfoDialog(
             CymaticDialogButton(
                 text = "Close",
                 onClick = onDismissRequest,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
-        }
+        },
     )
 }
 
@@ -125,23 +129,19 @@ private fun InfoItem(
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
     val letterSpacing = if (value.contains(cjkRegex)) 1.5.sp else 0.sp
 
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
             color = MaterialTheme.colorScheme.secondary,
             fontSize = 14.sp,
-            modifier = Modifier.width(120.dp)
+            modifier = Modifier.width(120.dp),
         )
         Text(
             text = value,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             letterSpacing = letterSpacing,
-            modifier = Modifier
-                .weight(1f)
-                .horizontalScroll(rememberScrollState())
+            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
         )
     }
 }

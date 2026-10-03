@@ -5,15 +5,11 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
-
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class AudioRepository private constructor(
-    private val audioDao: AudioDao
-) {
-    @Volatile
-    private var cachedAudio: List<AudioFile>? = null
+class AudioRepository private constructor(private val audioDao: AudioDao) {
+    @Volatile private var cachedAudio: List<AudioFile>? = null
     private val cacheMutex = Mutex()
 
     suspend fun getAllAudio(): List<AudioFile> {
@@ -67,14 +63,16 @@ class AudioRepository private constructor(
     }
 
     companion object {
-        @Volatile
-        private var instance: AudioRepository? = null
+        @Volatile private var instance: AudioRepository? = null
 
         fun getInstance(context: Context): AudioRepository {
-            return instance ?: synchronized(this) {
-                instance ?: AudioRepository(CymaticDatabase.getInstance(context).audioDao())
-                    .also { instance = it }
-            }
+            return instance
+                ?: synchronized(this) {
+                    instance
+                        ?: AudioRepository(CymaticDatabase.getInstance(context).audioDao()).also {
+                            instance = it
+                        }
+                }
         }
     }
 }
@@ -84,15 +82,16 @@ fun AudioEntity.toAudioFile(): AudioFile {
         id = id,
         uri = uri.toUri(),
         size = size,
-        metadata = AudioMetadata(
-            title = title,
-            artist = artist,
-            album = album,
-            duration = duration,
-            bitRate = bitRate,
-            sampleRate = sampleRate,
-            format = format,
-            artworkUri = artworkUri?.let(Uri::parse)
-        )
+        metadata =
+            AudioMetadata(
+                title = title,
+                artist = artist,
+                album = album,
+                duration = duration,
+                bitRate = bitRate,
+                sampleRate = sampleRate,
+                format = format,
+                artworkUri = artworkUri?.let(Uri::parse),
+            ),
     )
 }

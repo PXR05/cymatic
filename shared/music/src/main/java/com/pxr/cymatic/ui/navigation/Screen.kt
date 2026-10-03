@@ -20,7 +20,8 @@ sealed class Screen(val route: String) {
     object ArtistSongs : Screen("artist/{artistName}/all?scrollId={scrollId}") {
         fun createRoute(artistName: String, scrollId: Long? = null): String {
             val encodedName = Uri.encode(artistName)
-            return if (scrollId != null) "artist/$encodedName/all?scrollId=$scrollId" else "artist/$encodedName/all"
+            return if (scrollId != null) "artist/$encodedName/all?scrollId=$scrollId"
+            else "artist/$encodedName/all"
         }
     }
 
@@ -36,7 +37,8 @@ sealed class Screen(val route: String) {
     object AlbumSongs : Screen("album/{albumName}?scrollId={scrollId}") {
         fun createRoute(albumName: String, scrollId: Long? = null): String {
             val encodedName = Uri.encode(albumName)
-            return if (scrollId != null) "album/$encodedName?scrollId=$scrollId" else "album/$encodedName"
+            return if (scrollId != null) "album/$encodedName?scrollId=$scrollId"
+            else "album/$encodedName"
         }
     }
 
@@ -44,7 +46,8 @@ sealed class Screen(val route: String) {
 
     object PlaylistSongs : Screen("playlist/{playlistId}?scrollId={scrollId}") {
         fun createRoute(playlistId: Long, scrollId: Long? = null): String {
-            return if (scrollId != null) "playlist/$playlistId?scrollId=$scrollId" else "playlist/$playlistId"
+            return if (scrollId != null) "playlist/$playlistId?scrollId=$scrollId"
+            else "playlist/$playlistId"
         }
     }
 

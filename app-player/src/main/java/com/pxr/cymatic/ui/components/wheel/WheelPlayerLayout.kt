@@ -26,8 +26,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.data.store.SettingsStore
@@ -40,12 +40,11 @@ private val MaxWheelSize = 288.dp
 @Composable
 internal fun WheelPlayerLayout(
     controls: WheelPlayerControls,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val settings = LocalInterfaceSettings.current
     BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
+        Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Vertical))
             .imePadding()
@@ -54,39 +53,50 @@ internal fun WheelPlayerLayout(
         val landscape = maxWidth > maxHeight
         val wheelAreaSize = if (landscape) maxHeight else maxWidth
         val baseWheelSize = minOf(MaxWheelSize, wheelAreaSize * 0.72f)
-        val screenWidth = (
-            if (landscape) maxWidth - wheelAreaSize - ScreenMargin else maxWidth - ScreenMargin * 2
-        ).coerceAtLeast(1.dp)
-        val availableScreenHeight = (
-            if (landscape) maxHeight - ScreenMargin * 2 else maxHeight - wheelAreaSize - ScreenMargin
-        ).coerceAtLeast(1.dp)
+        val screenWidth =
+            (if (landscape) maxWidth - wheelAreaSize - ScreenMargin
+                else maxWidth - ScreenMargin * 2)
+                .coerceAtLeast(1.dp)
+        val availableScreenHeight =
+            (if (landscape) maxHeight - ScreenMargin * 2
+                else maxHeight - wheelAreaSize - ScreenMargin)
+                .coerceAtLeast(1.dp)
         val screenHeight = minOf(screenWidth, availableScreenHeight)
-        val wheelHeight = if (landscape) maxHeight else (maxHeight - screenHeight - ScreenMargin).coerceAtLeast(1.dp)
-        val wheelSize = minOf(baseWheelSize * (settings.wheelSizePercent / 100), minOf(wheelAreaSize, wheelHeight) * 0.9f)
+        val wheelHeight =
+            if (landscape) maxHeight
+            else (maxHeight - screenHeight - ScreenMargin).coerceAtLeast(1.dp)
+        val wheelSize =
+            minOf(
+                baseWheelSize * (settings.wheelSizePercent / 100),
+                minOf(wheelAreaSize, wheelHeight) * 0.9f,
+            )
         val displayHeight = if (keyboardVisible) maxHeight - ScreenMargin else screenHeight
 
         if (landscape && !keyboardVisible) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 PlayerDisplay(
-                    Modifier
-                        .weight(1f)
+                    Modifier.weight(1f)
                         .fillMaxWidth()
                         .padding(start = ScreenMargin, top = ScreenMargin, bottom = ScreenMargin)
                         .height(screenHeight),
-                    content
+                    content,
                 )
                 PlayerWheel(Modifier.size(wheelAreaSize), wheelSize, controls)
             }
         } else {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 PlayerDisplay(
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .padding(start = ScreenMargin, end = ScreenMargin, top = ScreenMargin)
                         .height(displayHeight),
-                    content
+                    content,
                 )
-                if (!keyboardVisible) PlayerWheel(Modifier.weight(1f).fillMaxWidth(), wheelSize, controls)
+                if (!keyboardVisible)
+                    PlayerWheel(
+                        Modifier.weight(1f).fillMaxWidth(),
+                        wheelSize,
+                        controls,
+                    )
             }
         }
     }
@@ -98,21 +108,27 @@ private fun PlayerDisplay(modifier: Modifier, content: @Composable ColumnScope.(
         modifier
             .clip(ScreenShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, ScreenShape),
-        content = content
+        content = content,
     )
 }
 
 @Composable
 private fun PlayerWheel(modifier: Modifier, diameter: Dp, controls: WheelPlayerControls) {
     val settings = LocalInterfaceSettings.current
-    val sensitivity by SettingsStore.wheelSensitivityFlow.collectAsState(initial = SettingsStore.currentWheelSensitivity)
+    val sensitivity by
+        SettingsStore.wheelSensitivityFlow.collectAsState(
+            initial = SettingsStore.currentWheelSensitivity
+        )
     Box(modifier, contentAlignment = Alignment.Center) {
         ClickWheel(
-            diameter, controls::rotate, controls::press, controls::hold,
+            diameter,
+            controls::rotate,
+            controls::press,
+            controls::hold,
             sensitivity = sensitivity,
             movementPauseMs = settings.gesturePauseMs,
             hapticsEnabled = settings.hapticsEnabled,
-            onMovementStarted = controls::beginMovement
+            onMovementStarted = controls::beginMovement,
         )
     }
 }

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,13 +27,12 @@ import androidx.media3.session.SessionToken
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import com.pxr.cymatic.audio.usb.UsbConnectionManager
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import com.pxr.cymatic.audio.usb.UsbVolumeState
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.theme.CymaticTheme
-import com.pxr.cymatic.audio.usb.UsbConnectionManager
-import com.pxr.cymatic.audio.usb.UsbPlaybackState
-import android.view.KeyEvent
-import com.pxr.cymatic.audio.usb.UsbVolumeState
 
 abstract class MusicActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -52,26 +52,24 @@ abstract class MusicActivity : ComponentActivity() {
                 this,
                 arrayOf(
                     Manifest.permission.READ_MEDIA_AUDIO,
-                    Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS,
                 ),
-                1000
+                1000,
             )
         } else {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ),
-                1000
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                1000,
             )
         }
 
-        val sessionToken = SessionToken(
-            this,
-            ComponentName(this, PlaybackService::class.java)
-        )
-        val audioAttributionContext =
-            createAttributionContext("audioPlayback")
+        val sessionToken =
+            SessionToken(
+                this,
+                ComponentName(this, PlaybackService::class.java),
+            )
+        val audioAttributionContext = createAttributionContext("audioPlayback")
         controllerFuture =
             MediaController.Builder(audioAttributionContext, sessionToken).buildAsync()
 
@@ -92,21 +90,24 @@ abstract class MusicActivity : ComponentActivity() {
 
             DisposableEffect(Unit) {
                 controllerFuture?.let { future ->
-                    future.addListener({
-                        try {
-                            mediaController = future.get()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }, MoreExecutors.directExecutor())
+                    future.addListener(
+                        {
+                            try {
+                                mediaController = future.get()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        },
+                        MoreExecutors.directExecutor(),
+                    )
                 }
-                onDispose { }
+                onDispose {}
             }
 
             CymaticTheme {
                 CompositionLocalProvider(
                     LocalMediaController provides mediaController,
-                    LocalNavController provides navController
+                    LocalNavController provides navController,
                 ) {
                     AppContent()
                 }
@@ -114,8 +115,7 @@ abstract class MusicActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    protected abstract fun AppContent()
+    @Composable protected abstract fun AppContent()
 
     override fun onResume() {
         super.onResume()
