@@ -49,6 +49,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -243,6 +244,7 @@ class PlaybackService : MediaLibraryService() {
                 ) { enabled, presets, selectedName ->
                     Triple(enabled, presets, selectedName)
                 }
+                .distinctUntilChanged()
                 .collect { (enabled, presets, selectedName) ->
                     Log.d(
                         TAG,

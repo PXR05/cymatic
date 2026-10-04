@@ -17,8 +17,10 @@
 #include <vector>
 
 namespace {
-    constexpr int packetCount = 16;
-    constexpr int transferCount = 8;
+    // Queue 128 ms of output at both full and high speed. A 16 ms runway can
+    // drain during a scheduler delay even when the PCM ring is full.
+    constexpr int packetCount = 64;
+    constexpr int transferCount = 16;
     using Clock = std::chrono::steady_clock;
 
     struct Transfer {
@@ -72,7 +74,7 @@ namespace {
             : fd(descriptor), endpoint(address), capacity(maximum),
               serviceTicks(1 << (interval - 1)), ticksPerSecond(ticks), rate(frequency),
               frameBytes(bytes),
-              packetsPerUrb(std::clamp(ticks / (serviceTicks * 500), 1, packetCount)),
+              packetsPerUrb(std::clamp(ticks / (serviceTicks * 125), 1, packetCount)),
               feedbackEndpoint(feedbackAddress), feedbackCapacity(feedbackMaximum),
               feedbackPacketsPerUrb(
                   feedbackAddress == 0
