@@ -98,7 +98,7 @@ internal fun WheelNowPlaying(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        WheelUsbIndicator()
+                        WheelUsbIndicator(boxed = !format.isNullOrBlank())
                         if (!format.isNullOrBlank()) FormatBadge(format)
                         metadata?.bitRate?.takeIf { it > 0L }?.let { FormatBadge("${it / 1000}K") }
                     }

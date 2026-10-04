@@ -40,6 +40,7 @@ private val MaxWheelSize = 288.dp
 @Composable
 internal fun WheelPlayerLayout(
     controls: WheelPlayerControls,
+    overlay: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val settings = LocalInterfaceSettings.current
@@ -80,6 +81,7 @@ internal fun WheelPlayerLayout(
                         .padding(start = ScreenMargin, top = ScreenMargin, bottom = ScreenMargin)
                         .height(screenHeight),
                     content,
+                    overlay,
                 )
                 PlayerWheel(Modifier.size(wheelAreaSize), wheelSize, controls)
             }
@@ -90,6 +92,7 @@ internal fun WheelPlayerLayout(
                         .padding(start = ScreenMargin, end = ScreenMargin, top = ScreenMargin)
                         .height(displayHeight),
                     content,
+                    overlay,
                 )
                 if (!keyboardVisible)
                     PlayerWheel(
@@ -103,13 +106,19 @@ internal fun WheelPlayerLayout(
 }
 
 @Composable
-private fun PlayerDisplay(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(
+private fun PlayerDisplay(
+    modifier: Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+    overlay: @Composable () -> Unit,
+) {
+    Box(
         modifier
             .clip(ScreenShape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, ScreenShape),
-        content = content,
-    )
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, ScreenShape)
+    ) {
+        Column(Modifier.fillMaxSize(), content = content)
+        overlay()
+    }
 }
 
 @Composable

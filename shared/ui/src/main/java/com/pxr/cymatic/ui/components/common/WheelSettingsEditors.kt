@@ -146,6 +146,7 @@ fun WheelTextEditor(
     password: Boolean = false,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
+    hint: String? = null,
 ) {
     var draft by remember { mutableStateOf(value) }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -163,6 +164,7 @@ fun WheelTextEditor(
         Column(Modifier.fillMaxSize()) {
             OutlinedTextField(
                 value = draft,
+                placeholder = { if (hint != null) Text(hint) },
                 onValueChange = { draft = it },
                 modifier = Modifier.fillMaxWidth().padding(24.dp).focusRequester(requester),
                 singleLine = true,

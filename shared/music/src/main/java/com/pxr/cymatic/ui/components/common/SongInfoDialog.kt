@@ -50,6 +50,15 @@ fun SongInfoDialog(
             }
     }
 
+    if (LocalWheelNavigation.current != null) {
+        WheelReadingPage("Song Information", onDismissRequest) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SongInformation(audioFile)
+            }
+        }
+        return
+    }
+
     CymaticDialog(
         title = "Song Information",
         onDismissRequest = onDismissRequest,
@@ -62,45 +71,7 @@ fun SongInfoDialog(
                         Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    InfoItem(
-                        label = "Title",
-                        value = audioFile?.metadata?.title ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Artist",
-                        value = audioFile?.metadata?.artist ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Album",
-                        value = audioFile?.metadata?.album ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Duration",
-                        value =
-                            audioFile?.metadata?.duration?.let { formatDuration(it) } ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Format",
-                        value = audioFile?.metadata?.format ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Bit Rate",
-                        value =
-                            audioFile?.metadata?.bitRate?.let { "${it / 1000} kbps" } ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "Sample Rate",
-                        value =
-                            audioFile
-                                ?.metadata
-                                ?.sampleRate
-                                ?.takeIf { it > 0 }
-                                ?.let(::formatSampleRate) ?: "Unknown",
-                    )
-                    InfoItem(
-                        label = "File Size",
-                        value = audioFile?.let { formatFileSize(it.size.toLong()) } ?: "Unknown",
-                    )
+                    SongInformation(audioFile)
                 }
             } else {
                 Text(
@@ -119,6 +90,26 @@ fun SongInfoDialog(
             )
         },
     )
+}
+
+@Composable
+private fun SongInformation(audio: AudioFile?) {
+    if (audio == null) {
+        Text("Loading...", color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp)
+        return
+    }
+    val metadata = audio.metadata
+    InfoItem("Title", metadata.title ?: "Unknown")
+    InfoItem("Artist", metadata.artist ?: "Unknown")
+    InfoItem("Album", metadata.album ?: "Unknown")
+    InfoItem("Duration", metadata.duration?.let(::formatDuration) ?: "Unknown")
+    InfoItem("Format", metadata.format ?: "Unknown")
+    InfoItem("Bit Rate", metadata.bitRate?.let { "${it / 1000} kbps" } ?: "Unknown")
+    InfoItem(
+        "Sample Rate",
+        metadata.sampleRate?.takeIf { it > 0 }?.let(::formatSampleRate) ?: "Unknown",
+    )
+    InfoItem("File Size", formatFileSize(audio.size.toLong()))
 }
 
 @Composable

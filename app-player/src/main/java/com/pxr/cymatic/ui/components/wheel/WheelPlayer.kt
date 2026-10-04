@@ -59,7 +59,7 @@ fun WheelPlayer() {
             LocalInterfaceSettings provides settings,
             LocalScreenHeaderStatus provides { BatteryIndicator(battery) },
         ) {
-            WheelPlayerLayout(controls) {
+            WheelPlayerLayout(controls, overlay = { WheelOverlays(wheel) }) {
                 PlayerScreen(
                     state = state,
                     playback = playback,
@@ -75,9 +75,9 @@ fun WheelPlayer() {
                     )
                 }
             }
+            WheelTrackDialogs(state, playback.currentMediaId)
         }
     }
-    WheelTrackDialogs(state, playback.currentMediaId)
 }
 
 @Composable
@@ -108,7 +108,6 @@ private fun PlayerScreen(
                 WheelPlayerMenu(state, playback, controller)
             }
         }
-        WheelOverlays(state.wheel)
     }
 }
 
