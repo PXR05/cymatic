@@ -36,12 +36,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.design.R
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal enum class WheelButton {
     MENU,
@@ -79,119 +79,136 @@ internal fun ClickWheel(
 
     Box(
         modifier =
-            modifier
-                .size(diameter)
-                .pointerInput(Unit) {
-                    coroutineScope {
-                        val gestureScope = this
-                        awaitEachGesture {
-                            val down = awaitFirstDown()
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            val radius = size.width / 2f
-                            val start = down.position - center
-                            if (start.getDistance() > radius) return@awaitEachGesture
-                            val button =
-                                when {
-                                    start.getDistance() < radius * 0.34f -> WheelButton.SELECT
-                                    abs(start.y) > abs(start.x) ->
-                                        if (start.y < 0) WheelButton.MENU else WheelButton.PLAY
+            modifier.size(diameter).pointerInput(Unit) {
+                coroutineScope {
+                    val gestureScope = this
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val radius = size.width / 2f
+                        val start = down.position - center
+                        if (start.getDistance() > radius) return@awaitEachGesture
+                        val button =
+                            when {
+                                start.getDistance() < radius * 0.34f -> WheelButton.SELECT
+                                abs(start.y) > abs(start.x) ->
+                                    if (start.y < 0) WheelButton.MENU else WheelButton.PLAY
 
-                                    start.x < 0 -> WheelButton.PREVIOUS
-                                    else -> WheelButton.NEXT
-                                }
-                            pressed = button
-                            var rotated = false
-                            var held = false
-                            var cancelled = false
-                            var angle = atan2(start.y, start.x)
-                            var accumulated = 0f
-                            var lastMotionTime = down.uptimeMillis
-                            val holdJob = gestureScope.launch {
-                                delay(viewConfiguration.longPressTimeoutMillis)
-                                if (!rotated) {
-                                    held = true
-                                    if (feedbackEnabled)
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    hold(button)
-                                    if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
-                                        while (true) {
-                                            delay(150)
-                                            hold(button)
-                                        }
-                                    }
-                                }
+                                start.x < 0 -> WheelButton.PREVIOUS
+                                else -> WheelButton.NEXT
                             }
-                            try {
-                                do {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull { it.id == down.id }
-                                    if (change == null || change.isConsumed) {
-                                        cancelled = true
-                                        break
+                        pressed = button
+                        var rotated = false
+                        var held = false
+                        var cancelled = false
+                        var selectReleased = false
+                        var angle: Float? =
+                            if (button == WheelButton.SELECT) null else atan2(start.y, start.x)
+                        var accumulated = 0f
+                        var lastMotionTime = down.uptimeMillis
+                        val holdJob = gestureScope.launch {
+                            delay(viewConfiguration.longPressTimeoutMillis)
+                            if (!rotated) {
+                                held = true
+                                if (feedbackEnabled)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                hold(button)
+                                if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
+                                    while (true) {
+                                        delay(150)
+                                        hold(button)
                                     }
-                                    val position = change.position - center
-                                    if (
-                                        !held &&
-                                        button != WheelButton.SELECT &&
-                                        (rotated ||
-                                                (change.position - down.position).getDistance() >
-                                                viewConfiguration.touchSlop)
-                                    ) {
-                                        if (!rotated) {
-                                            movementStarted()
-                                            lastMotionTime = change.uptimeMillis
-                                        }
-                                        rotated = true
-                                        pressed = null
-                                        holdJob.cancel()
-                                        if (position.getDistance() in radius * 0.34f..radius * 1.15f) {
-                                            val nextAngle = atan2(position.y, position.x)
-                                            var delta = nextAngle - angle
-                                            if (delta > PI) delta -= (2 * PI).toFloat()
-                                            if (delta < -PI) delta += (2 * PI).toFloat()
-                                            if (abs(delta) >= MinimumMotionAngle) {
-                                                if (
-                                                    change.uptimeMillis - lastMotionTime >=
-                                                    currentPauseMs
-                                                ) {
-                                                    accumulated = 0f
-                                                    movementStarted()
-                                                }
-                                                lastMotionTime = change.uptimeMillis
-                                                accumulated += delta
-                                                val stepAngle =
-                                                    RotationStep /
-                                                            currentSensitivity.coerceIn(0.25f, 3f)
-                                                val steps = (accumulated / stepAngle).toInt()
-                                                if (steps != 0) {
-                                                    rotate(steps)
-                                                    accumulated -= steps * stepAngle
-                                                    if (feedbackEnabled)
-                                                        haptic.performHapticFeedback(
-                                                            HapticFeedbackType.TextHandleMove
-                                                        )
-                                                }
-                                                angle = nextAngle
-                                            }
-                                        } else {
-                                            angle = atan2(position.y, position.x)
-                                            accumulated = 0f
-                                        }
-                                        change.consume()
-                                    }
-                                } while (event.changes.any { it.id == down.id && it.pressed })
-                                if (!cancelled && !rotated && !held) {
-                                    if (feedbackEnabled)
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    press(button)
                                 }
-                            } finally {
-                                holdJob.cancel()
-                                pressed = null
                             }
                         }
+                        try {
+                            do {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id }
+                                if (change == null || change.isConsumed) {
+                                    cancelled = true
+                                    break
+                                }
+                                val position = change.position - center
+                                if (
+                                    button == WheelButton.SELECT &&
+                                        !selectReleased &&
+                                        position.getDistance() >= radius * 0.34f
+                                ) {
+                                    selectReleased = true
+                                    pressed = null
+                                    holdJob.cancel()
+                                    if (!held) {
+                                        if (feedbackEnabled)
+                                            haptic.performHapticFeedback(
+                                                HapticFeedbackType.TextHandleMove
+                                            )
+                                        press(button)
+                                    }
+                                }
+                                if (
+                                    (rotated ||
+                                        selectReleased ||
+                                        (button != WheelButton.SELECT &&
+                                            (change.position - down.position).getDistance() >
+                                                viewConfiguration.touchSlop))
+                                ) {
+                                    if (!rotated) {
+                                        movementStarted()
+                                        lastMotionTime = change.uptimeMillis
+                                    }
+                                    rotated = true
+                                    pressed = null
+                                    holdJob.cancel()
+                                    if (position.getDistance() in radius * 0.34f..radius * 1.15f) {
+                                        val nextAngle = atan2(position.y, position.x)
+                                        var delta = angle?.let { nextAngle - it } ?: 0f
+                                        if (angle == null) angle = nextAngle
+                                        if (delta > PI) delta -= (2 * PI).toFloat()
+                                        if (delta < -PI) delta += (2 * PI).toFloat()
+                                        if (abs(delta) >= MinimumMotionAngle) {
+                                            if (
+                                                change.uptimeMillis - lastMotionTime >=
+                                                    currentPauseMs
+                                            ) {
+                                                accumulated = 0f
+                                                movementStarted()
+                                            }
+                                            lastMotionTime = change.uptimeMillis
+                                            accumulated += delta
+                                            val stepAngle =
+                                                RotationStep /
+                                                    currentSensitivity.coerceIn(0.25f, 3f)
+                                            val steps = (accumulated / stepAngle).toInt()
+                                            if (steps != 0) {
+                                                rotate(steps)
+                                                accumulated -= steps * stepAngle
+                                                if (feedbackEnabled)
+                                                    haptic.performHapticFeedback(
+                                                        HapticFeedbackType.TextHandleMove
+                                                    )
+                                            }
+                                            angle = nextAngle
+                                        }
+                                    } else {
+                                        angle = null
+                                        accumulated = 0f
+                                    }
+                                    change.consume()
+                                }
+                            } while (event.changes.any { it.id == down.id && it.pressed })
+                            if (!cancelled && !rotated && !held) {
+                                if (feedbackEnabled)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                press(button)
+                            }
+                        } finally {
+                            holdJob.cancel()
+                            pressed = null
+                        }
                     }
-                },
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
@@ -216,8 +233,7 @@ internal fun ClickWheel(
             )
         buttons.forEach { (button, x, y) ->
             Box(
-                Modifier
-                    .offset(diameter * x, diameter * y)
+                Modifier.offset(diameter * x, diameter * y)
                     .size(diameter * 0.24f)
                     .semantics(mergeDescendants = true) {
                         role = Role.Button
@@ -235,12 +251,13 @@ internal fun ClickWheel(
                 contentAlignment = Alignment.Center,
             ) {
                 when (button) {
-                    WheelButton.MENU -> Text(
-                        "MENU",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.onBackground
-                    )
+                    WheelButton.MENU ->
+                        Text(
+                            "MENU",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onBackground,
+                        )
 
                     WheelButton.PREVIOUS ->
                         Icon(

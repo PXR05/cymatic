@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 
 class MainActivity : MusicActivity() {
     private var standby: StandbyController? = null
-    private var wakingTouch = false
     private var wakingKey: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,16 +49,7 @@ class MainActivity : MusicActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) wakingTouch = standby?.asleep == true
         standby?.interact()
-        if (wakingTouch) {
-            if (
-                event.actionMasked == MotionEvent.ACTION_UP ||
-                    event.actionMasked == MotionEvent.ACTION_CANCEL
-            )
-                wakingTouch = false
-            return true
-        }
         return super.dispatchTouchEvent(event)
     }
 
