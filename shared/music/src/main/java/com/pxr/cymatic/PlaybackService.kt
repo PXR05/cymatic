@@ -21,13 +21,13 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import com.pxr.cymatic.audio.DeviceVolumeMemory
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.audio.usb.UsbExtractorsFactory
 import com.pxr.cymatic.audio.usb.UsbPlaybackCoordinator
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.UsbRenderersFactory
-import com.pxr.cymatic.audio.usb.UsbVolumeState
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
@@ -256,14 +256,12 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private suspend fun initializePlayback() {
-        val volumePercent = UsbPlaybackSettings.volumePercentFlow.first()
         val directUsbEnabled = UsbPlaybackSettings.enabledFlow.first()
         withContext(Dispatchers.Main) {
-            UsbVolumeState.initialize(volumePercent)
             usbPlayback.setEnabled(directUsbEnabled)
         }
         serviceScope.launch {
-            UsbVolumeState.requestedPercent.collect { UsbPlaybackSettings.setVolumePercent(it) }
+            DeviceVolumeMemory(audioManager).monitor()
         }
         serviceScope.launch(Dispatchers.Main) {
             UsbPlaybackSettings.enabledFlow.collect { usbPlayback.setEnabled(it) }

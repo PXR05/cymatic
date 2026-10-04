@@ -1,7 +1,14 @@
 package com.pxr.cymatic.audio.usb
 
+import com.pxr.cymatic.data.store.DeviceVolumeSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 data class UsbVolumeLevel(
     val percent: Int? = null,
@@ -16,6 +23,13 @@ object UsbVolumeState {
     private val mutableLevel = MutableStateFlow(UsbVolumeLevel())
     val level = mutableLevel.asStateFlow()
     private var deviceKey: String? = null
+    private val saves = Channel<Pair<String, Int>>(Channel.UNLIMITED)
+
+    init {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            for ((key, percent) in saves) DeviceVolumeSettings.save(key, direct = true, percent)
+        }
+    }
 
     @Synchronized
     fun adjust(steps: Int) {
@@ -25,20 +39,17 @@ object UsbVolumeState {
     @Synchronized
     internal fun setRequested(percent: Int) {
         mutableRequested.value = percent.coerceIn(0, 100)
-    }
-
-    @Synchronized
-    internal fun initialize(percent: Int) {
-        deviceKey = null
-        setRequested(minOf(percent, 25))
-        mutableLevel.value = UsbVolumeLevel()
+        deviceKey?.let { saves.trySend(it to mutableRequested.value) }
     }
 
     @Synchronized
     internal fun beginDevice(key: String) {
         if (deviceKey != key) {
+            // Configuration runs on the audio thread. Restore before hardware volume is applied.
+            val remembered =
+                runBlocking(Dispatchers.IO) { DeviceVolumeSettings.get(key, direct = true) }
             deviceKey = key
-            setRequested(minOf(mutableRequested.value, 25))
+            mutableRequested.value = (remembered ?: 25).coerceIn(0, 100)
         }
         mutableLevel.value = UsbVolumeLevel(message = "Reading DAC volume")
     }
