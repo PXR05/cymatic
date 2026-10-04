@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 enum class ScreenAwakeMode(val label: String) {
     NEVER("Never"),
     DURING_PLAYBACK("During playback"),
-    ALWAYS("Always")
+    ALWAYS("Always"),
 }
 
 data class InterfaceSettings(
@@ -22,7 +22,8 @@ data class InterfaceSettings(
     val textScrollSpeed: Float = 24f,
     val textScrollDelayMs: Long = 2200L,
     val coverVisibleByDefault: Boolean = true,
-    val screenAwakeMode: ScreenAwakeMode = ScreenAwakeMode.NEVER
+    val screenAwakeMode: ScreenAwakeMode = ScreenAwakeMode.NEVER,
+    val standbyTimeoutMs: Long = 0L,
 )
 
 private val GesturePauseKey = longPreferencesKey("WHEEL_GESTURE_PAUSE_MS")
@@ -32,18 +33,27 @@ private val TextSpeedKey = floatPreferencesKey("INTERFACE_TEXT_SCROLL_SPEED")
 private val TextDelayKey = longPreferencesKey("INTERFACE_TEXT_SCROLL_DELAY_MS")
 private val CoverDefaultKey = booleanPreferencesKey("WHEEL_COVER_VISIBLE_DEFAULT")
 private val ScreenAwakeKey = stringPreferencesKey("INTERFACE_SCREEN_AWAKE_MODE")
+private val StandbyTimeoutKey = longPreferencesKey("INTERFACE_STANDBY_TIMEOUT_MS")
 
 private fun readInterfaceSettings(prefs: Preferences?): InterfaceSettings {
     val defaults = InterfaceSettings()
     return InterfaceSettings(
-        gesturePauseMs = (prefs?.get(GesturePauseKey) ?: defaults.gesturePauseMs).coerceIn(100L, 1000L),
+        gesturePauseMs =
+            (prefs?.get(GesturePauseKey) ?: defaults.gesturePauseMs).coerceIn(100L, 1000L),
         hapticsEnabled = prefs?.get(HapticsKey) ?: defaults.hapticsEnabled,
-        wheelSizePercent = (prefs?.get(WheelSizeKey) ?: defaults.wheelSizePercent).coerceIn(60f, 120f),
+        wheelSizePercent =
+            (prefs?.get(WheelSizeKey) ?: defaults.wheelSizePercent).coerceIn(60f, 120f),
         textScrollSpeed = (prefs?.get(TextSpeedKey) ?: defaults.textScrollSpeed).coerceIn(8f, 96f),
-        textScrollDelayMs = (prefs?.get(TextDelayKey) ?: defaults.textScrollDelayMs).coerceIn(0L, 5000L),
+        textScrollDelayMs =
+            (prefs?.get(TextDelayKey) ?: defaults.textScrollDelayMs).coerceIn(0L, 5000L),
         coverVisibleByDefault = prefs?.get(CoverDefaultKey) ?: defaults.coverVisibleByDefault,
-        screenAwakeMode = ScreenAwakeMode.entries.firstOrNull { it.name == prefs?.get(ScreenAwakeKey) }
-            ?: defaults.screenAwakeMode
+        screenAwakeMode =
+            ScreenAwakeMode.entries.firstOrNull { it.name == prefs?.get(ScreenAwakeKey) }
+                ?: defaults.screenAwakeMode,
+        standbyTimeoutMs =
+            (prefs?.get(StandbyTimeoutKey) ?: 0L).let {
+                if (it == 0L) 0L else it.coerceIn(10_000L, 600_000L)
+            },
     )
 }
 
@@ -79,4 +89,10 @@ suspend fun SettingsStore.setCoverVisibleByDefault(value: Boolean) {
 
 suspend fun SettingsStore.setScreenAwakeMode(value: ScreenAwakeMode) {
     store.edit { it[ScreenAwakeKey] = value.name }
+}
+
+suspend fun SettingsStore.setStandbyTimeoutMs(value: Long) {
+    store.edit {
+        it[StandbyTimeoutKey] = if (value == 0L) 0L else value.coerceIn(10_000L, 600_000L)
+    }
 }
