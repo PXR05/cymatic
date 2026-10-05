@@ -48,6 +48,8 @@ namespace {
     struct Stream {
         int fd, endpoint, capacity, serviceTicks, ticksPerSecond, rate, frameBytes, packetsPerUrb;
         int feedbackEndpoint, feedbackCapacity, feedbackPacketsPerUrb;
+        int dopChannels;
+        unsigned char dopMarker = 0x05;
         size_t initialPrimingBytes, primingRemaining;
         int64_t submittedPrimingBytes = 0, completedPrimingBytes = 0;
         std::chrono::milliseconds feedbackTimeout;
@@ -70,7 +72,7 @@ namespace {
 
         Stream(int descriptor, int address, int maximum, int interval, int frequency, int bytes,
                int ticks, int feedbackAddress, int feedbackMaximum, int feedbackInterval,
-               int feedbackRefreshMs, int primingFrames)
+               int feedbackRefreshMs, int primingFrames, int dsdChannels)
             : fd(descriptor), endpoint(address), capacity(maximum),
               serviceTicks(1 << (interval - 1)), ticksPerSecond(ticks), rate(frequency),
               frameBytes(bytes),
@@ -80,6 +82,7 @@ namespace {
                   feedbackAddress == 0
                       ? 0
                       : std::clamp(ticks / ((1 << (feedbackInterval - 1)) * 500), 1, packetCount)),
+              dopChannels(dsdChannels),
               initialPrimingBytes(static_cast<size_t>(primingFrames) * bytes),
               primingRemaining(initialPrimingBytes),
               feedbackTimeout(
@@ -159,12 +162,28 @@ namespace {
             const auto first = std::min(music, ring.size() - readAt);
             std::memcpy(transfer.bytes.data() + priming, ring.data() + readAt, first);
             std::memcpy(transfer.bytes.data() + priming + first, ring.data(), music - first);
+            unsigned char nextMarker = dopMarker;
+            if (dopChannels != 0) {
+                const int bytesPerChannel = frameBytes / dopChannels;
+                for (size_t frame = 0; frame < needed; frame += frameBytes) {
+                    for (int channel = 0; channel < dopChannels; ++channel) {
+                        auto *sample = transfer.bytes.data() + frame + channel * bytesPerChannel;
+                        if (frame < priming) {
+                            sample[bytesPerChannel - 3] = 0x69;
+                            sample[bytesPerChannel - 2] = 0x69;
+                        }
+                        sample[bytesPerChannel - 1] = nextMarker;
+                    }
+                    nextMarker ^= 0xff;
+                }
+            }
             urb->buffer_length = needed;
             if (retryUsbIoctl(fd, USBDEVFS_SUBMITURB, urb) < 0) {
                 error = -errno;
                 return false;
             }
             readAt = (readAt + music) % ring.size();
+            dopMarker = nextMarker;
             queued -= music;
             primingRemaining = primeLeft;
             submittedBytes += music;
@@ -355,13 +374,15 @@ namespace {
 extern "C" JNIEXPORT jlong JNICALL Java_com_pxr_cymatic_usb_UsbPcmStream_create(
     JNIEnv *, jobject, jint fd, jint endpoint, jint capacity, jint interval, jint rate,
     jint frameBytes, jint feedbackEndpoint, jint feedbackCapacity, jint feedbackInterval,
-    jint feedbackRefreshMs, jint primingFrames) {
+    jint feedbackRefreshMs, jint primingFrames, jint dopChannels) {
     const int speed = retryUsbIoctl(fd, USBDEVFS_GET_SPEED, nullptr);
     const int ticks = speed == 2 ? 1000 : 8000;
     if (fd < 0 || (speed != 2 && speed != 3) || endpoint < 1 || endpoint > 15 || capacity < 1 ||
         capacity > 3072 || interval < 1 || interval > 16 || rate < 8000 || rate > 384000 ||
         frameBytes < 1 || frameBytes > 32 || feedbackRefreshMs < 0 || feedbackRefreshMs > 512 ||
-        primingFrames < 0 || primingFrames > rate * 2)
+        primingFrames < 0 || primingFrames > rate * 2 || dopChannels < 0 || dopChannels > 2 ||
+        (dopChannels != 0 && (frameBytes % dopChannels != 0 ||
+                              frameBytes / dopChannels < 3 || frameBytes / dopChannels > 4)))
         return 0;
     if (feedbackEndpoint != 0 &&
         (feedbackEndpoint < 0x81 || feedbackEndpoint > 0x8f ||
@@ -376,7 +397,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_com_pxr_cymatic_usb_UsbPcmStream_create(
     try {
         value =
             new Stream(fd, endpoint, capacity, interval, rate, frameBytes, ticks, feedbackEndpoint,
-                       feedbackCapacity, feedbackInterval, feedbackRefreshMs, primingFrames);
+                       feedbackCapacity, feedbackInterval, feedbackRefreshMs, primingFrames, dopChannels);
         value->worker = std::thread([value] { value->run(); });
         return reinterpret_cast<jlong>(value);
     } catch (...) {

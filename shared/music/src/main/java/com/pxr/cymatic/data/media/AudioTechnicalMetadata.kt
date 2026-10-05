@@ -3,6 +3,7 @@ package com.pxr.cymatic.data.media
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import com.pxr.cymatic.audio.dsd.DSD_MIME_TYPE
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -21,7 +22,7 @@ internal fun Format.audioTechnicalMetadata(): AudioTechnicalMetadata {
                 ?.takeIf { it.size >= 24 }
                 ?.let {
                     ByteBuffer.wrap(it).order(ByteOrder.BIG_ENDIAN).getInt(16).toLong() and
-                            0xffffffffL
+                        0xffffffffL
                 }
                 ?.takeIf { it > 0 }
         } else null
@@ -34,6 +35,7 @@ internal fun Format.audioTechnicalMetadata(): AudioTechnicalMetadata {
 
 private val technicalCodecMimeTypes =
     setOf(
+        DSD_MIME_TYPE,
         MimeTypes.AUDIO_ALAC,
         MimeTypes.AUDIO_FLAC,
         MimeTypes.AUDIO_MPEG,

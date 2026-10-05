@@ -22,7 +22,10 @@ object UsbVolumeState {
     val requestedPercent = mutableRequested.asStateFlow()
     private val mutableLevel = MutableStateFlow(UsbVolumeLevel())
     val level = mutableLevel.asStateFlow()
-    private var deviceKey: String? = null
+    @Volatile private var deviceKey: String? = null
+    internal val volumeProfileKey: String?
+        get() = deviceKey
+
     private val saves = Channel<Pair<String, Int>>(Channel.UNLIMITED)
 
     init {

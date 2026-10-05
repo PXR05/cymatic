@@ -34,4 +34,5 @@ include(
     ":shared:usb",
     ":shared:flac",
     ":shared:alac",
+    ":shared:dsd",
 )

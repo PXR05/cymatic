@@ -35,6 +35,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
     private var feedbackInterval = 0
     private var feedbackRefreshMs = 0
     private var primingFrames = 0
+    private var dopChannels = 0
     lateinit var layout: UsbPcmLayout
         private set
 
@@ -55,7 +56,9 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
         frequency: Int,
         requireVolume: Boolean,
         sourceLayout: UsbPcmLayout,
+        dop: Boolean,
     ) {
+        dopChannels = if (dop) sourceLayout.channels else 0
         report
             .put("deviceName", runCatching { device.productName }.getOrNull() ?: "USB DAC")
             .put("vendorId", device.vendorId)
@@ -243,6 +246,10 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
             primingFrames = frames.toInt()
             report.put("clockLockPrimingFrames", primingFrames)
         }
+        if (dop) {
+            primingFrames = maxOf(primingFrames, 32)
+            report.put("dopPrimingFrames", primingFrames)
+        }
     }
 
     fun writeProbe(pcm: ByteArray): UsbTransferResult {
@@ -288,6 +295,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
                     feedbackInterval,
                     feedbackRefreshMs,
                     primingFrames,
+                    dopChannels,
                 )
                 .also { continuous = it }
 
@@ -365,6 +373,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
             requested: UsbDevice? = null,
             requireVolume: Boolean = true,
             sourceLayout: UsbPcmLayout = UsbPcmLayout(2, 2, 16),
+            dop: Boolean = false,
         ): UsbPcmDevice {
             val manager = context.getSystemService(UsbManager::class.java)
             val devices = manager.deviceList.values.filter(::isUsbAudioDevice)
@@ -378,7 +387,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
             val connection = manager.openDevice(device) ?: error("USB DAC could not be opened")
             val result = UsbPcmDevice(connection)
             try {
-                result.configure(device, rate, requireVolume, sourceLayout)
+                result.configure(device, rate, requireVolume, sourceLayout, dop)
                 return result
             } catch (e: Throwable) {
                 result.close()

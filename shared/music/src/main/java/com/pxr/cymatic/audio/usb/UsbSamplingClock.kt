@@ -57,7 +57,7 @@ internal abstract class UsbSamplingClock(
             require(
                 ranges.any { (minimum, maximum, resolution) ->
                     rate.toLong() in minimum..maximum &&
-                            (resolution == 0L || (rate - minimum) % resolution == 0L)
+                        (resolution == 0L || (rate - minimum) % resolution == 0L)
                 }
             ) {
                 "DAC does not advertise the source sample rate"
@@ -154,7 +154,7 @@ private fun awaitClockValidity(connection: UsbDeviceConnection, clock: UsbClockS
         val remainingMs = ((deadline - System.nanoTime()) / 1_000_000).toInt().coerceIn(1, 100)
         check(
             connection.controlTransfer(0xa1, 1, 0x0200, clockIndex(clock), valid, 1, remainingMs) ==
-                    1
+                1
         ) {
             "USB clock validity request failed"
         }
@@ -204,7 +204,7 @@ private fun writeRate(connection: UsbDeviceConnection, clock: UsbClockSource, ra
     }
 }
 
-private fun readRanges(
+internal fun readRanges(
     connection: UsbDeviceConnection,
     clock: UsbClockSource,
 ): List<Triple<Long, Long, Long>> {

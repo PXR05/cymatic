@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(cymatic_dsd LANGUAGES CXX)
+add_library(cymatic_dsd SHARED DsdFrameDecoder.cpp)
+target_compile_features(cymatic_dsd PRIVATE cxx_std_17)
+target_compile_options(cymatic_dsd PRIVATE -Wall -Wextra -Werror -O2)

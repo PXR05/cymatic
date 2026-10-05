@@ -9,8 +9,10 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
+import androidx.media3.common.util.UnstableApi
 import java.io.Closeable
 
+@UnstableApi
 internal class UsbConnectionManager(
     private val context: Context,
     private val onReady: () -> Unit,
@@ -40,16 +42,16 @@ internal class UsbConnectionManager(
                     permissionAction -> {
                         if (
                             device == null ||
-                            device.deviceId != requestedDevice ||
-                            requestedDevice == null
+                                device.deviceId != requestedDevice ||
+                                requestedDevice == null
                         )
                             return
                         val granted =
                             manager.hasPermission(device) &&
-                                    intent.getBooleanExtra(
-                                        UsbManager.EXTRA_PERMISSION_GRANTED,
-                                        false,
-                                    )
+                                intent.getBooleanExtra(
+                                    UsbManager.EXTRA_PERMISSION_GRANTED,
+                                    false,
+                                )
                         clearRequest()
                         if (!granted) deniedDevice = device.deviceId
                         refresh()
@@ -96,6 +98,7 @@ internal class UsbConnectionManager(
         if (!value) {
             clearRequest()
             readyDevice = null
+            UsbDsdSupport.clear()
             UsbPlaybackState.deviceReady = false
             return
         }
@@ -118,6 +121,7 @@ internal class UsbConnectionManager(
             deniedDevice = null
             if (readyDevice != device.deviceId) {
                 readyDevice = device.deviceId
+                UsbDsdSupport.refresh(context, device)
                 UsbPlaybackState.deviceReady = true
                 UsbPlaybackState.update("USB DAC connected · direct output ready")
                 onReady()
@@ -149,6 +153,7 @@ internal class UsbConnectionManager(
 
     private fun waitForDevice(message: String) {
         readyDevice = null
+        UsbDsdSupport.clear()
         UsbPlaybackState.deviceReady = false
         onWaiting(message)
     }
@@ -164,7 +169,13 @@ internal class UsbConnectionManager(
         if (started) context.unregisterReceiver(receiver)
         started = false
         readyDevice = null
+        UsbDsdSupport.clear()
         UsbPlaybackState.deviceReady = false
+    }
+
+    fun refreshDsdOutput() {
+        val device = manager.deviceList.values.singleOrNull { it.deviceId == readyDevice }
+        if (device != null) UsbDsdSupport.refresh(context, device) else UsbDsdSupport.clear()
     }
 
     companion object {

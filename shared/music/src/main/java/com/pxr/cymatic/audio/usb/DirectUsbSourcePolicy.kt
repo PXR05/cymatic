@@ -5,6 +5,8 @@ import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.audio.alac.integerAlacMetadata
+import com.pxr.cymatic.audio.dsd.DSD_MIME_TYPE
+import com.pxr.cymatic.audio.dsd.dsfHeader
 import com.pxr.cymatic.audio.flac.integerFlacMetadata
 import java.util.Locale
 
@@ -12,6 +14,10 @@ import java.util.Locale
 internal object DirectUsbSourcePolicy {
     private val sourceMimeTypes =
         setOf(
+            DSD_MIME_TYPE,
+            "audio/dsf",
+            "audio/x-dsf",
+            "audio/x-dsd",
             "audio/flac",
             "audio/x-flac",
             "audio/wav",
@@ -41,13 +47,14 @@ internal object DirectUsbSourcePolicy {
 
     fun canDecode(format: Format): Boolean =
         format.usbPcmLayout() != null ||
-                format.integerFlacMetadata() != null ||
-                format.integerAlacMetadata() != null ||
-                canDecodeWithPlatform(format)
+            format.dsfHeader() != null ||
+            format.integerFlacMetadata() != null ||
+            format.integerAlacMetadata() != null ||
+            canDecodeWithPlatform(format)
 
     fun canDecodeWithPlatform(format: Format): Boolean =
         format.sampleMimeType in platformMimeTypes &&
-                format.cryptoType == C.CRYPTO_TYPE_NONE &&
-                format.channelCount in 1..2 &&
-                format.sampleRate in 8000..384000
+            format.cryptoType == C.CRYPTO_TYPE_NONE &&
+            format.channelCount in 1..2 &&
+            format.sampleRate in 8000..384000
 }

@@ -53,6 +53,7 @@ internal class WheelPlayerState(
 
     var showPlaylistPicker by mutableStateOf(false)
     var showTrackInfo by mutableStateOf(false)
+    var showOutputInfo by mutableStateOf(false)
 
     val isNowPlaying: Boolean
         get() = panel == WheelPanel.NOW_PLAYING
@@ -87,6 +88,7 @@ internal class WheelPlayerState(
         wheel.clearOverlays()
         showPlaylistPicker = false
         showTrackInfo = false
+        showOutputInfo = false
         panel = WheelPanel.BROWSER
     }
 

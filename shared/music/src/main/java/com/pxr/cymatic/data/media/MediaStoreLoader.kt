@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private val metadataReaderVersion = intPreferencesKey("AUDIO_METADATA_READER_VERSION")
-private const val CURRENT_METADATA_READER_VERSION = 2
+private const val CURRENT_METADATA_READER_VERSION = 3
 private val audioScanMutex = Mutex()
 
 suspend fun loadCachedAudioFiles(context: Context): List<AudioFile> {
@@ -36,7 +36,10 @@ suspend fun syncAudioFilesToDb(
     withContext(Dispatchers.IO) {
         audioScanMutex.withLock {
             val repository = AudioRepository.getInstance(context)
-            val mediaIndex = queryMediaStoreIndex(context, directories, scanAllMedia)
+            val dsfDocuments = scanDsfDocuments(context, directories, scanAllMedia)
+            val mediaIndex =
+                queryMediaStoreIndex(context, directories, scanAllMedia) +
+                    dsfDocuments.mapValues { it.value.index() }
             Log.d(
                 "MediaStoreLoader",
                 "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
@@ -66,7 +69,12 @@ suspend fun syncAudioFilesToDb(
 
             if (toUpsert.isNotEmpty()) {
                 val records =
-                    queryMediaStoreDetails(context, toUpsert.toList(), directories, scanAllMedia)
+                    queryMediaStoreDetails(
+                        context,
+                        (toUpsert - dsfDocuments.keys).toList(),
+                        directories,
+                        scanAllMedia,
+                    ) + readDsfRecords(context, dsfDocuments.filterKeys { it in toUpsert }.values)
                 repository.upsertAudio(enrichAudioMetadata(context, records))
             }
             if (refreshMetadata)

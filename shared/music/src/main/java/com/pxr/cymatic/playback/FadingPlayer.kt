@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 @UnstableApi
 class FadingPlayer(
@@ -135,4 +136,13 @@ class FadingPlayer(
         fadeJob?.cancel()
         player.volume = 1f
     }
+
+    internal fun diagnosticSnapshot(): JSONObject =
+        JSONObject()
+            .put("enabled", SettingsStore.currentFadeEnabled)
+            .put("bypassedForDirectUsb", UsbPlaybackState.routeToUsb)
+            .put("fadeInProgress", fadeJob?.isActive == true)
+            .put("durationMs", fadeDurationMs)
+            .put("updateIntervalMs", fadeIntervalMs)
+            .put("currentSoftwareGain", player.volume.toDouble())
 }

@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import com.pxr.cymatic.audio.EqAudioProcessor
 import com.pxr.cymatic.audio.alac.integerAlacDecoderConfiguration
 import com.pxr.cymatic.audio.alac.integerAlacOutputFormat
+import com.pxr.cymatic.audio.dsd.dsdDecoderConfiguration
 import com.pxr.cymatic.audio.flac.integerFlacDecoderConfiguration
 import com.pxr.cymatic.audio.flac.integerFlacOutputFormat
 import com.pxr.cymatic.audio.pcm.IntegerAudioRenderer
@@ -46,6 +47,16 @@ internal class UsbRenderersFactory(context: Context, private val equalizer: EqAu
         eventListener: AudioRendererEventListener,
         out: ArrayList<Renderer>,
     ) {
+        out.add(
+            IntegerAudioRenderer(
+                "DsdAudioRenderer",
+                eventHandler,
+                eventListener,
+                audioSink,
+                { UsbDsdSupport.outputFormat(it) },
+                { it.dsdDecoderConfiguration(requireNotNull(UsbDsdSupport.outputFormat(it))) },
+            )
+        )
         out.add(
             IntegerAudioRenderer(
                 "IntegerFlacAudioRenderer",

@@ -10,6 +10,7 @@ data class AudioOutputDevice(
     val label: String,
     val type: String,
     val volumeKey: String = key,
+    val detection: String = "Connected-device preference heuristic",
 )
 
 fun resolveActiveOutput(audioManager: AudioManager): AudioOutputDevice {
@@ -25,7 +26,8 @@ fun resolveActiveOutput(audioManager: AudioManager): AudioOutputDevice {
                 .firstOrNull()
         }
             .getOrNull()
-        if (routed != null) return routed.toOutputDevice()
+        if (routed != null)
+            return routed.toOutputDevice().copy(detection = "AudioManager media-attribute routing")
     }
     val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
     val preferredTypes =

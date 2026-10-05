@@ -22,11 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
+import com.pxr.cymatic.audio.usb.dsdSettingsKey
+import com.pxr.cymatic.data.store.DsdUsbMode
 import com.pxr.cymatic.data.store.UsbPlaybackSettings
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.common.WheelReadingPage
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -37,15 +41,17 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
     val model: UsbAudioDiagnosticsViewModel = viewModel()
     val state by model.state.collectAsState()
     val enabled by
-    UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
+        UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
     val active by UsbPlaybackState.active.collectAsState()
     val playbackStatus by UsbPlaybackState.status.collectAsState()
     val sessions by UsbPlaybackState.sessionReports.collectAsState()
+    val dsdModes by UsbPlaybackSettings.dsdModesFlow.collectAsState(initial = emptyMap())
     val nav = LocalNavController.current
     val wheel = LocalWheelNavigation.current
     val controller = LocalMediaController.current
     val scope = rememberCoroutineScope()
     var details by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var dsdDevice by remember { mutableStateOf<Pair<String, String>?>(null) }
     val export =
         rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/json")
@@ -103,21 +109,36 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                             if (device.permission) {
                                 details =
                                     device.label to
-                                            usbSettingsReport(
-                                                device,
-                                                state,
-                                                playbackStatus,
-                                                sessions
-                                            )
+                                        usbSettingsReport(
+                                            device,
+                                            state,
+                                            playbackStatus,
+                                            sessions,
+                                        )
                             } else model.inspectDevice(device.device)
                         }
                     )
                     if (device.permission) {
+                        val deviceKey = device.device.dsdSettingsKey()
+                        val mode =
+                            DsdUsbMode.entries.firstOrNull {
+                                it.name == dsdModes["USB_DSD_MODE_$deviceKey"]
+                            } ?: DsdUsbMode.AUTO
+                        add(
+                            NavigationItem(
+                                "DSD output",
+                                mode.label,
+                                key = "dsd-${device.device.deviceName}",
+                                enabled = canOperate,
+                            ) {
+                                dsdDevice = deviceKey to device.label
+                            }
+                        )
                         val checks =
                             state.probeReports
                                 .filter {
                                     it.optInt("vendorId") == device.device.vendorId &&
-                                            it.optInt("productId") == device.device.productId
+                                        it.optInt("productId") == device.device.productId
                                 }
                                 .takeLast(2)
                         val checkLabel =
@@ -166,6 +187,37 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
             }
         )
     }
+    dsdDevice?.let { (deviceKey, label) ->
+        val selected = dsdModes["USB_DSD_MODE_$deviceKey"] ?: DsdUsbMode.AUTO.name
+        val items =
+            DsdUsbMode.entries.map { mode ->
+                NavigationItem(
+                    mode.label,
+                    if (mode.name == selected) "Selected"
+                    else
+                        when (mode) {
+                            DsdUsbMode.AUTO -> "Verified DACs; otherwise PCM"
+                            DsdUsbMode.PCM -> "Works with PCM-only DACs"
+                            DsdUsbMode.DOP -> "Use with a DoP-capable DAC"
+                        },
+                ) {
+                    scope.launch { UsbPlaybackSettings.setDsdMode(deviceKey, mode) }
+                    dsdDevice = null
+                }
+            }
+        if (wheel != null) {
+            WheelContextMenu("DSD output", items, { dsdDevice = null })
+        } else {
+            CymaticDialog(
+                title = "DSD output · $label",
+                onDismissRequest = { dsdDevice = null },
+                content = {
+                    NavigationList(items + NavigationItem("Cancel", onClick = { dsdDevice = null }))
+                },
+                buttons = {},
+            )
+        }
+    }
     details?.let { (title, text) ->
         val content: @Composable () -> Unit = {
             Text(
@@ -180,10 +232,7 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
             BackHandler { details = null }
             BaseScreen(title, { details = null }) {
                 Column(
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(24.dp)
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)
                 ) {
                     content()
                 }

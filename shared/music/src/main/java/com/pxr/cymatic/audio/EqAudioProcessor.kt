@@ -7,21 +7,26 @@ import androidx.media3.common.audio.AudioProcessor.AudioFormat
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.data.model.FilterType
-
+import com.pxr.cymatic.playback.pcmEncodingName
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
+import org.json.JSONArray
+import org.json.JSONObject
 
 @UnstableApi
 class EqAudioProcessor : AudioProcessor {
 
     private data class FilterState(
         val coeffs: List<BiquadCoefficients>,
-        val preampLinear: Float
+        val preampLinear: Float,
+        val bands: List<EqBand> = emptyList(),
+        val sampleRate: Int = 0,
     )
 
     private val pendingUpdate = AtomicReference<FilterState?>(null)
+    @Volatile private var appliedState = FilterState(emptyList(), 1f)
 
     private var activeCoeffs: List<BiquadCoefficients> = emptyList()
     private var activeCoeffsFlat = FloatArray(0)
@@ -33,9 +38,9 @@ class EqAudioProcessor : AudioProcessor {
     private var y1 = FloatArray(0)
     private var y2 = FloatArray(0)
 
-    private var inputFormat: AudioFormat = AudioFormat.NOT_SET
+    @Volatile private var inputFormat: AudioFormat = AudioFormat.NOT_SET
     private var outputFormat: AudioFormat = AudioFormat.NOT_SET
-    private var isActive = false
+    @Volatile private var isActive = false
 
     private var outputBuffer: ByteBuffer = AudioProcessor.EMPTY_BUFFER
     private var inputEnded = false
@@ -43,15 +48,14 @@ class EqAudioProcessor : AudioProcessor {
     fun updateBands(preampDb: Float, bands: List<EqBand>, sampleRate: Int) {
         val sampleRateSafe = if (sampleRate > 0) sampleRate else 44100
         val activeBands = bands.filter { band ->
-            band.enabled && !(
-                    (band.type == FilterType.PEAKING ||
-                            band.type == FilterType.LOW_SHELF ||
-                            band.type == FilterType.HIGH_SHELF) && band.gain == 0.0f
-                    )
+            band.enabled &&
+                !((band.type == FilterType.PEAKING ||
+                    band.type == FilterType.LOW_SHELF ||
+                    band.type == FilterType.HIGH_SHELF) && band.gain == 0.0f)
         }
         val coeffs = activeBands.map { BiquadCoefficients.from(it, sampleRateSafe) }
         val preampLinear = 10.0.pow(preampDb / 20.0).toFloat()
-        pendingUpdate.set(FilterState(coeffs, preampLinear))
+        pendingUpdate.set(FilterState(coeffs, preampLinear, activeBands.toList(), sampleRateSafe))
     }
 
     fun disable() {
@@ -59,8 +63,10 @@ class EqAudioProcessor : AudioProcessor {
     }
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
-        return if (inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT ||
-            inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
+        return if (
+            inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT ||
+                inputAudioFormat.encoding == C.ENCODING_PCM_16BIT
+        ) {
             inputFormat = inputAudioFormat
             outputFormat = inputAudioFormat
             isActive = true
@@ -77,7 +83,11 @@ class EqAudioProcessor : AudioProcessor {
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         pendingUpdate.getAndSet(null)?.let { update ->
-            Log.d("EqAudioProcessor", "Applying new coefficients! Preamp=${update.preampLinear}, bands=${update.coeffs.size}")
+            appliedState = update
+            Log.d(
+                "EqAudioProcessor",
+                "Applying new coefficients! Preamp=${update.preampLinear}, bands=${update.coeffs.size}",
+            )
             activeCoeffs = update.coeffs
             preampLinear = update.preampLinear
             resetDelayLines()
@@ -91,7 +101,8 @@ class EqAudioProcessor : AudioProcessor {
 
         if (activeCoeffs.isEmpty() && preampLinear == 1.0f) {
             if (outputBuffer.capacity() < remainingBytes) {
-                outputBuffer = ByteBuffer.allocateDirect(remainingBytes).order(ByteOrder.nativeOrder())
+                outputBuffer =
+                    ByteBuffer.allocateDirect(remainingBytes).order(ByteOrder.nativeOrder())
             }
             outputBuffer.clear()
             outputBuffer.put(inputBuffer)
@@ -235,6 +246,7 @@ class EqAudioProcessor : AudioProcessor {
         outputFormat = AudioFormat.NOT_SET
         isActive = false
         activeCoeffs = emptyList()
+        appliedState = FilterState(emptyList(), 1f)
         activeCoeffsFlat = FloatArray(0)
         preampLinear = 1f
         x1 = FloatArray(0)
@@ -271,5 +283,47 @@ class EqAudioProcessor : AudioProcessor {
             y1.fill(0f)
             y2.fill(0f)
         }
+    }
+
+    internal fun diagnosticSnapshot(): JSONObject {
+        val applied = appliedState
+        val format = inputFormat
+        val passThrough = applied.coeffs.isEmpty() && applied.preampLinear == 1f
+        fun number(value: Double): Any = if (value.isFinite()) value else value.toString()
+        return JSONObject()
+            .put("configured", isActive)
+            .put("inputSampleRateHz", format.sampleRate)
+            .put("inputChannels", format.channelCount)
+            .put("inputEncoding", pcmEncodingName(format.encoding))
+            .put("pendingUpdate", pendingUpdate.get() != null)
+            .put("preampLinear", number(applied.preampLinear.toDouble()))
+            .put("coefficientSampleRateHz", applied.sampleRate)
+            .put("activeFilters", applied.coeffs.size)
+            .put("passThrough", passThrough)
+            .put(
+                "coefficientRateMatchesInput",
+                if (applied.coeffs.isEmpty()) "No filters"
+                else applied.sampleRate == format.sampleRate,
+            )
+            .put("arithmetic", "Float32, cascaded biquads, separate channel history")
+            .put(
+                "clipping",
+                if (passThrough || !isActive) "No EQ processing"
+                else if (format.encoding == C.ENCODING_PCM_16BIT)
+                    "Clamped to -1..1 then converted to PCM16 without dither"
+                else "No clipping in float EQ processor",
+            )
+            .put(
+                "bands",
+                JSONArray(
+                    applied.bands.map { band ->
+                        JSONObject()
+                            .put("type", band.type.name)
+                            .put("frequencyHz", band.frequency.toDouble())
+                            .put("gainDb", band.gain.toDouble())
+                            .put("q", band.q.toDouble())
+                    }
+                ),
+            )
     }
 }

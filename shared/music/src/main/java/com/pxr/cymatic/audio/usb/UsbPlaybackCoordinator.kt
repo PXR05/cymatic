@@ -14,9 +14,14 @@ import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import com.pxr.cymatic.audio.dsd.DSD_MIME_TYPE
+import com.pxr.cymatic.audio.dsd.DsdOutput
 import com.pxr.cymatic.playback.FadingPlayer
+import com.pxr.cymatic.playback.OutputInfoState
 import com.pxr.cymatic.playback.toAudioMetadata
 import java.io.Closeable
+import org.json.JSONObject
 
 @UnstableApi
 internal class UsbPlaybackCoordinator(
@@ -73,16 +78,32 @@ internal class UsbPlaybackCoordinator(
                 val supported =
                     tracks.groups.any { group ->
                         group.type == C.TRACK_TYPE_AUDIO &&
-                                (0 until group.length).any { index ->
-                                    DirectUsbSourcePolicy.canDecode(group.getTrackFormat(index)) &&
-                                            group.isTrackSupported(index)
-                                }
+                            (0 until group.length).any { index ->
+                                DirectUsbSourcePolicy.canDecode(group.getTrackFormat(index)) &&
+                                    group.isTrackSupported(index)
+                            }
                     }
                 if (!supported) fallback("Track format is not supported by direct USB")
             }
 
             override fun onPlayerError(error: PlaybackException) {
                 if (!UsbPlaybackState.routeToUsb) return
+                val output =
+                    generateSequence(error as Throwable) { it.cause }
+                        .firstNotNullOfOrNull {
+                            when (it) {
+                                is AudioSink.InitializationException ->
+                                    it.format.customData as? DsdOutput
+                                is AudioSink.WriteException -> it.format.customData as? DsdOutput
+                                else -> null
+                            }
+                        }
+                if (output?.dop == true && UsbDsdSupport.fallback(output.sourceRate / 16)) {
+                    OutputInfoState.event("DoP failed; retrying PCM: ${error.message}")
+                    UsbPlaybackState.update("DSD over PCM unavailable · retrying as PCM")
+                    switchRoute(true)
+                    return
+                }
                 val cause = generateSequence(error as Throwable) { it.cause }.last()
                 fallback(cause.message ?: error.errorCodeName)
             }
@@ -103,6 +124,18 @@ internal class UsbPlaybackCoordinator(
         refreshRoute()
     }
 
+    fun refreshDsdOutput() {
+        devices.refreshDsdOutput()
+        if (
+            UsbPlaybackState.enabled &&
+                devices.ready &&
+                player.currentMediaItem?.toAudioMetadata()?.format == DSD_MIME_TYPE
+        ) {
+            trackKey()?.let(failedTracks::remove)
+            if (UsbPlaybackState.routeToUsb) switchRoute(true) else refreshRoute()
+        }
+    }
+
     private fun trackKey(): String? =
         player.currentMediaItem?.let {
             "${it.mediaId}:${it.localConfiguration?.uri}"
@@ -114,11 +147,12 @@ internal class UsbPlaybackCoordinator(
 
     private fun preferredRoute(): Boolean =
         UsbPlaybackState.enabled &&
-                devices.ready &&
-                supportedSource() &&
-                trackKey() !in failedTracks
+            devices.ready &&
+            supportedSource() &&
+            trackKey() !in failedTracks
 
     private fun fallback(reason: String) {
+        OutputInfoState.event("Direct USB fallback to Android: $reason")
         trackKey()?.let { failedTracks[it] = reason }
         refreshRoute()
     }
@@ -127,26 +161,27 @@ internal class UsbPlaybackCoordinator(
         pendingRoute?.let(handler::removeCallbacks)
         pendingRoute =
             Runnable {
-                pendingRoute = null
-                val direct = preferredRoute()
-                if (direct != UsbPlaybackState.routeToUsb) switchRoute(direct)
-                if (!direct) {
-                    val reason =
-                        when {
-                            !UsbPlaybackState.enabled -> null
-                            !devices.ready -> unavailableReason
-                            !supportedSource() -> "Track format is not supported by direct USB"
-                            else -> failedTracks[trackKey()]
-                        }
-                    UsbPlaybackState.update(
-                        if (reason == null) "Off" else "Normal playback · $reason"
-                    )
+                    pendingRoute = null
+                    val direct = preferredRoute()
+                    if (direct != UsbPlaybackState.routeToUsb) switchRoute(direct)
+                    if (!direct) {
+                        val reason =
+                            when {
+                                !UsbPlaybackState.enabled -> null
+                                !devices.ready -> unavailableReason
+                                !supportedSource() -> "Track format is not supported by direct USB"
+                                else -> failedTracks[trackKey()]
+                            }
+                        UsbPlaybackState.update(
+                            if (reason == null) "Off" else "Normal playback · $reason"
+                        )
+                    }
                 }
-            }
                 .also(handler::post)
     }
 
     private fun switchRoute(direct: Boolean) {
+        OutputInfoState.event("Route switch: ${if(direct) "Direct USB" else "Android AudioTrack"}")
         val resume = player.playWhenReady
         val index = player.currentMediaItemIndex
         val position = player.currentPosition
@@ -213,4 +248,23 @@ internal class UsbPlaybackCoordinator(
         UsbPlaybackState.setActive(false)
         UsbPlaybackState.routeToUsb = false
     }
+
+    internal fun diagnosticSnapshot(): JSONObject =
+        JSONObject()
+            .put("directUsbEnabled", UsbPlaybackState.enabled)
+            .put("requestedRouteDirectUsb", UsbPlaybackState.routeToUsb)
+            .put("dacReady", devices.ready)
+            .put("usbStreamActive", UsbPlaybackState.active.value)
+            .put("preferredRoute", if (preferredRoute()) "Direct USB" else "Android AudioTrack")
+            .put("sourceEligibleForDirectUsb", supportedSource())
+            .put("switchingRoute", switching)
+            .put("routeSwitchPending", pendingRoute != null)
+            .put("currentTrackFallbackReason", failedTracks[trackKey()] ?: "None")
+            .put("deviceWaitingReason", if (devices.ready) "None" else unavailableReason)
+            .put(
+                "audioFocus",
+                if (UsbPlaybackState.routeToUsb)
+                    if (focus != null) "Granted to direct USB" else "Not held"
+                else "Managed by ExoPlayer; grant not exposed",
+            )
 }

@@ -27,6 +27,8 @@ and direct USB DAC playback.
 - **Audio profiles:** remember volume per output device, with separate normal and
   direct USB volume levels, plus equalizer presets per device.
 - **Library sync:** download music from a configured server for local playback.
+- **DSD/DSF:** play mono/stereo DSF files through PCM conversion or bit-perfect
+  DSD over PCM (DoP) on a compatible USB DAC.
 
 ## Install
 
@@ -55,6 +57,12 @@ the same motion adjusts volume. You can also tap the displayed list items direct
 Hold Menu for quick settings. Hold the center button on Now Playing for track
 actions, or while browsing for the selected item's context menu.
 
+**Track actions → Output info** has separate pages for the overview, format and
+decoder, processing, device and volume, USB stream health, and recent errors and
+events. Rotate to browse pages and scroll their details; select to return. Choose
+**Copy report** to copy the diagnostic text. Hardware details that Android cannot
+observe are marked explicitly.
+
 ## Direct USB audio
 
 Connect a USB DAC and enable **Settings → USB audio → Direct USB**, then allow USB
@@ -64,6 +72,23 @@ Direct USB supports mono/stereo PCM WAV, FLAC (including Ogg FLAC), ALAC in M4A/
 MP3, and Ogg Vorbis/Opus. Lossy formats use Android decoders with 16-bit PCM output
 at the codec's sample rate. Unsupported tracks or DAC configurations fall back to
 Android playback.
+
+### DSD playback
+
+DSF files support DSD64, DSD128, DSD256, and DSD512, including their 48 kHz-family
+rates. Normal playback converts DSD to 24-bit PCM at 176.4 or 192 kHz. Direct USB
+uses DoP for DSD64/128 when the DAC supports its carrier rate, and PCM conversion
+otherwise. DoP is a transport for the original DSD bits; it does not convert them
+to PCM audio. Higher DSD rates use PCM conversion with the current USB transport.
+
+Under **Settings → USB audio → DSD output**, each DAC has an Automatic, Convert to
+PCM, or DoP setting. Automatic recognizes the Amanero Combo384 interface; unknown
+DACs use PCM. Select DoP when your DAC manufacturer confirms DoP support. A failed
+DoP connection retries PCM, then falls back to Android output if needed.
+
+If Android does not index your DSF files, add their folder under
+**Settings → Storage → Add directory** and rescan. DSF title, artist, album,
+duration, and embedded ID3 cover art are read by Cymatic.
 
 ## Project layout
 
@@ -76,6 +101,7 @@ Android playback.
 | `shared/usb` | Native USB isochronous PCM transport |
 | `shared/flac` | Integer FLAC decoding for Android and direct USB playback |
 | `shared/alac` | Integer ALAC decoding for Android and direct USB playback |
+| `shared/dsd` | DSF DSD-to-PCM conversion and bit-perfect DoP packing |
 
 ## Build
 

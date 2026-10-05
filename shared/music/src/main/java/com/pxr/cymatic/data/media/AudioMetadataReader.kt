@@ -6,7 +6,9 @@ import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.inspector.MetadataRetriever
+import com.pxr.cymatic.audio.usb.UsbExtractorsFactory
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -47,20 +49,28 @@ internal suspend fun readAudioTechnicalMetadata(
 ): AudioTechnicalMetadata? =
     try {
         withTimeoutOrNull(3000L) {
-            MetadataRetriever.Builder(context, MediaItem.fromUri(uri)).build().use { retriever ->
-                val groups = retriever.retrieveTrackGroups().await()
-                val formats =
-                    (0 until groups.length).flatMap { index ->
-                        val group = groups[index]
-                        if (group.type == C.TRACK_TYPE_AUDIO)
-                            (0 until group.length).map(group::getFormat)
-                        else emptyList()
-                    }
-                val format =
-                    formats.firstOrNull { it.selectionFlags and C.SELECTION_FLAG_DEFAULT != 0 }
-                        ?: formats.firstOrNull()
-                format?.audioTechnicalMetadata()
-            }
+            MetadataRetriever.Builder(context, MediaItem.fromUri(uri))
+                .setMediaSourceFactory(
+                    DefaultMediaSourceFactory(
+                        context,
+                        UsbExtractorsFactory { false },
+                    )
+                )
+                .build()
+                .use { retriever ->
+                    val groups = retriever.retrieveTrackGroups().await()
+                    val formats =
+                        (0 until groups.length).flatMap { index ->
+                            val group = groups[index]
+                            if (group.type == C.TRACK_TYPE_AUDIO)
+                                (0 until group.length).map(group::getFormat)
+                            else emptyList()
+                        }
+                    val format =
+                        formats.firstOrNull { it.selectionFlags and C.SELECTION_FLAG_DEFAULT != 0 }
+                            ?: formats.firstOrNull()
+                    format?.audioTechnicalMetadata()
+                }
         }
     } catch (e: CancellationException) {
         throw e
@@ -70,18 +80,18 @@ internal suspend fun readAudioTechnicalMetadata(
 
 private fun AudioEntity.needsTechnicalMetadata(): Boolean =
     format?.lowercase(Locale.ROOT) in
-            setOf(
-                "audio/alac",
-                "audio/x-alac",
-                "audio/mp4",
-                "audio/x-m4a",
-                "audio/m4a",
-                "audio/mp4a-latm",
-                "audio/mpeg",
-                "audio/mp3",
-                "audio/ogg",
-                "application/ogg",
-                "audio/vorbis",
-                "audio/opus",
-                "audio/x-ogg",
-            ) || bitRate == null || sampleRate == null
+        setOf(
+            "audio/alac",
+            "audio/x-alac",
+            "audio/mp4",
+            "audio/x-m4a",
+            "audio/m4a",
+            "audio/mp4a-latm",
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/ogg",
+            "application/ogg",
+            "audio/vorbis",
+            "audio/opus",
+            "audio/x-ogg",
+        ) || bitRate == null || sampleRate == null

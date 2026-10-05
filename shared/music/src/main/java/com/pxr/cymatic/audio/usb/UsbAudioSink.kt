@@ -6,30 +6,44 @@ import androidx.media3.common.Format
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.AudioSink
+import com.pxr.cymatic.audio.dsd.DsdOutput
+import com.pxr.cymatic.playback.OutputInfoState
+import com.pxr.cymatic.playback.audioFormatInfo
 import com.pxr.cymatic.usb.UsbPcmStream
 import java.nio.ByteBuffer
 import java.time.Instant
+import org.json.JSONArray
+import org.json.JSONObject
 
 @UnstableApi
 internal class UsbAudioSink(private val context: Context, private val normal: AudioSink) :
     AudioSink by normal {
-    private var direct = false
+    @Volatile private var direct = false
     private var listener: AudioSink.Listener? = null
-    private var format: Format? = null
-    private var pendingFormat: Format? = null
-    private var device: UsbPcmDevice? = null
-    private var stream: UsbPcmStream? = null
+    @Volatile private var format: Format? = null
+    @Volatile private var pendingFormat: Format? = null
+    @Volatile private var device: UsbPcmDevice? = null
+    @Volatile private var stream: UsbPcmStream? = null
     private var packer: UsbPcmPacker? = null
     private var trimmer: UsbPcmTrimmer? = null
-    private var playing = false
-    private var ended = false
-    private var baseTimeUs = C.TIME_UNSET
-    private var outputStreamOffsetUs = 0L
-    private var writtenFrames = 0L
+    @Volatile private var playing = false
+    @Volatile private var ended = false
+    @Volatile private var baseTimeUs = C.TIME_UNSET
+    @Volatile private var outputStreamOffsetUs = 0L
+    @Volatile private var writtenFrames = 0L
     private var completedFrames = 0L
     private var discontinuity = false
     private var advancing = false
     private var volume = 1f
+    @Volatile private var requestedBufferBytes = 0
+    @Volatile private var requestedChannelMap: IntArray? = null
+    @Volatile private var lastFeedBytes = 0
+    @Volatile private var lastFeedTimeUs = C.TIME_UNSET
+    @Volatile private var lastAccessUnitCount = 0
+
+    init {
+        OutputInfoState.registerSink(this, ::diagnosticSnapshot)
+    }
 
     override fun setListener(listener: AudioSink.Listener) {
         this.listener = listener
@@ -40,6 +54,9 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         getFormatSupport(format) != AudioSink.SINK_FORMAT_UNSUPPORTED
 
     override fun getFormatSupport(format: Format): Int {
+        if ((format.customData as? DsdOutput)?.dop == true && !UsbPlaybackState.routeToUsb) {
+            return AudioSink.SINK_FORMAT_UNSUPPORTED
+        }
         if (!UsbPlaybackState.routeToUsb) return normal.getFormatSupport(format)
         return if (format.usbPcmBits() != 0) {
             AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY
@@ -51,20 +68,28 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         specifiedBufferSize: Int,
         outputChannels: IntArray?,
     ) {
+        requestedBufferBytes = specifiedBufferSize
+        requestedChannelMap = outputChannels?.copyOf()
+        if ((inputFormat.customData as? DsdOutput)?.dop == true && !UsbPlaybackState.routeToUsb) {
+            throw AudioSink.ConfigurationException("DoP requires direct USB output", inputFormat)
+        }
         if (direct && UsbPlaybackState.routeToUsb) {
             validateDirectFormat(inputFormat, outputChannels)
             if (
                 device != null &&
                     format?.sampleRate == inputFormat.sampleRate &&
                     format?.usbPcmLayout() == inputFormat.usbPcmLayout() &&
+                    format?.customData == inputFormat.customData &&
                     !ended
             ) {
                 format = inputFormat
+                OutputInfoState.event("USB sink reused: ${inputFormat.sampleRate} Hz")
                 configureTrimmer(inputFormat)
                 return
             }
             if (stream != null) {
                 pendingFormat = inputFormat
+                OutputInfoState.event("USB format change queued until previous output drains")
                 stream?.end()
                 ended = true
                 return
@@ -73,6 +98,9 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         closeDevice()
         direct = UsbPlaybackState.routeToUsb
         format = inputFormat
+        OutputInfoState.event(
+            "Sink configured: ${if(direct) "Direct USB" else "Android AudioTrack"}; ${inputFormat.sampleRate} Hz / ${inputFormat.channelCount} channels"
+        )
         resetTimeline()
         if (!direct) {
             normal.configure(inputFormat, specifiedBufferSize, outputChannels)
@@ -116,12 +144,25 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         val input = checkNotNull(format)
         try {
             val source = checkNotNull(input.usbPcmLayout())
-            val output = UsbPcmDevice.open(context, input.sampleRate, sourceLayout = source)
+            val dsd = input.customData as? DsdOutput
+            val output =
+                UsbPcmDevice.open(
+                    context,
+                    input.sampleRate,
+                    sourceLayout = source,
+                    dop = dsd?.dop == true,
+                )
             device = output
             packer = UsbPcmPacker(source, output.layout)
             stream = output.continuousStream().also { it.play(playing) }
             UsbPlaybackState.setActive(true)
-            UsbPlaybackState.update("Direct USB · ${input.sampleRate} Hz · ${source.description}")
+            UsbPlaybackState.update(
+                "Direct USB · ${dsd?.label ?: source.description} · ${input.sampleRate} Hz"
+            )
+            output.report.put("dsdOutput", dsd?.label ?: "PCM")
+            OutputInfoState.event(
+                "USB stream initialized: ${dsd?.label ?: source.description} at ${input.sampleRate} Hz"
+            )
         } catch (e: Exception) {
             closeDevice()
             UsbPlaybackState.update("Stopped: ${e.message ?: e.javaClass.simpleName}")
@@ -166,6 +207,9 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         presentationTimeUs: Long,
         encodedAccessUnitCount: Int,
     ): Boolean {
+        lastFeedBytes = buffer.remaining()
+        lastFeedTimeUs = presentationTimeUs
+        lastAccessUnitCount = encodedAccessUnitCount
         if (!direct) return normal.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
         if (!UsbPlaybackState.deviceReady) return false
         if (!buffer.hasRemaining() && trimmer?.output?.hasRemaining() != true) return true
@@ -289,6 +333,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
     override fun release() {
         closeDevice()
         normal.release()
+        OutputInfoState.unregisterSink(this)
     }
 
     override fun setVolume(volume: Float) {
@@ -353,5 +398,66 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             stream = null
             packer = null
         }
+    }
+
+    private fun diagnosticSnapshot(): JSONObject {
+        val input = format
+        val result =
+            JSONObject()
+                .put(
+                    "path",
+                    if (direct) "Direct USB isochronous stream" else "Android DefaultAudioSink",
+                )
+                .put("configuredFormat", audioFormatInfo(input))
+                .put("pendingFormat", pendingFormat?.let(::audioFormatInfo) ?: "None")
+                .put(
+                    "requestedBufferBytes",
+                    if (requestedBufferBytes == 0) "Automatic" else requestedBufferBytes,
+                )
+                .put(
+                    "requestedChannelMap",
+                    requestedChannelMap?.let { JSONArray(it.toList()) } ?: "Original channel order",
+                )
+                .put("floatOutputEnabled", false)
+                .put("lastFeedRemainingBytes", lastFeedBytes)
+                .put(
+                    "lastFeedPresentationTimeUs",
+                    if (lastFeedTimeUs == C.TIME_UNSET) "Not fed" else lastFeedTimeUs,
+                )
+                .put("lastFeedAccessUnitCount", lastAccessUnitCount)
+                .put("softwareGain", if (direct) "Bypassed" else volume)
+        if (direct) {
+            result
+                .put("playRequested", playing)
+                .put("inputEnded", ended)
+                .put("writtenSourceFrames", writtenFrames)
+                .put(
+                    "baseTimeUs",
+                    if (baseTimeUs == C.TIME_UNSET) "Not established" else baseTimeUs,
+                )
+                .put("outputStreamOffsetUs", outputStreamOffsetUs)
+                .put("pcmRingDurationMs", 500)
+                .put("urbRunwayMsNominal", 128)
+                .put("trim", "Encoder delay and padding trimmed before USB packing")
+                .put("eqAndSoftwareProcessing", "Bypassed")
+            val output = device
+            if (output != null) {
+                val usb = runCatching {
+                    JSONObject(output.report.toString())
+                }.getOrElse { JSONObject().put("snapshot", "USB report updating") }
+                val stats = stream?.statistics()
+                if (stats != null) {
+                    usb.putUsbStreamStatistics(stats)
+                    usb.remove("pendingBytesAtClose")
+                    usb.put("pendingBytes", stats[2])
+                        .put(
+                            "statisticsScope",
+                            "Current USB connection; completed frames are USB transfer completions",
+                        )
+                }
+                result.put("usb", usb)
+            } else result.put("usb", "Not initialized / no live connection")
+        }
+        return result
     }
 }

@@ -14,21 +14,23 @@ class UsbPcmStream(
     feedbackInterval: Int = 0,
     feedbackRefreshMs: Int = 0,
     primingFrames: Int = 0,
+    dopChannels: Int = 0,
 ) {
     private var handle =
         create(
-            fd,
-            endpoint,
-            capacity,
-            interval,
-            rate,
-            frameBytes,
-            feedbackEndpoint,
-            feedbackCapacity,
-            feedbackInterval,
-            feedbackRefreshMs,
-            primingFrames,
-        )
+                fd,
+                endpoint,
+                capacity,
+                interval,
+                rate,
+                frameBytes,
+                feedbackEndpoint,
+                feedbackCapacity,
+                feedbackInterval,
+                feedbackRefreshMs,
+                primingFrames,
+                dopChannels,
+            )
             .also { check(it != 0L) { "Continuous USB transport could not be created" } }
 
     @Synchronized
@@ -48,8 +50,7 @@ class UsbPcmStream(
         if (handle != 0L) endInput(handle)
     }
 
-    @Synchronized
-    fun statistics(): LongArray = if (handle == 0L) LongArray(22) else stats(handle)
+    @Synchronized fun statistics(): LongArray = if (handle == 0L) LongArray(22) else stats(handle)
 
     @Synchronized
     fun stop() {
@@ -75,6 +76,7 @@ class UsbPcmStream(
         feedbackInterval: Int,
         feedbackRefreshMs: Int,
         primingFrames: Int,
+        dopChannels: Int,
     ): Long
 
     private external fun enqueue(handle: Long, buffer: ByteBuffer, offset: Int, length: Int): Int

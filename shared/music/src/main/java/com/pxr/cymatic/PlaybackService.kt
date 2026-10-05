@@ -38,6 +38,8 @@ import com.pxr.cymatic.data.store.UsbPlaybackSettings
 import com.pxr.cymatic.design.R as DesignR
 import com.pxr.cymatic.music.R
 import com.pxr.cymatic.playback.FadingPlayer
+import com.pxr.cymatic.playback.OutputInfoState
+import com.pxr.cymatic.playback.PlaybackOutputMonitor
 import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
 import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
@@ -50,6 +52,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -105,6 +108,16 @@ class PlaybackService : MediaLibraryService() {
 
         fadingPlayer = FadingPlayer(player, serviceScope)
         usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
+        serviceScope.launch(Dispatchers.Main) {
+            PlaybackOutputMonitor(
+                    this@PlaybackService,
+                    player,
+                    eqAudioProcessor,
+                    usbPlayback,
+                    fadingPlayer,
+                )
+                .observe()
+        }
 
         val audioRepository = AudioRepository.getInstance(this)
         player.addListener(PlaybackTechnicalMetadata(player, audioRepository, serviceScope))
@@ -258,6 +271,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private suspend fun initializePlayback() {
+        UsbPlaybackSettings.dsdModesFlow.first()
         val directUsbEnabled = UsbPlaybackSettings.enabledFlow.first()
         withContext(Dispatchers.Main) {
             usbPlayback.setEnabled(directUsbEnabled)
@@ -267,6 +281,9 @@ class PlaybackService : MediaLibraryService() {
         }
         serviceScope.launch(Dispatchers.Main) {
             UsbPlaybackSettings.enabledFlow.collect { usbPlayback.setEnabled(it) }
+        }
+        serviceScope.launch(Dispatchers.Main) {
+            UsbPlaybackSettings.dsdModesFlow.drop(1).collect { usbPlayback.refreshDsdOutput() }
         }
         restorePlaybackState()
     }
@@ -317,6 +334,7 @@ class PlaybackService : MediaLibraryService() {
         audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
         mediaLibrarySession.release()
         fadingPlayer.release()
+        OutputInfoState.clear()
         super.onDestroy()
     }
 
