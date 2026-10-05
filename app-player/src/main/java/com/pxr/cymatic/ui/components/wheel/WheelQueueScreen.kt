@@ -33,12 +33,13 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                     NavigationItem(
                         label = "$marker${index + 1}. $title",
                         subLabel = metadata.artist?.toString(),
+                        showIndicator = false,
                         onClick = {
                             controller?.seekTo(entry.mediaItemIndex, 0L)
                             controller?.play()
                             onNowPlaying()
                         },
-                        onLongClick = { selectedIndex = entry.mediaItemIndex }
+                        onLongClick = { selectedIndex = entry.mediaItemIndex },
                     )
                 }
             )
@@ -51,28 +52,37 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                 entry.mediaItem.mediaMetadata.title?.toString() ?: "Track actions",
                 buildList {
                     add(
-                        NavigationItem("Play now", onClick = {
-                            controller?.seekTo(index, 0L)
-                            controller?.play()
-                            selectedIndex = null
-                            onNowPlaying()
-                        })
+                        NavigationItem(
+                            "Play now",
+                            onClick = {
+                                controller?.seekTo(index, 0L)
+                                controller?.play()
+                                selectedIndex = null
+                                onNowPlaying()
+                            },
+                        )
                     )
                     if (!playback.isShuffling) {
                         if (index > 0) {
                             add(
-                                NavigationItem("Move up", onClick = {
-                                    controller?.moveMediaItem(index, index - 1)
-                                    selectedIndex = null
-                                })
+                                NavigationItem(
+                                    "Move up",
+                                    onClick = {
+                                        controller?.moveMediaItem(index, index - 1)
+                                        selectedIndex = null
+                                    },
+                                )
                             )
                         }
                         if (index < playback.totalTracks - 1) {
                             add(
-                                NavigationItem("Move down", onClick = {
-                                    controller?.moveMediaItem(index, index + 1)
-                                    selectedIndex = null
-                                })
+                                NavigationItem(
+                                    "Move down",
+                                    onClick = {
+                                        controller?.moveMediaItem(index, index + 1)
+                                        selectedIndex = null
+                                    },
+                                )
                             )
                         }
                     }
@@ -82,7 +92,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                             onClick = {
                                 controller?.removeMediaItem(index)
                                 selectedIndex = null
-                            }
+                            },
                         )
                     )
                     add(
@@ -91,11 +101,11 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                             onClick = {
                                 controller?.clearMediaItems()
                                 selectedIndex = null
-                            }
+                            },
                         )
                     )
                 },
-                onDismiss = { selectedIndex = null }
+                onDismiss = { selectedIndex = null },
             )
         }
     }

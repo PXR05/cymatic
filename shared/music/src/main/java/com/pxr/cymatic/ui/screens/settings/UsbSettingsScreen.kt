@@ -79,7 +79,12 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
         NavigationList(
             buildList {
                 add(
-                    NavigationItem("Direct USB", playbackLabel, enabled = !state.probing) {
+                    NavigationItem(
+                        "Direct USB",
+                        playbackLabel,
+                        enabled = !state.probing,
+                        checked = enabled,
+                    ) {
                         scope.launch { UsbPlaybackSettings.setEnabled(!enabled) }
                     }
                 )
@@ -200,6 +205,7 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                             DsdUsbMode.PCM -> "Works with PCM-only DACs"
                             DsdUsbMode.DOP -> "Use with a DoP-capable DAC"
                         },
+                    checked = mode.name == selected,
                 ) {
                     scope.launch { UsbPlaybackSettings.setDsdMode(deviceKey, mode) }
                     dsdDevice = null

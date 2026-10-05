@@ -36,49 +36,49 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.audio.resolveActiveOutput
+import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.audio.resolveActiveOutput
-import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.launch
 
 @Composable
-fun PlaybackSettingsScreen(
-    modifier: Modifier = Modifier
-) {
+fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val resumeOnBt by SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
-        initial = SettingsStore.currentResumeOnBluetoothReconnect
-    )
-    val fadeEnabled by SettingsStore.fadeEnabledFlow.collectAsState(
-        initial = SettingsStore.currentFadeEnabled
-    )
+    val resumeOnBt by
+        SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
+            initial = SettingsStore.currentResumeOnBluetoothReconnect
+        )
+    val fadeEnabled by
+        SettingsStore.fadeEnabledFlow.collectAsState(initial = SettingsStore.currentFadeEnabled)
 
-    val audioManager = remember(context) {
-        context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    }
+    val audioManager =
+        remember(context) {
+            context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        }
     var activeDevice by remember {
         mutableStateOf(resolveActiveOutput(audioManager))
     }
 
     DisposableEffect(audioManager) {
-        val callback = object : AudioDeviceCallback() {
-            override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-                activeDevice = resolveActiveOutput(audioManager)
-                scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
-            }
+        val callback =
+            object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+                    activeDevice = resolveActiveOutput(audioManager)
+                    scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
+                }
 
-            override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-                activeDevice = resolveActiveOutput(audioManager)
-                scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
+                override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+                    activeDevice = resolveActiveOutput(audioManager)
+                    scope.launch { SettingsStore.setActiveAudioDevice(activeDevice.key) }
+                }
             }
-        }
 
         audioManager.registerAudioDeviceCallback(callback, null)
         activeDevice = resolveActiveOutput(audioManager)
@@ -91,62 +91,76 @@ fun PlaybackSettingsScreen(
 
     fun openOutputSwitcherFallback() {
         listOf(
-            Settings.Panel.ACTION_VOLUME,
-            Settings.ACTION_SOUND_SETTINGS
-        ).forEach {
-            try {
-                val intent = Intent(it)
-                context.startActivity(intent)
-                return
-            } catch (e: Exception) {
-                Log.w(
-                    "PlaybackSettings",
-                    "Failed to open fallback activity for output switcher: $it",
-                    e
-                )
+                Settings.Panel.ACTION_VOLUME,
+                Settings.ACTION_SOUND_SETTINGS,
+            )
+            .forEach {
+                try {
+                    val intent = Intent(it)
+                    context.startActivity(intent)
+                    return
+                } catch (e: Exception) {
+                    Log.w(
+                        "PlaybackSettings",
+                        "Failed to open fallback activity for output switcher: $it",
+                        e,
+                    )
+                }
             }
-        }
     }
 
     fun openOutputSwitcher() {
-        val action =
-            "com.android.systemui.action.LAUNCH_SYSTEM_MEDIA_OUTPUT_DIALOG"
+        val action = "com.android.systemui.action.LAUNCH_SYSTEM_MEDIA_OUTPUT_DIALOG"
         val sysPackage = "com.android.systemui"
-        val receiver =
-            "com.android.systemui.media.dialog.MediaOutputDialogReceiver"
+        val receiver = "com.android.systemui.media.dialog.MediaOutputDialogReceiver"
 
         try {
-            val intent = Intent(action).apply {
-                component = ComponentName(sysPackage, receiver)
-            }
+            val intent =
+                Intent(action).apply {
+                    component = ComponentName(sysPackage, receiver)
+                }
             context.sendBroadcast(intent)
         } catch (e: SecurityException) {
             Log.w(
                 "PlaybackSettings",
                 "broadcast blocked by system restriction, trying fallbacks",
-                e
+                e,
             )
             openOutputSwitcherFallback()
         } catch (e: Exception) {
             Log.e(
                 "PlaybackSettings",
                 "broadcast failed: ${e::class.simpleName}: ${e.message}",
-                e
+                e,
             )
         }
     }
 
     if (LocalWheelNavigation.current != null) {
-        BaseScreen(title = "Playback", onBackClick = { navController.popBackStack() }, modifier = modifier) {
-            NavigationList(listOf(
-                NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
-                NavigationItem("Auto-resume", if (resumeOnBt) "On" else "Off") {
-                    scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
-                },
-                NavigationItem("Fade in / out", if (fadeEnabled) "On" else "Off") {
-                    scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }
-                }
-            ))
+        BaseScreen(
+            title = "Playback",
+            onBackClick = { navController.popBackStack() },
+            modifier = modifier,
+        ) {
+            NavigationList(
+                listOf(
+                    NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
+                    NavigationItem(
+                        "Auto-resume",
+                        if (resumeOnBt) "On" else "Off",
+                        checked = resumeOnBt,
+                    ) {
+                        scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
+                    },
+                    NavigationItem(
+                        "Fade in / out",
+                        if (fadeEnabled) "On" else "Off",
+                        checked = fadeEnabled,
+                    ) {
+                        scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }
+                    },
+                )
+            )
         }
         return
     }
@@ -154,13 +168,11 @@ fun PlaybackSettingsScreen(
     BaseScreen(
         title = "Playback",
         onBackClick = { navController.popBackStack() },
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize()
-                .padding(24.dp, 16.dp)
+            modifier =
+                Modifier.verticalScroll(rememberScrollState()).fillMaxSize().padding(24.dp, 16.dp)
         ) {
             Text(
                 text = "Audio Output",
@@ -174,7 +186,7 @@ fun PlaybackSettingsScreen(
                 title = activeDevice.label,
                 subtitle = "Output Type: ${activeDevice.type}",
                 actionLabel = "CHANGE",
-                onActionClick = { openOutputSwitcher() }
+                onActionClick = { openOutputSwitcher() },
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -195,7 +207,7 @@ fun PlaybackSettingsScreen(
                     scope.launch {
                         SettingsStore.setResumeOnBluetoothReconnect(value)
                     }
-                }
+                },
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -216,7 +228,7 @@ fun PlaybackSettingsScreen(
                     scope.launch {
                         SettingsStore.setFadeEnabled(value)
                     }
-                }
+                },
             )
         }
     }
@@ -227,17 +239,13 @@ private fun SettingsToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontSize = 16.sp,
@@ -247,23 +255,27 @@ private fun SettingsToggleRow(
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
 
         Text(
             text = if (checked) "I" else "O",
             fontSize = 16.sp,
-            color = if (checked) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .background(if (checked) MaterialTheme.colorScheme.onBackground else Color.Transparent)
-                .border(1.dp, MaterialTheme.colorScheme.onBackground)
-                .clickable(
-                    onClick = { onCheckedChange(!checked) },
-                    indication = null,
-                    interactionSource = null
-                )
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+            color =
+                if (checked) MaterialTheme.colorScheme.background
+                else MaterialTheme.colorScheme.onBackground,
+            modifier =
+                Modifier.background(
+                        if (checked) MaterialTheme.colorScheme.onBackground else Color.Transparent
+                    )
+                    .border(1.dp, MaterialTheme.colorScheme.onBackground)
+                    .clickable(
+                        onClick = { onCheckedChange(!checked) },
+                        indication = null,
+                        interactionSource = null,
+                    )
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
         )
     }
 }
@@ -273,17 +285,13 @@ private fun SettingsActionRow(
     title: String,
     subtitle: String,
     actionLabel: String,
-    onActionClick: () -> Unit
+    onActionClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontSize = 16.sp,
@@ -293,7 +301,7 @@ private fun SettingsActionRow(
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
         }
 
@@ -301,14 +309,14 @@ private fun SettingsActionRow(
             text = actionLabel,
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .border(1.dp, MaterialTheme.colorScheme.onBackground)
-                .clickable(
-                    onClick = onActionClick,
-                    indication = null,
-                    interactionSource = null
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier =
+                Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground)
+                    .clickable(
+                        onClick = onActionClick,
+                        indication = null,
+                        interactionSource = null,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
 }

@@ -32,7 +32,7 @@ private data class EqNumberEdit(
     val range: ClosedFloatingPointRange<Float>,
     val step: Float,
     val format: (Float) -> String,
-    val save: (Float) -> Unit
+    val save: (Float) -> Unit,
 )
 
 @Composable
@@ -42,7 +42,7 @@ internal fun WheelEqSettingsScreen(
     viewModel: EqViewModel,
     onImport: () -> Unit,
     onExport: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val nav = LocalNavController.current
     var menu by remember { mutableStateOf<String?>(null) }
@@ -53,75 +53,202 @@ internal fun WheelEqSettingsScreen(
     var graph by remember { mutableStateOf(false) }
     fun db(value: Float) = String.format(Locale.US, "%.1f dB", value)
     BaseScreen(title = "Equalizer", onBackClick = { nav.popBackStack() }, modifier = modifier) {
-        NavigationList(buildList {
-            add(NavigationItem("Enabled", if (state.eqEnabled) "On" else "Off") { viewModel.setEnabled(!state.eqEnabled) })
-            add(NavigationItem("Preset", state.selectedPresetName) { menu = "Presets" })
-            add(NavigationItem("Preset actions") { menu = "Preset actions" })
-            add(NavigationItem("Response graph") { graph = true })
-            add(NavigationItem("Preamp", db(preset.preamp)) {
-                number = EqNumberEdit("Preamp", preset.preamp, -12f..12f, 0.1f, ::db, viewModel::updatePreamp)
-            })
-            preset.bands.forEachIndexed { index, band ->
-                add(NavigationItem("Band ${index + 1}", "${band.frequency.toInt()} Hz · ${db(band.gain)}", key = band.id) { bandIndex = index })
+        NavigationList(
+            buildList {
+                add(
+                    NavigationItem(
+                        "Enabled",
+                        if (state.eqEnabled) "On" else "Off",
+                        checked = state.eqEnabled,
+                    ) {
+                        viewModel.setEnabled(!state.eqEnabled)
+                    }
+                )
+                add(NavigationItem("Preset", state.selectedPresetName) { menu = "Presets" })
+                add(NavigationItem("Preset actions") { menu = "Preset actions" })
+                add(NavigationItem("Response graph") { graph = true })
+                add(
+                    NavigationItem("Preamp", db(preset.preamp)) {
+                        number =
+                            EqNumberEdit(
+                                "Preamp",
+                                preset.preamp,
+                                -12f..12f,
+                                0.1f,
+                                ::db,
+                                viewModel::updatePreamp,
+                            )
+                    }
+                )
+                preset.bands.forEachIndexed { index, band ->
+                    add(
+                        NavigationItem(
+                            "Band ${index + 1}",
+                            "${band.frequency.toInt()} Hz · ${db(band.gain)}",
+                            key = band.id,
+                        ) {
+                            bandIndex = index
+                        }
+                    )
+                }
+                add(
+                    NavigationItem(
+                        "Add band",
+                        enabled = preset.bands.size < EqViewModel.MAX_BANDS,
+                        onClick = viewModel::addBand,
+                    )
+                )
             }
-            add(NavigationItem("Add band", enabled = preset.bands.size < EqViewModel.MAX_BANDS, onClick = viewModel::addBand))
-        })
+        )
     }
     if (bandIndex in preset.bands.indices) {
         val index = bandIndex
         val band = preset.bands[index]
         WheelSettingsOverlay("Band ${index + 1}", { bandIndex = -1 }) {
-            NavigationList(listOf(
-                NavigationItem("Enabled", if (band.enabled) "On" else "Off") { viewModel.updateBand(index, band.copy(enabled = !band.enabled)) },
-                NavigationItem("Type", band.type.displayName) { menu = "Filter type" },
-                NavigationItem("Frequency", "${band.frequency.toInt()} Hz") {
-                    number = EqNumberEdit("Frequency", ln(band.frequency.coerceIn(20f, 20000f)), ln(20f)..ln(20000f), 0.025f,
-                        { "${exp(it).roundToInt()} Hz" }, { viewModel.updateBand(index, band.copy(frequency = exp(it).roundToInt().toFloat())) })
-                },
-                NavigationItem("Gain", db(band.gain)) {
-                    number = EqNumberEdit("Gain", band.gain, -12f..12f, 0.1f, ::db,
-                        { viewModel.updateBand(index, band.copy(gain = it)) })
-                },
-                NavigationItem("Q", String.format(Locale.US, "%.2f", band.q)) {
-                    number = EqNumberEdit("Q", band.q, 0.1f..2f, 0.01f, { String.format(Locale.US, "%.2f", it) },
-                        { viewModel.updateBand(index, band.copy(q = it)) })
-                },
-                NavigationItem("Remove band", enabled = preset.bands.size > 1) { viewModel.removeBand(index); bandIndex = -1 }
-            ))
+            NavigationList(
+                listOf(
+                    NavigationItem(
+                        "Enabled",
+                        if (band.enabled) "On" else "Off",
+                        checked = band.enabled,
+                    ) {
+                        viewModel.updateBand(index, band.copy(enabled = !band.enabled))
+                    },
+                    NavigationItem("Type", band.type.displayName) { menu = "Filter type" },
+                    NavigationItem("Frequency", "${band.frequency.toInt()} Hz") {
+                        number =
+                            EqNumberEdit(
+                                "Frequency",
+                                ln(band.frequency.coerceIn(20f, 20000f)),
+                                ln(20f)..ln(20000f),
+                                0.025f,
+                                { "${exp(it).roundToInt()} Hz" },
+                                {
+                                    viewModel.updateBand(
+                                        index,
+                                        band.copy(frequency = exp(it).roundToInt().toFloat()),
+                                    )
+                                },
+                            )
+                    },
+                    NavigationItem("Gain", db(band.gain)) {
+                        number =
+                            EqNumberEdit(
+                                "Gain",
+                                band.gain,
+                                -12f..12f,
+                                0.1f,
+                                ::db,
+                                { viewModel.updateBand(index, band.copy(gain = it)) },
+                            )
+                    },
+                    NavigationItem("Q", String.format(Locale.US, "%.2f", band.q)) {
+                        number =
+                            EqNumberEdit(
+                                "Q",
+                                band.q,
+                                0.1f..2f,
+                                0.01f,
+                                { String.format(Locale.US, "%.2f", it) },
+                                { viewModel.updateBand(index, band.copy(q = it)) },
+                            )
+                    },
+                    NavigationItem("Remove band", enabled = preset.bands.size > 1) {
+                        viewModel.removeBand(index)
+                        bandIndex = -1
+                    },
+                )
+            )
         }
     }
     menu?.let { title ->
-        val items = when (title) {
-            "Presets" -> state.presets.map { choice -> NavigationItem(choice.name,
-                if (choice.name == state.selectedPresetName) "Selected" else null) { viewModel.selectPreset(choice.name); menu = null } }
-            "Filter type" -> FilterType.entries.map { type -> NavigationItem(type.displayName) {
-                preset.bands.getOrNull(bandIndex)?.let { viewModel.updateBand(bandIndex, it.copy(type = type)) }
-                menu = null
-            } }
-            else -> listOf(
-                NavigationItem("New preset") { menu = null; nameAction = "New preset" },
-                NavigationItem("Rename preset") { menu = null; nameAction = "Rename preset" },
-                NavigationItem("Delete preset", enabled = state.presets.size > 1) { menu = null; delete = true },
-                NavigationItem("Import") { menu = null; onImport() },
-                NavigationItem("Export") { menu = null; onExport() }
-            )
-        }
+        val items =
+            when (title) {
+                "Presets" ->
+                    state.presets.map { choice ->
+                        NavigationItem(
+                            choice.name,
+                            if (choice.name == state.selectedPresetName) "Selected" else null,
+                            checked = choice.name == state.selectedPresetName,
+                        ) {
+                            viewModel.selectPreset(choice.name)
+                            menu = null
+                        }
+                    }
+                "Filter type" ->
+                    FilterType.entries.map { type ->
+                        NavigationItem(
+                            type.displayName,
+                            checked = preset.bands.getOrNull(bandIndex)?.type == type,
+                        ) {
+                            preset.bands.getOrNull(bandIndex)?.let {
+                                viewModel.updateBand(bandIndex, it.copy(type = type))
+                            }
+                            menu = null
+                        }
+                    }
+                else ->
+                    listOf(
+                        NavigationItem("New preset") {
+                            menu = null
+                            nameAction = "New preset"
+                        },
+                        NavigationItem("Rename preset") {
+                            menu = null
+                            nameAction = "Rename preset"
+                        },
+                        NavigationItem("Delete preset", enabled = state.presets.size > 1) {
+                            menu = null
+                            delete = true
+                        },
+                        NavigationItem("Import") {
+                            menu = null
+                            onImport()
+                        },
+                        NavigationItem("Export") {
+                            menu = null
+                            onExport()
+                        },
+                    )
+            }
         WheelContextMenu(title, items, { menu = null })
     }
     nameAction?.let { action ->
-        WheelTextEditor(action, if (action == "Rename preset") state.selectedPresetName else "", onSave = {
-            if (action == "Rename preset") viewModel.renamePreset(state.selectedPresetName, it.trim())
-            else viewModel.addPreset(it.trim())
-        }, onDismiss = { nameAction = null })
+        WheelTextEditor(
+            action,
+            if (action == "Rename preset") state.selectedPresetName else "",
+            onSave = {
+                if (action == "Rename preset")
+                    viewModel.renamePreset(state.selectedPresetName, it.trim())
+                else viewModel.addPreset(it.trim())
+            },
+            onDismiss = { nameAction = null },
+        )
     }
-    if (delete) WheelContextMenu("Delete preset?", listOf(NavigationItem("Delete ${state.selectedPresetName}") {
-        viewModel.deletePreset(state.selectedPresetName); delete = false
-    }), { delete = false })
+    if (delete)
+        WheelContextMenu(
+            "Delete preset?",
+            listOf(
+                NavigationItem("Delete ${state.selectedPresetName}") {
+                    viewModel.deletePreset(state.selectedPresetName)
+                    delete = false
+                }
+            ),
+            { delete = false },
+        )
     number?.let { edit ->
-        WheelNumberEditor(edit.title, edit.value, edit.range, edit.step, edit.format,
-            onSave = { edit.save(it) }, onDismiss = { number = null })
+        WheelNumberEditor(
+            edit.title,
+            edit.value,
+            edit.range,
+            edit.step,
+            edit.format,
+            onSave = { edit.save(it) },
+            onDismiss = { number = null },
+        )
     }
-    if (graph) WheelReadingPage("Response graph", { graph = false }) {
-        EqBodePlot(preset, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
-    }
+    if (graph)
+        WheelReadingPage("Response graph", { graph = false }) {
+            EqBodePlot(preset, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
+        }
 }

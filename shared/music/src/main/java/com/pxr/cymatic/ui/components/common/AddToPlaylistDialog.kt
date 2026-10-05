@@ -89,6 +89,7 @@ fun AddToPlaylistDialog(
                                 playlist.name,
                                 if (playlist.id in memberIds) "Added" else "Not added",
                                 key = playlist.id,
+                                checked = playlist.id in memberIds,
                             ) {
                                 toggle(playlist)
                             }

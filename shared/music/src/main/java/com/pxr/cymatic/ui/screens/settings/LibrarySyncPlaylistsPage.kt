@@ -63,6 +63,7 @@ internal fun SyncPlaylistsPage(
                             "${if (playlist.id in selection) "Selected" else "Not selected"} · ${playlist.trackIds.size} tracks",
                             enabled = enabled,
                             key = playlist.id,
+                            checked = playlist.id in selection,
                             onLongClick = { showActions = true },
                             onClick = {
                                 onChange(

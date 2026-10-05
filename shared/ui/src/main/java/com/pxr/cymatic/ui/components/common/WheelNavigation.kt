@@ -71,6 +71,7 @@ fun rememberWheelSelection(
     itemCount: Int,
     listState: LazyListState,
     onSelect: (Int) -> Unit,
+    selectableIndices: List<Int>? = null,
     onContext: (Int) -> Unit = {},
 ): Int {
     val wheel = LocalWheelNavigation.current
@@ -80,16 +81,21 @@ fun rememberWheelSelection(
     val count by rememberUpdatedState(itemCount)
     val select by rememberUpdatedState(onSelect)
     val context by rememberUpdatedState(onContext)
+    val availableIndices by rememberUpdatedState(selectableIndices)
     val actions =
         remember(wheel, listState) {
             var canWrap = false
             WheelActions(
                 onRotate = { steps ->
-                    if (count > 0 && steps != 0) {
+                    val available = availableIndices
+                    val choices = available?.size ?: count
+                    if (choices > 0 && steps != 0) {
                         scrollDirection = if (steps > 0) 1 else -1
-                        val last = count - 1
-                        val current = selection.coerceIn(0, last)
-                        val next =
+                        val last = choices - 1
+                        val current =
+                            available?.indexOf(selection)?.coerceAtLeast(0)
+                                ?: selection.coerceIn(0, last)
+                        val nextPosition =
                             when {
                                 canWrap && steps > 0 && current == last ->
                                     (steps - 1).coerceIn(0, last)
@@ -97,13 +103,26 @@ fun rememberWheelSelection(
                                     (last + steps + 1).coerceIn(0, last)
                                 else -> (current + steps).coerceIn(0, last)
                             }
+                        val next = available?.get(nextPosition) ?: nextPosition
                         listState.scrollWheelSelectionIntoView(next, scrollDirection)
                         selection = next
                         canWrap = false
                     }
                 },
-                onSelect = { if (count > 0) select(selection.coerceIn(0, count - 1)) },
-                onContext = { if (count > 0) context(selection.coerceIn(0, count - 1)) },
+                onSelect = {
+                    if (
+                        count > 0 &&
+                            (availableIndices == null || selection in availableIndices.orEmpty())
+                    )
+                        select(selection.coerceIn(0, count - 1))
+                },
+                onContext = {
+                    if (
+                        count > 0 &&
+                            (availableIndices == null || selection in availableIndices.orEmpty())
+                    )
+                        context(selection.coerceIn(0, count - 1))
+                },
                 onMovementStarted = { canWrap = true },
             )
         }
@@ -114,9 +133,12 @@ fun rememberWheelSelection(
     }
 
     val viewport = listState.layoutInfo.viewportSize
-    LaunchedEffect(itemCount, wheel, listState, viewport) {
+    LaunchedEffect(itemCount, wheel, listState, viewport, selectableIndices) {
         if (wheel != null && itemCount > 0) {
             selection = selection.coerceIn(0, itemCount - 1)
+            if (selectableIndices != null && selection !in selectableIndices) {
+                selection = selectableIndices.firstOrNull() ?: return@LaunchedEffect
+            }
             snapshotFlow { listState.layoutInfo }
                 .first {
                     it.viewportSize.height > 0 && it.visibleItemsInfo.isNotEmpty()
@@ -124,5 +146,6 @@ fun rememberWheelSelection(
             listState.scrollWheelSelectionIntoView(selection, scrollDirection)
         }
     }
-    return if (wheel == null || itemCount == 0) -1 else selection.coerceIn(0, itemCount - 1)
+    return if (wheel == null || itemCount == 0 || selectableIndices?.isEmpty() == true) -1
+    else selection.coerceIn(0, itemCount - 1)
 }

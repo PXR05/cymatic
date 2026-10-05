@@ -29,12 +29,14 @@ internal fun WheelPlayerMenu(
                     NavigationItem(
                         "Shuffle",
                         subLabel = if (playback.isShuffling) "On" else "Off",
+                        checked = playback.isShuffling,
                         onClick = { controller?.shuffleModeEnabled = !playback.isShuffling },
                     )
                 )
                 add(
                     NavigationItem(
                         "Repeat",
+                        checked = playback.repeatMode != Player.REPEAT_MODE_OFF,
                         subLabel =
                             when (playback.repeatMode) {
                                 Player.REPEAT_MODE_ONE -> "One track"

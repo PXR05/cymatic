@@ -91,7 +91,11 @@ internal fun InterfaceSettingsScreen() {
                             SettingsStore.setGesturePauseMs(it.roundToLong())
                         }
                 },
-                NavigationItem("Haptic feedback", if (settings.hapticsEnabled) "On" else "Off") {
+                NavigationItem(
+                    "Haptic feedback",
+                    if (settings.hapticsEnabled) "On" else "Off",
+                    checked = settings.hapticsEnabled,
+                ) {
                     scope.launch { SettingsStore.setWheelHapticsEnabled(!settings.hapticsEnabled) }
                 },
                 NavigationItem("Wheel size", percent(settings.wheelSizePercent)) {
@@ -127,6 +131,7 @@ internal fun InterfaceSettingsScreen() {
                 NavigationItem(
                     "Cover art default",
                     if (settings.coverVisibleByDefault) "Shown" else "Hidden",
+                    checked = settings.coverVisibleByDefault,
                 ) {
                     scope.launch {
                         SettingsStore.setCoverVisibleByDefault(!settings.coverVisibleByDefault)
@@ -186,6 +191,7 @@ internal fun InterfaceSettingsScreen() {
                 NavigationItem(
                     mode.label,
                     if (mode == settings.screenAwakeMode) "Selected" else null,
+                    checked = mode == settings.screenAwakeMode,
                 ) {
                     scope.launch { SettingsStore.setScreenAwakeMode(mode) }
                     showScreenAwake = false
@@ -202,6 +208,7 @@ internal fun InterfaceSettingsScreen() {
                 NavigationItem(
                     if (timeout == 0L) "Off" else "After ${timeout / 1000} s",
                     if (timeout == settings.standbyTimeoutMs) "Selected" else null,
+                    checked = timeout == settings.standbyTimeoutMs,
                 ) {
                     scope.launch { SettingsStore.setStandbyTimeoutMs(timeout) }
                     showStandby = false

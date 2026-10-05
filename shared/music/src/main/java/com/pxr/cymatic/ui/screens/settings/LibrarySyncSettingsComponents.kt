@@ -2,7 +2,6 @@ package com.pxr.cymatic.ui.screens.settings
 
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,6 +64,7 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
                     NavigationItem(
                         option,
                         if (option == setting.selectedOption) "Selected" else null,
+                        checked = option == setting.selectedOption,
                     ) {
                         setting.onChoose(option)
                         choice = null
@@ -77,19 +77,7 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
                     setting.title,
                     { choice = null },
                     content = {
-                        Column(
-                            Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())
-                        ) {
-                            options.forEach { option ->
-                                Text(
-                                    "${option.label}${if (option.subLabel != null) " · Selected" else ""}",
-                                    modifier =
-                                        Modifier.fillMaxWidth()
-                                            .clickable(onClick = option.onClick)
-                                            .padding(horizontal = 24.dp, vertical = 16.dp),
-                                )
-                            }
-                        }
+                        NavigationList(options, Modifier.heightIn(max = 320.dp))
                     },
                     buttons = { CymaticDialogButton("Close", { choice = null }) },
                 )

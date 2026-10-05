@@ -37,8 +37,10 @@ fun ListItem(
     trailingStyle: TextStyle = TextStyle.Default,
     isActive: Boolean = false,
     icon: @Composable (() -> Unit)? = null,
-    onClick: () -> Unit = { },
-    onLongClick: () -> Unit = { }
+    enabled: Boolean = true,
+    trailingContent: @Composable ((Color) -> Unit)? = null,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     val compact = LocalWheelNavigation.current != null
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
@@ -57,37 +59,48 @@ fun ListItem(
             MaterialTheme.colorScheme.secondary
         }
 
-    val labelFontStyle = MaterialTheme.typography.bodyLarge.merge(labelStyle).copy(
-        fontSize = if (compact) 16.sp else 20.sp,
-        letterSpacing = if (isLabelCJK) 2.sp else 0.sp
-    )
-    val subLabelFontStyle = MaterialTheme.typography.bodyMedium.merge(subLabelStyle).copy(
-        fontSize = if (compact) 12.sp else 14.sp,
-        letterSpacing = if (isSubLabelCJK) 1.5.sp else 0.sp
-    )
-    val trailingFontStyle = MaterialTheme.typography.bodyMedium.merge(trailingStyle).copy(
-        color = secondaryLabelColor,
-        fontSize = 14.sp
-    )
+    val labelFontStyle =
+        MaterialTheme.typography.bodyLarge
+            .merge(labelStyle)
+            .copy(
+                fontSize = if (compact) 16.sp else 20.sp,
+                letterSpacing = if (isLabelCJK) 2.sp else 0.sp,
+            )
+    val subLabelFontStyle =
+        MaterialTheme.typography.bodyMedium
+            .merge(subLabelStyle)
+            .copy(
+                fontSize = if (compact) 12.sp else 14.sp,
+                letterSpacing = if (isSubLabelCJK) 1.5.sp else 0.sp,
+            )
+    val trailingFontStyle =
+        MaterialTheme.typography.bodyMedium
+            .merge(trailingStyle)
+            .copy(
+                color = secondaryLabelColor,
+                fontSize = 14.sp,
+            )
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { selected = isActive }
-            .background(
-                if (isActive) {
-                    MaterialTheme.colorScheme.onBackground
-                } else {
-                    Color.Transparent
-                }
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-                indication = null,
-                interactionSource = null
-            )
-            .padding(horizontal = 24.dp, vertical = if (compact) 12.dp else 16.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .semantics { selected = isActive }
+                .background(
+                    if (isActive) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        Color.Transparent
+                    }
+                )
+                .combinedClickable(
+                    enabled = enabled,
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                    indication = null,
+                    interactionSource = null,
+                )
+                .padding(horizontal = 24.dp, vertical = if (compact) 12.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -110,14 +123,16 @@ fun ListItem(
                     color = secondaryLabelColor,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = subLabelMaxLines,
-                    style = subLabelFontStyle
+                    style = subLabelFontStyle,
                 )
             }
         }
-        if (trailing != null) {
+        if (trailingContent != null) {
+            Box(Modifier.padding(start = 12.dp)) { trailingContent(secondaryLabelColor) }
+        } else if (trailing != null) {
             Text(
                 text = trailing,
-                style = trailingFontStyle
+                style = trailingFontStyle,
             )
         }
     }
@@ -132,26 +147,26 @@ fun ListItemPreview() {
             subLabel = "Artist Name",
             trailing = "3:30",
             isActive = true,
-            onClick = { }
+            onClick = {},
         )
         ListItem(
             label = "Song Title",
             subLabel = "Artist Name",
             trailing = "3:30",
             isActive = false,
-            onClick = { }
+            onClick = {},
         )
         ListItem(
             label = "Label",
             trailing = ">",
             isActive = true,
-            onClick = { }
+            onClick = {},
         )
         ListItem(
             label = "Label",
             trailing = ">",
             isActive = false,
-            onClick = { }
+            onClick = {},
         )
     }
 }
