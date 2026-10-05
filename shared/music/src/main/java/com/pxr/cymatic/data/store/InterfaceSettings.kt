@@ -24,6 +24,7 @@ data class InterfaceSettings(
     val coverVisibleByDefault: Boolean = true,
     val screenAwakeMode: ScreenAwakeMode = ScreenAwakeMode.NEVER,
     val standbyTimeoutMs: Long = 0L,
+    val screenPaddingDp: Float = 18f,
 )
 
 private val GesturePauseKey = longPreferencesKey("WHEEL_GESTURE_PAUSE_MS")
@@ -34,6 +35,7 @@ private val TextDelayKey = longPreferencesKey("INTERFACE_TEXT_SCROLL_DELAY_MS")
 private val CoverDefaultKey = booleanPreferencesKey("WHEEL_COVER_VISIBLE_DEFAULT")
 private val ScreenAwakeKey = stringPreferencesKey("INTERFACE_SCREEN_AWAKE_MODE")
 private val StandbyTimeoutKey = longPreferencesKey("INTERFACE_STANDBY_TIMEOUT_MS")
+private val ScreenPaddingKey = floatPreferencesKey("WHEEL_SCREEN_PADDING_DP")
 
 private fun readInterfaceSettings(prefs: Preferences?): InterfaceSettings {
     val defaults = InterfaceSettings()
@@ -54,6 +56,8 @@ private fun readInterfaceSettings(prefs: Preferences?): InterfaceSettings {
             (prefs?.get(StandbyTimeoutKey) ?: 0L).let {
                 if (it == 0L) 0L else it.coerceIn(10_000L, 600_000L)
             },
+        screenPaddingDp =
+            (prefs?.get(ScreenPaddingKey) ?: defaults.screenPaddingDp).coerceIn(0f, 48f),
     )
 }
 
@@ -73,6 +77,10 @@ suspend fun SettingsStore.setWheelHapticsEnabled(value: Boolean) {
 
 suspend fun SettingsStore.setWheelSizePercent(value: Float) {
     store.edit { it[WheelSizeKey] = value.coerceIn(60f, 120f) }
+}
+
+suspend fun SettingsStore.setScreenPaddingDp(value: Float) {
+    store.edit { it[ScreenPaddingKey] = value.coerceIn(0f, 48f) }
 }
 
 suspend fun SettingsStore.setTextScrollSpeed(value: Float) {

@@ -12,6 +12,7 @@ import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.data.store.setCoverVisibleByDefault
 import com.pxr.cymatic.data.store.setGesturePauseMs
 import com.pxr.cymatic.data.store.setScreenAwakeMode
+import com.pxr.cymatic.data.store.setScreenPaddingDp
 import com.pxr.cymatic.data.store.setStandbyTimeoutMs
 import com.pxr.cymatic.data.store.setTextScrollDelayMs
 import com.pxr.cymatic.data.store.setTextScrollSpeed
@@ -44,6 +45,8 @@ private data class InterfaceNumberEdit(
 private fun percent(value: Float) = "${value.roundToInt()}%"
 
 private fun milliseconds(value: Float) = "${value.roundToInt()} ms"
+
+private fun densityPixels(value: Float) = "${value.roundToInt()} dp"
 
 private fun seconds(value: Float) = String.format(Locale.US, "%.1f s", value / 1000)
 
@@ -101,6 +104,18 @@ internal fun InterfaceSettingsScreen() {
                             ::percent,
                         ) {
                             SettingsStore.setWheelSizePercent(it)
+                        }
+                },
+                NavigationItem("Screen padding", densityPixels(settings.screenPaddingDp)) {
+                    number =
+                        InterfaceNumberEdit(
+                            "Screen padding",
+                            settings.screenPaddingDp,
+                            0f..48f,
+                            2f,
+                            ::densityPixels,
+                        ) {
+                            SettingsStore.setScreenPaddingDp(it)
                         }
                 },
                 NavigationItem(

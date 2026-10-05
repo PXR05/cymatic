@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
-private val ScreenMargin = 18.dp
 private val ScreenShape = RoundedCornerShape(22.dp)
 private val MaxWheelSize = 288.dp
 
@@ -44,6 +43,7 @@ internal fun WheelPlayerLayout(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val settings = LocalInterfaceSettings.current
+    val screenPadding = settings.screenPaddingDp.dp
     BoxWithConstraints(
         Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
@@ -55,30 +55,30 @@ internal fun WheelPlayerLayout(
         val wheelAreaSize = if (landscape) maxHeight else maxWidth
         val baseWheelSize = minOf(MaxWheelSize, wheelAreaSize * 0.72f)
         val screenWidth =
-            (if (landscape) maxWidth - wheelAreaSize - ScreenMargin
-                else maxWidth - ScreenMargin * 2)
+            (if (landscape) maxWidth - wheelAreaSize - screenPadding
+                else maxWidth - screenPadding * 2)
                 .coerceAtLeast(1.dp)
         val availableScreenHeight =
-            (if (landscape) maxHeight - ScreenMargin * 2
-                else maxHeight - wheelAreaSize - ScreenMargin)
+            (if (landscape) maxHeight - screenPadding * 2
+                else maxHeight - wheelAreaSize - screenPadding)
                 .coerceAtLeast(1.dp)
         val screenHeight = minOf(screenWidth, availableScreenHeight)
         val wheelHeight =
             if (landscape) maxHeight
-            else (maxHeight - screenHeight - ScreenMargin).coerceAtLeast(1.dp)
+            else (maxHeight - screenHeight - screenPadding).coerceAtLeast(1.dp)
         val wheelSize =
             minOf(
                 baseWheelSize * (settings.wheelSizePercent / 100),
                 minOf(wheelAreaSize, wheelHeight) * 0.9f,
             )
-        val displayHeight = if (keyboardVisible) maxHeight - ScreenMargin else screenHeight
+        val displayHeight = if (keyboardVisible) maxHeight - screenPadding else screenHeight
 
         if (landscape && !keyboardVisible) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 PlayerDisplay(
                     Modifier.weight(1f)
                         .fillMaxWidth()
-                        .padding(start = ScreenMargin, top = ScreenMargin, bottom = ScreenMargin)
+                        .padding(start = screenPadding, top = screenPadding, bottom = screenPadding)
                         .height(screenHeight),
                     content,
                     overlay,
@@ -89,7 +89,7 @@ internal fun WheelPlayerLayout(
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 PlayerDisplay(
                     Modifier.fillMaxWidth()
-                        .padding(start = ScreenMargin, end = ScreenMargin, top = ScreenMargin)
+                        .padding(start = screenPadding, end = screenPadding, top = screenPadding)
                         .height(displayHeight),
                     content,
                     overlay,
