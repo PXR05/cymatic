@@ -18,6 +18,7 @@ import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 internal fun WheelBrowser(state: WheelPlayerState) {
     MusicNavHost(
         releaseProduct = ReleaseProduct.PLAYER,
+        renderImmediately = true,
         modifier = if (state.blocksBrowserInput) Modifier.clearAndSetSemantics {} else Modifier,
         home = { MainMenu(state) },
         settingsItems = listOf(NavigationItem("Interface") { state.open(INTERFACE_SETTINGS_ROUTE) }),

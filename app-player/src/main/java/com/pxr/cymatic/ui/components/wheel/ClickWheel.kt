@@ -101,9 +101,7 @@ internal fun ClickWheel(
                         var rotated = false
                         var held = false
                         var cancelled = false
-                        var selectReleased = false
-                        var angle: Float? =
-                            if (button == WheelButton.SELECT) null else atan2(start.y, start.x)
+                        var angle = atan2(start.y, start.x)
                         var accumulated = 0f
                         var lastMotionTime = down.uptimeMillis
                         val holdJob = gestureScope.launch {
@@ -131,27 +129,11 @@ internal fun ClickWheel(
                                 }
                                 val position = change.position - center
                                 if (
-                                    button == WheelButton.SELECT &&
-                                        !selectReleased &&
-                                        position.getDistance() >= radius * 0.34f
-                                ) {
-                                    selectReleased = true
-                                    pressed = null
-                                    holdJob.cancel()
-                                    if (!held) {
-                                        if (feedbackEnabled)
-                                            haptic.performHapticFeedback(
-                                                HapticFeedbackType.TextHandleMove
-                                            )
-                                        press(button)
-                                    }
-                                }
-                                if (
-                                    (rotated ||
-                                        selectReleased ||
-                                        (button != WheelButton.SELECT &&
+                                    !held &&
+                                        button != WheelButton.SELECT &&
+                                        (rotated ||
                                             (change.position - down.position).getDistance() >
-                                                viewConfiguration.touchSlop))
+                                                viewConfiguration.touchSlop)
                                 ) {
                                     if (!rotated) {
                                         movementStarted()
@@ -162,8 +144,7 @@ internal fun ClickWheel(
                                     holdJob.cancel()
                                     if (position.getDistance() in radius * 0.34f..radius * 1.15f) {
                                         val nextAngle = atan2(position.y, position.x)
-                                        var delta = angle?.let { nextAngle - it } ?: 0f
-                                        if (angle == null) angle = nextAngle
+                                        var delta = nextAngle - angle
                                         if (delta > PI) delta -= (2 * PI).toFloat()
                                         if (delta < -PI) delta += (2 * PI).toFloat()
                                         if (abs(delta) >= MinimumMotionAngle) {
@@ -191,7 +172,7 @@ internal fun ClickWheel(
                                             angle = nextAngle
                                         }
                                     } else {
-                                        angle = null
+                                        angle = atan2(position.y, position.x)
                                         accumulated = 0f
                                     }
                                     change.consume()

@@ -44,6 +44,7 @@ fun MusicNavHost(
     animate: Boolean = false,
     startDestination: String = Screen.Home.route,
     settingsIsTaskRoot: Boolean = false,
+    renderImmediately: Boolean = false,
 ) {
     val pageDistancePx = with(LocalDensity.current) { 24.dp.roundToPx() }
     val routes =
@@ -121,6 +122,10 @@ fun MusicNavHost(
             Screen.VersionSettings.route to { VersionSettingsScreen(releaseProduct) },
             Screen.Queue.route to { QueueScreen() },
         ) + additionalRoutes
+    if (renderImmediately) {
+        InstantMusicNavHost(startDestination, routes, modifier.clipToBounds())
+        return
+    }
     NavHost(
         navController = LocalNavController.current,
         startDestination = startDestination,
