@@ -107,6 +107,7 @@ internal suspend fun scanDsfDocuments(
                             if (cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR) {
                                 pending.add(childId to depth + 1)
                             } else if (
+                                cursor.getString(1)?.startsWith(".cymatic-sync-") != true &&
                                 cursor.getString(1)?.endsWith(".dsf", ignoreCase = true) == true
                             ) {
                                 val digest =

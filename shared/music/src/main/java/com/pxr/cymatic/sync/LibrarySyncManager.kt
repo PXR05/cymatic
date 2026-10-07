@@ -9,6 +9,7 @@ import com.pxr.cymatic.data.media.loadCachedAudioFiles
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
+import java.io.EOFException
 import java.io.IOException
 import java.net.SocketException
 import java.net.SocketTimeoutException
@@ -64,9 +65,6 @@ class SyncCancelledException : IOException("Sync cancelled")
 
 private class SyncCheckpointException(cause: Exception) :
     IOException("Could not save sync progress: ${cause.message ?: "storage error"}", cause)
-
-private class IncompleteSyncDownloadException(expected: Long, received: Long) :
-    IOException("Expected $expected bytes, received $received")
 
 object LibrarySyncManager {
     private const val MANIFEST = ".cymatic-sync.json"
@@ -242,7 +240,7 @@ object LibrarySyncManager {
         var failed = 0
         var firstFailure: String? = null
         val pendingPaths = linkedMapOf<String, String>()
-        val localUrisByRemoteId = mutableMapOf<String, String>()
+        val localUrisByRemoteId = mutableMapOf<String, List<String>>()
 
         suspend fun indexCompletedTracks() {
             if (pendingPaths.isEmpty()) return
@@ -250,9 +248,11 @@ object LibrarySyncManager {
             val paths = pendingPaths.keys.mapNotNull(tree::absolutePath)
             val scanned = scanMediaFiles(context, paths)
             pendingPaths.forEach { (path, remoteId) ->
-                scanned[tree.absolutePath(path)]?.let {
-                    localUrisByRemoteId[remoteId] = it.toString()
-                }
+                localUrisByRemoteId[remoteId] =
+                    listOfNotNull(
+                        scanned[tree.absolutePath(path)]?.toString(),
+                        tree.documentUri(path)?.toString(),
+                    )
             }
             val localFiles =
                 syncAudioFilesToDb(
@@ -278,23 +278,28 @@ object LibrarySyncManager {
                 _progress.value =
                     SyncProgress.Preparing("Checking local files (${index + 1}/${desired.size})")
                 val result = runCatching {
-                    if (reuse.reuse(target)) return@runCatching false
+                    if (reuse.reuse(target)) return@runCatching null
                     reuse.prepareWrite(target)
-                    downloadTrack(client, tree, target, index + 1, desired.size)
+                    val received = downloadTrack(client, tree, target, index + 1, desired.size)
                     _progress.value = SyncProgress.Preparing("Saving ${target.track.title}")
-                    true
+                    received
                 }
                 result.exceptionOrNull()?.let {
                     if (it is SyncCheckpointException) throw it
+                    if (
+                        it is SyncLocalCommitException && it.destinationPath == target.relativePath
+                    ) {
+                        reuse.record(target.copy(relativePath = it.temporaryPath), it.localSize)
+                    }
                     reuse.discardMissing(target.relativePath)
                     if (it is SyncCancelledException || cancelRequested.get())
                         throw SyncCancelledException()
                 }
                 if (result.isSuccess) {
-                    val transferred = result.getOrThrow()
-                    if (transferred) {
+                    val received = result.getOrThrow()
+                    if (received != null) {
                         pendingPaths[target.relativePath] = target.track.id
-                        reuse.record(target)
+                        reuse.record(target, received)
                         downloaded++
                     } else {
                         unchanged++
@@ -357,8 +362,12 @@ object LibrarySyncManager {
                 .mapNotNull(tree::absolutePath)
         val scanned = scanMediaFiles(context, syncedPaths)
         next.forEach { (path, entry) ->
-            scanned[tree.absolutePath(path)]?.let {
-                localUrisByRemoteId[entry.remoteId] = it.toString()
+            if (!path.substringAfterLast('/').startsWith(".cymatic-sync-")) {
+                localUrisByRemoteId[entry.remoteId] =
+                    listOfNotNull(
+                        scanned[tree.absolutePath(path)]?.toString(),
+                        tree.documentUri(path)?.toString(),
+                    )
             }
         }
         val localFiles =
@@ -394,7 +403,7 @@ object LibrarySyncManager {
         target: SyncTarget,
         current: Int,
         total: Int,
-    ) {
+    ): Long {
         repeat(3) { attempt ->
             checkCancelled()
             _progress.value =
@@ -408,10 +417,20 @@ object LibrarySyncManager {
             try {
                 val connection = client.openTrack(target.track.id)
                 try {
-                    tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
-                        connection.inputStream.buffered().use { input ->
+                    val expected =
+                        SyncDownloadValidation.expectedSize(
+                            connection.getHeaderField("Content-Length"),
+                            connection.getHeaderField("Content-Encoding"),
+                            connection.getHeaderField("Content-Type"),
+                        )
+                    val totalBytes = expected.coerceAtLeast(0L)
+                    var copied = 0L
+                    _progress.value =
+                        SyncProgress.Downloading(current, total, target.track.title, 0L, totalBytes)
+                    val input = connection.inputStream.buffered()
+                    try {
+                        tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
                             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                            var copied = 0L
                             var lastUpdate = 0L
                             while (true) {
                                 checkCancelled()
@@ -427,25 +446,28 @@ object LibrarySyncManager {
                                             total,
                                             target.track.title,
                                             copied,
-                                            target.track.size.coerceAtLeast(0L),
+                                            totalBytes,
                                         )
                                     lastUpdate = now
                                 }
                             }
-                            if (target.track.size >= 0 && copied < target.track.size) {
-                                throw IncompleteSyncDownloadException(target.track.size, copied)
-                            }
-                            if (target.track.size >= 0 && copied > target.track.size) {
-                                throw IOException(
-                                    "Expected ${target.track.size} bytes, received $copied"
+                            SyncDownloadValidation.validate(copied, expected)
+                            _progress.value = SyncProgress.Preparing("Saving ${target.track.title}")
+                        }
+                    } finally {
+                        runCatching { input.close() }
+                            .onFailure {
+                                Log.w(
+                                    "LibrarySync",
+                                    "Could not close the audio response for ${target.track.id}",
+                                    it,
                                 )
                             }
-                        }
                     }
+                    return copied
                 } finally {
                     client.release(connection)
                 }
-                return
             } catch (error: IOException) {
                 checkCancelled()
                 val retryable =
@@ -454,11 +476,15 @@ object LibrarySyncManager {
                             error.status == 408 || error.status == 429 || error.status >= 500
                         is SocketException,
                         is SocketTimeoutException,
+                        is EOFException,
                         is IncompleteSyncDownloadException -> true
                         else -> false
                     }
                 if (!retryable || attempt == 2) throw error
-                _progress.value = SyncProgress.Preparing("Retrying ${target.track.title}")
+                _progress.value =
+                    SyncProgress.Preparing(
+                        "Retrying ${target.track.title}: ${error.message ?: "transfer interrupted"}"
+                    )
                 Log.w(
                     "LibrarySync",
                     "Retrying ${target.track.id} after transfer attempt ${attempt + 1}",
@@ -468,6 +494,7 @@ object LibrarySyncManager {
                 delay(maxOf(1000L shl attempt, retryAfter))
             }
         }
+        throw IOException("Could not complete the audio transfer")
     }
 
     private fun makeUniqueTargets(targets: List<SyncTarget>): List<SyncTarget> {
@@ -548,7 +575,7 @@ object LibrarySyncManager {
         localFiles: List<AudioFile>?,
         removeMissing: Boolean = false,
         checkCancellation: Boolean = true,
-        localUrisByRemoteId: Map<String, String> = emptyMap(),
+        localUrisByRemoteId: Map<String, List<String>> = emptyMap(),
     ) {
         _progress.value =
             SyncProgress.Preparing(
@@ -571,7 +598,7 @@ object LibrarySyncManager {
         val localByUri = localFiles.orEmpty().associateBy { it.uri.toString() }
         val localByRemoteId = tracks.associate { track ->
             track.id to
-                (localByUri[localUrisByRemoteId[track.id]]
+                (localUrisByRemoteId[track.id].orEmpty().firstNotNullOfOrNull(localByUri::get)
                     ?: bestLocalMatch(track, localFiles.orEmpty()))
         }
         remotePlaylists.forEach { remote ->

@@ -51,6 +51,7 @@ internal class SyncManifestStore(context: Context, identity: String) {
                             remoteId = item.getString("remoteId"),
                             updatedAt = item.optString("updatedAt"),
                             size = item.optLong("size", -1L),
+                            localSize = item.optLong("localSize", item.optLong("size", -1L)),
                         ),
                     )
                 }
@@ -66,6 +67,7 @@ internal class SyncManifestStore(context: Context, identity: String) {
                         .put("remoteId", entry.remoteId)
                         .put("updatedAt", entry.updatedAt)
                         .put("size", entry.size)
+                        .put("localSize", entry.localSize)
                 )
             }
             return JSONObject().put("version", 1).put("files", files).toString()

@@ -7,6 +7,10 @@ android {
     defaultConfig {
         applicationId = "com.pxr.cymatic"
     }
+    packaging {
+        dex.useLegacyPackaging = true
+        jniLibs.useLegacyPackaging = true
+    }
 }
 dependencies {
     implementation(project(":shared:music"))

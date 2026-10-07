@@ -1,5 +1,6 @@
 package com.pxr.cymatic.sync
 
+import android.util.Log
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
@@ -86,10 +87,20 @@ class AudioStreamClient(
     }
 
     fun openTrack(trackId: String): HttpURLConnection {
-        return authenticatedGet("audio/${encodePath(trackId)}/stream")
+        val connection = authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true)
+        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+            val status = connection.responseCode
+            release(connection)
+            throw AudioStreamRequestException(
+                status,
+                0,
+                "Expected a complete audio response, received HTTP $status",
+            )
+        }
+        return connection
     }
 
-    private fun authenticatedGet(path: String): HttpURLConnection {
+    private fun authenticatedGet(path: String, binary: Boolean = false): HttpURLConnection {
         repeat(2) { attempt ->
             ensureAuthenticated()
             checkNotCancelled()
@@ -97,6 +108,10 @@ class AudioStreamClient(
                 open(path).apply {
                     requestMethod = "GET"
                     setRequestProperty("Authorization", "Bearer $sessionId")
+                    if (binary) {
+                        setRequestProperty("Accept", "application/octet-stream")
+                        setRequestProperty("Accept-Encoding", "identity")
+                    }
                 }
             activeConnection.set(connection)
             try {
@@ -120,7 +135,11 @@ class AudioStreamClient(
 
     fun release(connection: HttpURLConnection) {
         activeConnection.compareAndSet(connection, null)
-        connection.disconnect()
+        try {
+            connection.disconnect()
+        } catch (error: Exception) {
+            Log.w("LibrarySync", "Could not close the AudioStream connection", error)
+        }
     }
 
     private fun ensureAuthenticated() {

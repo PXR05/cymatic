@@ -3,6 +3,7 @@ package com.pxr.cymatic.sync
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.util.Log
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -20,6 +21,8 @@ internal class SafTree(
     private val childrenByParent = mutableMapOf<Uri, MutableMap<String, Child>>()
 
     fun exists(relativePath: String): Boolean = find(relativePath) != null
+
+    fun documentUri(relativePath: String): Uri? = find(relativePath)
 
     fun size(relativePath: String): Long? {
         val uri = find(relativePath) ?: return null
@@ -71,17 +74,28 @@ internal class SafTree(
     fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
         require(source != destination) { "Source and destination must differ" }
         val uri = find(source) ?: throw FileNotFoundException("Could not find $source")
-        resolver.openInputStream(uri)?.buffered()?.use { input ->
+        val expected = size(source)
+        val input =
+            resolver.openInputStream(uri)?.buffered()
+                ?: throw FileNotFoundException("Could not open $source for reading")
+        try {
             write(destination, mimeType) { output ->
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var copied = 0L
                 while (true) {
                     checkCancelled()
                     val count = input.read(buffer)
                     if (count < 0) break
                     output.write(buffer, 0, count)
+                    copied += count
                 }
+                if (expected != null && copied != expected)
+                    throw IOException("Incomplete local copy of $source")
             }
-        } ?: throw FileNotFoundException("Could not open $source for reading")
+        } finally {
+            runCatching { input.close() }
+                .onFailure { Log.w("LibrarySync", "Could not close local source $source", it) }
+        }
     }
 
     fun write(relativePath: String, mimeType: String, writer: (OutputStream) -> Unit) {
@@ -99,21 +113,134 @@ internal class SafTree(
                 }
         }
 
-        val displayName = parts.last()
-        val existing = child(parent, displayName)
-        check(existing?.mimeType != DocumentsContract.Document.MIME_TYPE_DIR) {
-            "$displayName exists and is a directory"
-        }
-        val file = existing?.uri ?: createChild(parent, displayName, mimeType)
-        try {
-            resolver.openOutputStream(file, "wt")?.use(writer)
-                ?: throw FileNotFoundException("Could not open $displayName for writing")
-        } catch (error: Throwable) {
-            runCatching {
-                if (DocumentsContract.deleteDocument(resolver, file)) forget(file)
+        val directory = parent
+        val documents =
+            object : SyncWritableDocuments<Uri> {
+                override fun find(name: String): Uri? {
+                    val found = child(directory, name) ?: return null
+                    check(found.mimeType != DocumentsContract.Document.MIME_TYPE_DIR) {
+                        "$name exists and is a directory"
+                    }
+                    return found.uri
+                }
+
+                override fun create(name: String, mimeType: String) =
+                    createChild(directory, name, mimeType)
+
+                override fun write(document: Uri, writer: (OutputStream) -> Unit) {
+                    resolver.openOutputStream(document, "wt")?.use(writer)
+                        ?: throw FileNotFoundException("Could not open sync file for writing")
+                }
+
+                override fun copy(source: Uri, destination: Uri) {
+                    val input =
+                        resolver.openInputStream(source)?.buffered()
+                            ?: throw FileNotFoundException("Could not open sync file for reading")
+                    try {
+                        write(destination) { output -> input.copyTo(output) }
+                    } finally {
+                        runCatching { input.close() }
+                            .onFailure {
+                                Log.w("LibrarySync", "Could not close local sync source", it)
+                            }
+                    }
+                }
+
+                override fun supportsRename(document: Uri): Boolean {
+                    resolver
+                        .query(
+                            document,
+                            arrayOf(DocumentsContract.Document.COLUMN_FLAGS),
+                            null,
+                            null,
+                            null,
+                        )
+                        ?.use { cursor ->
+                            return cursor.moveToFirst() &&
+                                cursor.getInt(0) and
+                                    DocumentsContract.Document.FLAG_SUPPORTS_RENAME != 0
+                        }
+                    return false
+                }
+
+                override fun rename(document: Uri, name: String): Uri {
+                    val originalName = displayName(document)
+                    val renamed =
+                        DocumentsContract.renameDocument(resolver, document, name)
+                            ?: throw IOException("Could not rename sync file to $name")
+                    forget(document)
+                    try {
+                        check(displayName(renamed) == name) {
+                            "The sync folder could not preserve the filename $name"
+                        }
+                    } catch (error: Throwable) {
+                        runCatching {
+                                val restored =
+                                    DocumentsContract.renameDocument(
+                                        resolver,
+                                        renamed,
+                                        originalName,
+                                    )
+                                        ?: throw IOException(
+                                            "Could not restore the filename $originalName"
+                                        )
+                                childrenByParent
+                                    .getOrPut(directory) { mutableMapOf() }[originalName] =
+                                    Child(restored, mimeType)
+                            }
+                            .onFailure(error::addSuppressed)
+                        throw error
+                    }
+                    childrenByParent.getOrPut(directory) { mutableMapOf() }[name] =
+                        Child(renamed, mimeType)
+                    return renamed
+                }
+
+                override fun delete(document: Uri) {
+                    if (!DocumentsContract.deleteDocument(resolver, document)) {
+                        throw IOException("Could not remove temporary sync file")
+                    }
+                    forget(document)
+                }
             }
-            throw error
+        var written = 0L
+        try {
+            SyncDocumentWriter(documents).write(parts.last(), mimeType) { output ->
+                val counted =
+                    object : OutputStream() {
+                        override fun write(value: Int) {
+                            output.write(value)
+                            written++
+                        }
+
+                        override fun write(buffer: ByteArray, offset: Int, length: Int) {
+                            output.write(buffer, offset, length)
+                            written += length
+                        }
+
+                        override fun flush() = output.flush()
+                    }
+                writer(counted)
+            }
+        } catch (error: SyncDocumentCommitException) {
+            val temporaryPath = (parts.dropLast(1) + error.temporaryName).joinToString("/")
+            throw SyncLocalCommitException(relativePath, temporaryPath, written, error)
         }
+    }
+
+    private fun displayName(document: Uri): String {
+        resolver
+            .query(
+                document,
+                arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) return cursor.getString(0)
+            }
+        throw FileNotFoundException("Could not verify the sync filename")
     }
 
     private fun find(relativePath: String): Uri? {

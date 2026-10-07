@@ -2,12 +2,18 @@ package com.pxr.cymatic.sync
 
 import java.util.UUID
 
-internal data class SyncManifestEntry(val remoteId: String, val updatedAt: String, val size: Long) {
+internal data class SyncManifestEntry(
+    val remoteId: String,
+    val updatedAt: String,
+    val size: Long,
+    val localSize: Long = size,
+) {
     fun matches(track: RemoteTrack): Boolean =
         remoteId == track.id && updatedAt == track.updatedAt && size == track.size
 
     companion object {
-        fun from(track: RemoteTrack) = SyncManifestEntry(track.id, track.updatedAt, track.size)
+        fun from(track: RemoteTrack, localSize: Long = track.size) =
+            SyncManifestEntry(track.id, track.updatedAt, track.size, localSize)
     }
 }
 
@@ -31,7 +37,7 @@ internal class SyncFileReuse(
             .groupBy { previous.getValue(it).remoteId }
             .mapValues { (_, paths) -> paths.toMutableSet() }
             .toMutableMap()
-    private val wanted = desired.mapTo(mutableSetOf()) { SyncManifestEntry.from(it.track) }
+    private val wanted = desired.associate { it.track.id to it.track }
     val entries: Map<String, SyncManifestEntry>
         get() = manifest.toMap()
 
@@ -51,26 +57,33 @@ internal class SyncFileReuse(
 
         prepareWrite(target)
         files.copy(source, path)
-        record(target)
+        record(target, manifest.getValue(source).localSize)
         return true
     }
 
     fun prepareWrite(target: SyncTarget) {
         val path = target.relativePath
         val old = manifest[path] ?: return
-        if (old !in wanted || !validFile(path, old)) return
+        val wantedTrack = wanted[old.remoteId] ?: return
+        if (!old.matches(wantedTrack) || !validFile(path, old)) return
         val directory = path.substringBeforeLast('/', "")
         val temporary =
             listOf(directory, ".cymatic-sync-${UUID.randomUUID()}.tmp")
                 .filter(String::isNotEmpty)
                 .joinToString("/")
-        files.copy(path, temporary)
+        try {
+            files.copy(path, temporary)
+        } catch (error: SyncLocalCommitException) {
+            put(error.temporaryPath, old.copy(localSize = error.localSize))
+            saveManifest(entries)
+            throw error
+        }
         put(temporary, old)
         saveManifest(entries)
     }
 
-    fun record(target: SyncTarget) {
-        put(target.relativePath, SyncManifestEntry.from(target.track))
+    fun record(target: SyncTarget, localSize: Long = target.track.size) {
+        put(target.relativePath, SyncManifestEntry.from(target.track, localSize))
         saveManifest(entries)
     }
 
@@ -81,7 +94,8 @@ internal class SyncFileReuse(
     }
 
     private fun validFile(path: String, entry: SyncManifestEntry): Boolean =
-        if (entry.size >= 0) files.size(path)?.let { it == entry.size } ?: files.exists(path)
+        if (entry.localSize >= 0)
+            files.size(path)?.let { it == entry.localSize } ?: files.exists(path)
         else files.exists(path)
 
     private fun put(path: String, entry: SyncManifestEntry) {
