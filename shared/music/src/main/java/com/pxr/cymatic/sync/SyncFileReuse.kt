@@ -13,7 +13,9 @@ internal data class SyncManifestEntry(val remoteId: String, val updatedAt: Strin
 
 internal interface SyncLocalFiles {
     fun exists(path: String): Boolean
+
     fun size(path: String): Long?
+
     fun copy(source: String, destination: String)
 }
 
@@ -24,10 +26,14 @@ internal class SyncFileReuse(
     private val saveManifest: (Map<String, SyncManifestEntry>) -> Unit,
 ) {
     private val manifest = previous.toMutableMap()
-    private val pathsById = previous.keys.groupBy { previous.getValue(it).remoteId }
-        .mapValues { (_, paths) -> paths.toMutableSet() }.toMutableMap()
+    private val pathsById =
+        previous.keys
+            .groupBy { previous.getValue(it).remoteId }
+            .mapValues { (_, paths) -> paths.toMutableSet() }
+            .toMutableMap()
     private val wanted = desired.mapTo(mutableSetOf()) { SyncManifestEntry.from(it.track) }
-    val entries: Map<String, SyncManifestEntry> get() = manifest.toMap()
+    val entries: Map<String, SyncManifestEntry>
+        get() = manifest.toMap()
 
     fun reuse(target: SyncTarget): Boolean {
         val path = target.relativePath
@@ -37,10 +43,11 @@ internal class SyncFileReuse(
             record(target)
             return true
         }
-        val source = pathsById[target.track.id].orEmpty().firstOrNull { candidate ->
-            val entry = manifest.getValue(candidate)
-            entry.matches(target.track) && validFile(candidate, entry)
-        } ?: return false
+        val source =
+            pathsById[target.track.id].orEmpty().firstOrNull { candidate ->
+                val entry = manifest.getValue(candidate)
+                entry.matches(target.track) && validFile(candidate, entry)
+            } ?: return false
 
         prepareWrite(target)
         files.copy(source, path)
@@ -53,8 +60,10 @@ internal class SyncFileReuse(
         val old = manifest[path] ?: return
         if (old !in wanted || !validFile(path, old)) return
         val directory = path.substringBeforeLast('/', "")
-        val temporary = listOf(directory, ".cymatic-sync-${UUID.randomUUID()}.tmp")
-            .filter(String::isNotEmpty).joinToString("/")
+        val temporary =
+            listOf(directory, ".cymatic-sync-${UUID.randomUUID()}.tmp")
+                .filter(String::isNotEmpty)
+                .joinToString("/")
         files.copy(path, temporary)
         put(temporary, old)
         saveManifest(entries)
@@ -72,7 +81,8 @@ internal class SyncFileReuse(
     }
 
     private fun validFile(path: String, entry: SyncManifestEntry): Boolean =
-        if (entry.size >= 0) files.size(path) == entry.size else files.exists(path)
+        if (entry.size >= 0) files.size(path)?.let { it == entry.size } ?: files.exists(path)
+        else files.exists(path)
 
     private fun put(path: String, entry: SyncManifestEntry) {
         manifest.put(path, entry)?.let { pathsById[it.remoteId]?.remove(path) }

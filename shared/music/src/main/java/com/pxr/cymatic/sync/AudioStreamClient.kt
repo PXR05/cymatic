@@ -1,11 +1,17 @@
 package com.pxr.cymatic.sync
 
-import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import org.json.JSONObject
+
+internal class AudioStreamRequestException(
+    val status: Int,
+    val retryAfterMillis: Long,
+    message: String,
+) : IOException(message)
 
 class AudioStreamClient(
     baseUrl: String,
@@ -34,16 +40,22 @@ class AudioStreamClient(
             for (index in 0 until files.length()) {
                 val item = files.getJSONObject(index)
                 val metadata = item.optJSONObject("metadata")
-                result += RemoteTrack(
-                    id = item.getString("id"),
-                    filename = item.getString("filename"),
-                    size = item.optLong("size", -1L),
-                    updatedAt = item.optString("updatedAt"),
-                    title = metadata?.optString("title")?.takeIf(String::isNotBlank)
-                        ?: item.getString("filename").substringBeforeLast('.'),
-                    artist = metadata?.optString("artist")?.takeIf(String::isNotBlank) ?: "Unknown artist",
-                    album = metadata?.optString("album")?.takeIf(String::isNotBlank) ?: "Unknown album",
-                )
+                result +=
+                    RemoteTrack(
+                        id = item.getString("id"),
+                        filename = item.getString("filename"),
+                        size = item.optLong("size", -1L),
+                        updatedAt = item.optString("updatedAt"),
+                        title =
+                            metadata?.optString("title")?.takeIf(String::isNotBlank)
+                                ?: item.getString("filename").substringBeforeLast('.'),
+                        artist =
+                            metadata?.optString("artist")?.takeIf(String::isNotBlank)
+                                ?: "Unknown artist",
+                        album =
+                            metadata?.optString("album")?.takeIf(String::isNotBlank)
+                                ?: "Unknown album",
+                    )
             }
             page++
             hasNext = body.optBoolean("hasNext", false)
@@ -58,8 +70,9 @@ class AudioStreamClient(
         for (index in 0 until list.length()) {
             checkNotCancelled()
             val playlist = list.getJSONObject(index)
-            val detail = requestJson("playlist/${encodePath(playlist.getString("id"))}")
-                .getJSONObject("playlist")
+            val detail =
+                requestJson("playlist/${encodePath(playlist.getString("id"))}")
+                    .getJSONObject("playlist")
             val name = detail.getString("name")
             val items = detail.getJSONArray("items")
             val trackIds = mutableListOf<String>()
@@ -73,21 +86,36 @@ class AudioStreamClient(
     }
 
     fun openTrack(trackId: String): HttpURLConnection {
-        ensureAuthenticated()
-        checkNotCancelled()
-        val connection = open("audio/${encodePath(trackId)}/stream").apply {
-            requestMethod = "GET"
-            setRequestProperty("Authorization", "Bearer $sessionId")
+        return authenticatedGet("audio/${encodePath(trackId)}/stream")
+    }
+
+    private fun authenticatedGet(path: String): HttpURLConnection {
+        repeat(2) { attempt ->
+            ensureAuthenticated()
+            checkNotCancelled()
+            val connection =
+                open(path).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Authorization", "Bearer $sessionId")
+                }
+            activeConnection.set(connection)
+            try {
+                connection.connect()
+                if (
+                    connection.responseCode == HttpURLConnection.HTTP_UNAUTHORIZED && attempt == 0
+                ) {
+                    sessionId = null
+                    release(connection)
+                    return@repeat
+                }
+                checkResponse(connection)
+                return connection
+            } catch (error: Throwable) {
+                release(connection)
+                throw error
+            }
         }
-        activeConnection.set(connection)
-        return try {
-            connection.connect()
-            checkResponse(connection)
-            connection
-        } catch (error: Throwable) {
-            release(connection)
-            throw error
-        }
+        throw IOException("Could not renew the AudioStream session")
     }
 
     fun release(connection: HttpURLConnection) {
@@ -99,35 +127,32 @@ class AudioStreamClient(
         if (sessionId != null) return
         checkNotCancelled()
         val payload = JSONObject().put("username", username).put("password", password).toString()
-        val connection = open("auth/login").apply {
-            activeConnection.set(this)
-            requestMethod = "POST"
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-            outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-        }
-        val response = try {
-            checkResponse(connection)
-            connection.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            release(connection)
-        }
+        val connection =
+            open("auth/login").apply {
+                activeConnection.set(this)
+                requestMethod = "POST"
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+            }
+        val response =
+            try {
+                connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+                checkResponse(connection)
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                release(connection)
+            }
         sessionId = JSONObject(response).getString("sessionId")
     }
 
     private fun requestJson(path: String): JSONObject {
-        checkNotCancelled()
-        val connection = open(path).apply {
-            activeConnection.set(this)
-            requestMethod = "GET"
-            setRequestProperty("Authorization", "Bearer $sessionId")
-        }
-        val response = try {
-            checkResponse(connection)
-            connection.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            release(connection)
-        }
+        val connection = authenticatedGet(path)
+        val response =
+            try {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } finally {
+                release(connection)
+            }
         return JSONObject(response)
     }
 
@@ -149,17 +174,31 @@ class AudioStreamClient(
         if (status in 200..299) return
         val message = runCatching {
             connection.errorStream?.bufferedReader()?.use { it.readText() }
-        }.getOrNull().orEmpty()
-        connection.disconnect()
-        throw IOException("AudioStream request failed ($status)${if (message.isBlank()) "" else ": $message"}")
+        }
+            .getOrNull()
+            .orEmpty()
+        val retryAfter =
+            connection
+                .getHeaderField("Retry-After")
+                ?.toLongOrNull()
+                ?.coerceIn(0L, 30L)
+                ?.times(1000L) ?: 0L
+        throw AudioStreamRequestException(
+            status,
+            retryAfter,
+            "AudioStream request failed ($status)${if (message.isBlank()) "" else ": ${message.take(500)}"}",
+        )
     }
 
-    private fun encodePath(value: String): String = java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+    private fun encodePath(value: String): String =
+        java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
 
     companion object {
         fun normalizeBaseUrl(value: String): String {
             val uri = URI(value.trim())
-            require(uri.scheme == "https" || uri.scheme == "http") { "Sync URL must use HTTP or HTTPS" }
+            require(uri.scheme == "https" || uri.scheme == "http") {
+                "Sync URL must use HTTP or HTTPS"
+            }
             require(!uri.host.isNullOrBlank()) { "Sync URL must include a host" }
             return value.trim().trimEnd('/') + "/"
         }

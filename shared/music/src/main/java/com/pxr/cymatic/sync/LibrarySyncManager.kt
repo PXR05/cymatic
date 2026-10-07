@@ -3,25 +3,32 @@ package com.pxr.cymatic.sync
 import android.content.Context
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.util.Log
 import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.media.loadCachedAudioFiles
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
 import java.io.IOException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class SyncSummary(
     val downloaded: Int,
@@ -54,6 +61,12 @@ sealed interface SyncProgress {
 }
 
 class SyncCancelledException : IOException("Sync cancelled")
+
+private class SyncCheckpointException(cause: Exception) :
+    IOException("Could not save sync progress: ${cause.message ?: "storage error"}", cause)
+
+private class IncompleteSyncDownloadException(expected: Long, received: Long) :
+    IOException("Expected $expected bytes, received $received")
 
 object LibrarySyncManager {
     private const val MANIFEST = ".cymatic-sync.json"
@@ -188,87 +201,133 @@ object LibrarySyncManager {
                 emptyMap()
             }
 
-        val previous = readManifest(tree)
+        val manifestStore =
+            SyncManifestStore(
+                context,
+                "${SettingsStore.getSyncUrl()}\n${SettingsStore.getSyncUsername()}\n$directory",
+            )
+        val previous = manifestStore.read() ?: readManifest(tree)
+        manifestStore.write(previous)
         val desired =
             makeUniqueTargets(
                 tracksToSync.flatMap { track ->
                     SyncPathPlanner.targets(track, layout, placements[track.id].orEmpty())
                 }
             )
-        val reuse = SyncFileReuse(
-            previous = previous,
-            desired = desired,
-            files = object : SyncLocalFiles {
-                override fun exists(path: String) = tree.exists(path)
-                override fun size(path: String) = tree.size(path)
-                override fun copy(source: String, destination: String) =
-                    tree.copy(source, destination, mimeType(destination), ::checkCancelled)
-            },
-            saveManifest = { entries -> writeManifest(tree, entries) },
-        )
+        val reuse =
+            SyncFileReuse(
+                previous = previous,
+                desired = desired,
+                files =
+                    object : SyncLocalFiles {
+                        override fun exists(path: String) = tree.exists(path)
+
+                        override fun size(path: String) = tree.size(path)
+
+                        override fun copy(source: String, destination: String) =
+                            tree.copy(source, destination, mimeType(destination), ::checkCancelled)
+                    },
+                saveManifest = { entries ->
+                    try {
+                        manifestStore.write(entries)
+                    } catch (error: Exception) {
+                        throw SyncCheckpointException(error)
+                    }
+                },
+            )
+        syncPlaylists(context, playlistsToSync, tracksToSync, null)
+        syncPlaylists(context, playlistsToSync, tracksToSync, loadCachedAudioFiles(context))
         var downloaded = 0
         var unchanged = 0
         var failed = 0
+        var firstFailure: String? = null
+        val pendingPaths = linkedMapOf<String, String>()
+        val localUrisByRemoteId = mutableMapOf<String, String>()
 
-        desired.forEachIndexed { index, target ->
-            checkCancelled()
-            _progress.value =
-                SyncProgress.Downloading(
-                    current = index + 1,
-                    total = desired.size,
-                    title = target.track.title,
-                    bytesDownloaded = 0L,
-                    totalBytes = target.track.size.coerceAtLeast(0L),
+        suspend fun indexCompletedTracks() {
+            if (pendingPaths.isEmpty()) return
+            _progress.value = SyncProgress.Preparing("Adding downloaded tracks to playlists")
+            val paths = pendingPaths.keys.mapNotNull(tree::absolutePath)
+            val scanned = scanMediaFiles(context, paths)
+            pendingPaths.forEach { (path, remoteId) ->
+                scanned[tree.absolutePath(path)]?.let {
+                    localUrisByRemoteId[remoteId] = it.toString()
+                }
+            }
+            val localFiles =
+                syncAudioFilesToDb(
+                    context,
+                    SettingsStore.getScanDirectories() + directory,
+                    SettingsStore.getScanAllMedia(),
                 )
-            val result = runCatching {
-                if (reuse.reuse(target)) return@runCatching false
-                reuse.prepareWrite(target)
-                val connection = client.openTrack(target.track.id)
-                try {
-                    tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
-                        connection.inputStream.buffered().use { input ->
-                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                            var copied = 0L
-                            var lastUpdate = 0L
-                            while (true) {
-                                checkCancelled()
-                                val count = input.read(buffer)
-                                if (count < 0) break
-                                output.write(buffer, 0, count)
-                                copied += count
-                                val now = System.currentTimeMillis()
-                                if (now - lastUpdate >= 150L) {
-                                    _progress.value =
-                                        SyncProgress.Downloading(
-                                            current = index + 1,
-                                            total = desired.size,
-                                            title = target.track.title,
-                                            bytesDownloaded = copied,
-                                            totalBytes = target.track.size.coerceAtLeast(0L),
-                                        )
-                                    lastUpdate = now
-                                }
-                            }
-                            if (target.track.size >= 0 && copied != target.track.size) {
-                                throw IOException("Incomplete download: ${target.track.title}")
-                            }
+            syncPlaylists(
+                context,
+                playlistsToSync,
+                tracksToSync,
+                localFiles,
+                checkCancellation = false,
+                localUrisByRemoteId = localUrisByRemoteId,
+            )
+            pendingPaths.clear()
+        }
+
+        var interrupted: Throwable? = null
+        try {
+            desired.forEachIndexed { index, target ->
+                checkCancelled()
+                _progress.value =
+                    SyncProgress.Preparing("Checking local files (${index + 1}/${desired.size})")
+                val result = runCatching {
+                    if (reuse.reuse(target)) return@runCatching false
+                    reuse.prepareWrite(target)
+                    downloadTrack(client, tree, target, index + 1, desired.size)
+                    _progress.value = SyncProgress.Preparing("Saving ${target.track.title}")
+                    true
+                }
+                result.exceptionOrNull()?.let {
+                    if (it is SyncCheckpointException) throw it
+                    reuse.discardMissing(target.relativePath)
+                    if (it is SyncCancelledException || cancelRequested.get())
+                        throw SyncCancelledException()
+                }
+                if (result.isSuccess) {
+                    val transferred = result.getOrThrow()
+                    if (transferred) {
+                        pendingPaths[target.relativePath] = target.track.id
+                        reuse.record(target)
+                        downloaded++
+                    } else {
+                        unchanged++
+                        if (previous[target.relativePath]?.matches(target.track) != true) {
+                            pendingPaths[target.relativePath] = target.track.id
                         }
                     }
-                } finally {
-                    client.release(connection)
+                    if (pendingPaths.size >= 25) indexCompletedTracks()
+                } else {
+                    failed++
+                    val error = result.exceptionOrNull()
+                    if (firstFailure == null)
+                        firstFailure = "${target.track.title}: ${error?.message ?: "unknown error"}"
+                    Log.e(
+                        "LibrarySync",
+                        "Could not sync ${target.track.id} to ${target.relativePath}",
+                        error,
+                    )
                 }
-                reuse.record(target)
-                true
             }
-            result.exceptionOrNull()?.let {
-                reuse.discardMissing(target.relativePath)
-                if (it is SyncCancelledException || cancelRequested.get())
-                    throw SyncCancelledException()
-            }
-            if (result.isSuccess) {
-                if (result.getOrThrow()) downloaded++ else unchanged++
-            } else {
-                failed++
+        } catch (error: Throwable) {
+            interrupted = error
+            throw error
+        } finally {
+            withContext(NonCancellable) {
+                try {
+                    indexCompletedTracks()
+                } catch (error: Throwable) {
+                    val original = interrupted
+                    if (original == null) throw error
+                    original.addSuppressed(error)
+                    Log.e("LibrarySync", "Could not index completed sync tracks", error)
+                }
             }
         }
 
@@ -288,30 +347,127 @@ object LibrarySyncManager {
                 }
             }
         }
+        manifestStore.write(next)
         writeManifest(tree, next)
 
-        val syncedPaths = (entries.keys + previous.keys).distinct()
-            .filterNot { it.substringAfterLast('/').startsWith(".cymatic-sync-") }
-            .mapNotNull(tree::absolutePath)
-        scanMediaFiles(context, syncedPaths)
+        val syncedPaths =
+            (entries.keys + previous.keys)
+                .distinct()
+                .filterNot { it.substringAfterLast('/').startsWith(".cymatic-sync-") }
+                .mapNotNull(tree::absolutePath)
+        val scanned = scanMediaFiles(context, syncedPaths)
+        next.forEach { (path, entry) ->
+            scanned[tree.absolutePath(path)]?.let {
+                localUrisByRemoteId[entry.remoteId] = it.toString()
+            }
+        }
         val localFiles =
             syncAudioFilesToDb(
                 context,
                 SettingsStore.getScanDirectories() + directory,
                 SettingsStore.getScanAllMedia(),
             )
-        if (failed == 0) syncPlaylists(context, playlistsToSync, tracksToSync, localFiles)
+        syncPlaylists(
+            context,
+            playlistsToSync,
+            tracksToSync,
+            localFiles,
+            removeMissing = failed == 0,
+            localUrisByRemoteId = localUrisByRemoteId,
+        )
 
         val summary = SyncSummary(downloaded, unchanged, removed, failed, playlistsToSync.size)
         val message =
             if (failed == 0) {
                 "Synced: $downloaded downloaded, $unchanged unchanged, ${playlistsToSync.size} playlists"
             } else {
-                "Sync incomplete: $downloaded downloaded, $failed failed"
+                "Sync incomplete: $downloaded downloaded, $failed failed. $firstFailure"
             }
         SettingsStore.setSyncResult(System.currentTimeMillis(), message)
         if (failed > 0) throw IOException(message)
         return summary
+    }
+
+    private suspend fun downloadTrack(
+        client: AudioStreamClient,
+        tree: SafTree,
+        target: SyncTarget,
+        current: Int,
+        total: Int,
+    ) {
+        repeat(3) { attempt ->
+            checkCancelled()
+            _progress.value =
+                SyncProgress.Downloading(
+                    current,
+                    total,
+                    target.track.title,
+                    0L,
+                    target.track.size.coerceAtLeast(0L),
+                )
+            try {
+                val connection = client.openTrack(target.track.id)
+                try {
+                    tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
+                        connection.inputStream.buffered().use { input ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var copied = 0L
+                            var lastUpdate = 0L
+                            while (true) {
+                                checkCancelled()
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                output.write(buffer, 0, count)
+                                copied += count
+                                val now = System.currentTimeMillis()
+                                if (now - lastUpdate >= 150L) {
+                                    _progress.value =
+                                        SyncProgress.Downloading(
+                                            current,
+                                            total,
+                                            target.track.title,
+                                            copied,
+                                            target.track.size.coerceAtLeast(0L),
+                                        )
+                                    lastUpdate = now
+                                }
+                            }
+                            if (target.track.size >= 0 && copied < target.track.size) {
+                                throw IncompleteSyncDownloadException(target.track.size, copied)
+                            }
+                            if (target.track.size >= 0 && copied > target.track.size) {
+                                throw IOException(
+                                    "Expected ${target.track.size} bytes, received $copied"
+                                )
+                            }
+                        }
+                    }
+                } finally {
+                    client.release(connection)
+                }
+                return
+            } catch (error: IOException) {
+                checkCancelled()
+                val retryable =
+                    when (error) {
+                        is AudioStreamRequestException ->
+                            error.status == 408 || error.status == 429 || error.status >= 500
+                        is SocketException,
+                        is SocketTimeoutException,
+                        is IncompleteSyncDownloadException -> true
+                        else -> false
+                    }
+                if (!retryable || attempt == 2) throw error
+                _progress.value = SyncProgress.Preparing("Retrying ${target.track.title}")
+                Log.w(
+                    "LibrarySync",
+                    "Retrying ${target.track.id} after transfer attempt ${attempt + 1}",
+                    error,
+                )
+                val retryAfter = (error as? AudioStreamRequestException)?.retryAfterMillis ?: 0L
+                delay(maxOf(1000L shl attempt, retryAfter))
+            }
+        }
     }
 
     private fun makeUniqueTargets(targets: List<SyncTarget>): List<SyncTarget> {
@@ -334,39 +490,12 @@ object LibrarySyncManager {
     }
 
     private fun readManifest(tree: SafTree): Map<String, SyncManifestEntry> = runCatching {
-        val root = JSONObject(tree.readText(MANIFEST) ?: return emptyMap())
-        val entries = root.getJSONArray("files")
-        buildMap {
-            for (index in 0 until entries.length()) {
-                val item = entries.getJSONObject(index)
-                put(
-                    item.getString("path"),
-                    SyncManifestEntry(
-                        remoteId = item.getString("remoteId"),
-                        updatedAt = item.optString("updatedAt"),
-                        size = item.optLong("size", -1L),
-                    ),
-                )
-            }
-        }
+        SyncManifestStore.decode(tree.readText(MANIFEST) ?: return emptyMap())
     }
         .getOrDefault(emptyMap())
 
     private fun writeManifest(tree: SafTree, entries: Map<String, SyncManifestEntry>) {
-        val files = JSONArray()
-        entries.toSortedMap().forEach { (path, entry) ->
-            files.put(
-                JSONObject()
-                    .put("path", path)
-                    .put("remoteId", entry.remoteId)
-                    .put("updatedAt", entry.updatedAt)
-                    .put("size", entry.size)
-            )
-        }
-        tree.writeText(
-            MANIFEST,
-            JSONObject().put("version", 1).put("files", files).toString(),
-        )
+        tree.writeText(MANIFEST, SyncManifestStore.encode(entries))
     }
 
     private fun mimeType(filename: String): String =
@@ -387,42 +516,66 @@ object LibrarySyncManager {
         if (cancelRequested.get()) throw SyncCancelledException()
     }
 
-    private suspend fun scanMediaFiles(context: Context, paths: List<String>) {
-        if (paths.isEmpty()) return
-        suspendCancellableCoroutine { continuation ->
-            var remaining = paths.size
-            MediaScannerConnection.scanFile(context, paths.toTypedArray(), null) { _, _ ->
-                remaining--
-                if (remaining == 0 && continuation.isActive) continuation.resume(Unit)
-            }
+    private suspend fun scanMediaFiles(context: Context, paths: List<String>): Map<String, Uri> {
+        val results = mutableMapOf<String, Uri>()
+        for (batch in paths.distinct().chunked(25)) {
+            val scanned =
+                withTimeoutOrNull(60_000L) {
+                    suspendCancellableCoroutine<Map<String, Uri>> { continuation ->
+                        val scanned = ConcurrentHashMap<String, Uri>()
+                        val remaining = AtomicInteger(batch.size)
+                        MediaScannerConnection.scanFile(context, batch.toTypedArray(), null) {
+                            path,
+                            uri ->
+                            if (uri != null) scanned[path] = uri
+                            if (remaining.decrementAndGet() == 0 && continuation.isActive)
+                                continuation.resume(scanned.toMap())
+                        }
+                    }
+                }
+                    ?: throw IOException(
+                        "Timed out while adding downloaded files to the music library"
+                    )
+            results.putAll(scanned)
         }
+        return results
     }
 
     private suspend fun syncPlaylists(
         context: Context,
         remotePlaylists: List<RemotePlaylist>,
         tracks: List<RemoteTrack>,
-        localFiles: List<AudioFile>,
+        localFiles: List<AudioFile>?,
+        removeMissing: Boolean = false,
+        checkCancellation: Boolean = true,
+        localUrisByRemoteId: Map<String, String> = emptyMap(),
     ) {
-        _progress.value = SyncProgress.Preparing("Syncing playlists")
-        checkCancelled()
+        _progress.value =
+            SyncProgress.Preparing(
+                if (localFiles == null) "Creating playlists" else "Syncing playlists"
+            )
+        if (checkCancellation) checkCancelled()
         val playlistRepository = PlaylistRepository.getInstance(context)
         val existing = playlistRepository.getPlaylists().associateBy { it.id }.toMutableMap()
         val mappedIds = SettingsStore.getSyncPlaylistIds().toMutableMap()
         val remoteIds = remotePlaylists.mapTo(mutableSetOf()) { it.id }
 
-        (mappedIds.keys - remoteIds).forEach { remoteId ->
-            mappedIds.remove(remoteId)?.let { localId ->
-                if (existing.containsKey(localId)) playlistRepository.deletePlaylist(localId)
-                existing.remove(localId)
+        if (removeMissing)
+            (mappedIds.keys - remoteIds).forEach { remoteId ->
+                mappedIds.remove(remoteId)?.let { localId ->
+                    if (existing.containsKey(localId)) playlistRepository.deletePlaylist(localId)
+                    existing.remove(localId)
+                }
             }
-        }
 
+        val localByUri = localFiles.orEmpty().associateBy { it.uri.toString() }
         val localByRemoteId = tracks.associate { track ->
-            track.id to bestLocalMatch(track, localFiles)
+            track.id to
+                (localByUri[localUrisByRemoteId[track.id]]
+                    ?: bestLocalMatch(track, localFiles.orEmpty()))
         }
         remotePlaylists.forEach { remote ->
-            checkCancelled()
+            if (checkCancellation) checkCancelled()
             var localId = mappedIds[remote.id]?.takeIf(existing::containsKey)
             if (localId == null) {
                 val usedNames = existing.values.mapTo(mutableSetOf()) { it.name.lowercase() }
@@ -436,6 +589,7 @@ object LibrarySyncManager {
                 }
                 localId = playlistRepository.createPlaylist(localName)
                 mappedIds[remote.id] = localId
+                SettingsStore.setSyncPlaylistIds(mappedIds)
                 playlistRepository.getPlaylist(localId)?.let { existing[localId] = it }
             }
             val current = existing[localId]
@@ -448,8 +602,10 @@ object LibrarySyncManager {
             ) {
                 playlistRepository.renamePlaylist(localId, remote.name)
             }
-            val audioIds = remote.trackIds.mapNotNull { localByRemoteId[it]?.id }.distinct()
-            playlistRepository.replacePlaylistAudio(localId, audioIds)
+            if (localFiles != null) {
+                val audioIds = remote.trackIds.mapNotNull { localByRemoteId[it]?.id }.distinct()
+                playlistRepository.replacePlaylistAudio(localId, audioIds)
+            }
         }
         SettingsStore.setSyncPlaylistIds(mappedIds)
     }
@@ -463,5 +619,4 @@ object LibrarySyncManager {
                 it.metadata.album.same(track.album)
         } ?: sizeMatches.firstOrNull { it.metadata.title.same(track.title) }
     }
-
 }
