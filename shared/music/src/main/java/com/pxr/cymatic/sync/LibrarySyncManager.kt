@@ -195,7 +195,17 @@ object LibrarySyncManager {
                     SyncPathPlanner.targets(track, layout, placements[track.id].orEmpty())
                 }
             )
-        val next = mutableMapOf<String, ManifestEntry>()
+        val reuse = SyncFileReuse(
+            previous = previous,
+            desired = desired,
+            files = object : SyncLocalFiles {
+                override fun exists(path: String) = tree.exists(path)
+                override fun size(path: String) = tree.size(path)
+                override fun copy(source: String, destination: String) =
+                    tree.copy(source, destination, mimeType(destination), ::checkCancelled)
+            },
+            saveManifest = { entries -> writeManifest(tree, entries) },
+        )
         var downloaded = 0
         var unchanged = 0
         var failed = 0
@@ -210,25 +220,9 @@ object LibrarySyncManager {
                     bytesDownloaded = 0L,
                     totalBytes = target.track.size.coerceAtLeast(0L),
                 )
-            val old = previous[target.relativePath]
-            val existingSize = tree.size(target.relativePath)
-            val manifestMatch =
-                old?.remoteId == target.track.id &&
-                    old.updatedAt == target.track.updatedAt &&
-                    old.size == target.track.size
-            val fileMatch = target.track.size >= 0L && existingSize == target.track.size
-            if ((manifestMatch || fileMatch) && existingSize != null) {
-                next[target.relativePath] =
-                    ManifestEntry(
-                        remoteId = target.track.id,
-                        updatedAt = target.track.updatedAt,
-                        size = target.track.size,
-                    )
-                unchanged++
-                return@forEachIndexed
-            }
-
             val result = runCatching {
+                if (reuse.reuse(target)) return@runCatching false
+                reuse.prepareWrite(target)
                 val connection = client.openTrack(target.track.id)
                 try {
                     tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
@@ -255,43 +249,50 @@ object LibrarySyncManager {
                                     lastUpdate = now
                                 }
                             }
+                            if (target.track.size >= 0 && copied != target.track.size) {
+                                throw IOException("Incomplete download: ${target.track.title}")
+                            }
                         }
                     }
                 } finally {
                     client.release(connection)
                 }
+                reuse.record(target)
+                true
             }
             result.exceptionOrNull()?.let {
+                reuse.discardMissing(target.relativePath)
                 if (it is SyncCancelledException || cancelRequested.get())
                     throw SyncCancelledException()
             }
             if (result.isSuccess) {
-                next[target.relativePath] =
-                    ManifestEntry(
-                        remoteId = target.track.id,
-                        updatedAt = target.track.updatedAt,
-                        size = target.track.size,
-                    )
-                downloaded++
+                if (result.getOrThrow()) downloaded++ else unchanged++
             } else {
                 failed++
-                if (old != null && tree.exists(target.relativePath)) next[target.relativePath] = old
             }
         }
 
         var removed = 0
         _progress.value = SyncProgress.Preparing("Finishing sync")
         checkCancelled()
+        val entries = reuse.entries
+        val next = entries.toMutableMap()
         if (failed == 0) {
-            (previous.keys - next.keys).forEach { path ->
-                if (tree.delete(path)) removed++
+            val desiredPaths = desired.mapTo(mutableSetOf()) { it.relativePath }
+            (entries.keys - desiredPaths).forEach { path ->
+                if (tree.delete(path)) {
+                    removed++
+                    next.remove(path)
+                } else if (!tree.exists(path)) {
+                    next.remove(path)
+                }
             }
-        } else {
-            previous.filterKeys { it !in next }.forEach { (path, entry) -> next[path] = entry }
         }
         writeManifest(tree, next)
 
-        val syncedPaths = (next.keys + previous.keys).distinct().mapNotNull(tree::absolutePath)
+        val syncedPaths = (entries.keys + previous.keys).distinct()
+            .filterNot { it.substringAfterLast('/').startsWith(".cymatic-sync-") }
+            .mapNotNull(tree::absolutePath)
         scanMediaFiles(context, syncedPaths)
         val localFiles =
             syncAudioFilesToDb(
@@ -332,7 +333,7 @@ object LibrarySyncManager {
         }
     }
 
-    private fun readManifest(tree: SafTree): Map<String, ManifestEntry> = runCatching {
+    private fun readManifest(tree: SafTree): Map<String, SyncManifestEntry> = runCatching {
         val root = JSONObject(tree.readText(MANIFEST) ?: return emptyMap())
         val entries = root.getJSONArray("files")
         buildMap {
@@ -340,7 +341,7 @@ object LibrarySyncManager {
                 val item = entries.getJSONObject(index)
                 put(
                     item.getString("path"),
-                    ManifestEntry(
+                    SyncManifestEntry(
                         remoteId = item.getString("remoteId"),
                         updatedAt = item.optString("updatedAt"),
                         size = item.optLong("size", -1L),
@@ -351,7 +352,7 @@ object LibrarySyncManager {
     }
         .getOrDefault(emptyMap())
 
-    private fun writeManifest(tree: SafTree, entries: Map<String, ManifestEntry>) {
+    private fun writeManifest(tree: SafTree, entries: Map<String, SyncManifestEntry>) {
         val files = JSONArray()
         entries.toSortedMap().forEach { (path, entry) ->
             files.put(
@@ -463,5 +464,4 @@ object LibrarySyncManager {
         } ?: sizeMatches.firstOrNull { it.metadata.title.same(track.title) }
     }
 
-    private data class ManifestEntry(val remoteId: String, val updatedAt: String, val size: Long)
 }

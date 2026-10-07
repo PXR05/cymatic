@@ -54,6 +54,22 @@ internal class SafTree(
         }
     }
 
+    fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
+        require(source != destination) { "Source and destination must differ" }
+        val uri = find(source) ?: throw FileNotFoundException("Could not find $source")
+        resolver.openInputStream(uri)?.buffered()?.use { input ->
+            write(destination, mimeType) { output ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    checkCancelled()
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    output.write(buffer, 0, count)
+                }
+            }
+        } ?: throw FileNotFoundException("Could not open $source for reading")
+    }
+
     fun write(relativePath: String, mimeType: String, writer: (OutputStream) -> Unit) {
         val parts = relativePath.split('/').filter(String::isNotBlank)
         require(parts.isNotEmpty()) { "A file name is required" }
