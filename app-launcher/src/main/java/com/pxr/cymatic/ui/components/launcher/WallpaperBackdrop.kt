@@ -49,8 +49,6 @@ fun rememberWallpaperBitmap(): Bitmap? {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Wallpaper bitmap access is optional. Restricted devices reject the read;
-    // the null fallback leaves the system-rendered window wallpaper visible.
     @SuppressLint("MissingPermission")
     fun loadBitmap() {
         runCatching {
@@ -73,7 +71,6 @@ fun rememberWallpaperBitmap(): Bitmap? {
                 bitmap = null
             }
         }.onFailure {
-            // Permission not granted or system wallpaper inaccessible
             bitmap = null
         }
     }

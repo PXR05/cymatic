@@ -88,7 +88,6 @@ private fun AudioDeviceInfo.toOutputDevice(): AudioOutputDevice {
         key = "${display.first.lowercase()}:$keyLabel",
         label = display.second,
         type = display.first,
-        // USB addresses contain a connection number and change on reconnect.
         volumeKey =
             "${display.first.lowercase()}:$keyLabel" +
                 if (display.first == "BT" && address.isNotBlank()) ":$address" else "",

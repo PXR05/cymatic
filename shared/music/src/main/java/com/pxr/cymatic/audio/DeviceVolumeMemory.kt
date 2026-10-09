@@ -20,7 +20,6 @@ internal class DeviceVolumeMemory(private val audio: AudioManager) {
                 candidate = null
             } else {
                 val device = resolveActiveOutput(audio).volumeKey
-                // Let Android finish routing before restoring a newly connected output.
                 if (device != currentDevice && device != candidate) {
                     candidate = device
                 } else {

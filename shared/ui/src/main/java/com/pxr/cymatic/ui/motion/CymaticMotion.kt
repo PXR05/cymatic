@@ -19,8 +19,6 @@ object CymaticMotion {
     fun <T> enter(): TweenSpec<T> = tween(220, easing = LinearOutSlowInEasing)
     fun <T> exit(): TweenSpec<T> = tween(160, easing = FastOutLinearInEasing)
 
-    // Transparent destinations must not reveal the outgoing page's content.
-    // Its fade finishes before the next destination starts becoming visible.
     fun pageEnter(distancePx: Int = 0): EnterTransition =
         fadeIn(tween(PageEnterMillis, delayMillis = PageExitMillis, easing = LinearOutSlowInEasing)) +
             slideInHorizontally(

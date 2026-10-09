@@ -50,7 +50,6 @@ fun HiddenAppsScreen(
 
     val filteredApps = remember(allApps, hiddenPackages, searchQuery) {
         val query = searchQuery.trim()
-        // Sort hidden first, then alphabetically.
         val ordered = (allApps.filter { it.packageName in hiddenPackages }
             .sortedBy { it.label.lowercase() } +
             allApps.filter { it.packageName !in hiddenPackages }

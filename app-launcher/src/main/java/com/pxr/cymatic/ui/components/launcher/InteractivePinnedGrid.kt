@@ -120,7 +120,6 @@ fun InteractivePinnedGrid(
                     }?.key
 
                     if (pressedIndex == null || pressedIndex !in entries.indices) {
-                        // Empty space in grid -> check for long press to open wallpaper overview
                         val longPressOnEmpty = awaitLongPressOrCancellation(down.id)
                         if (longPressOnEmpty != null) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -150,8 +149,6 @@ fun InteractivePinnedGrid(
                             val dragAmount = change.position - change.previousPosition
                             totalDrag += dragAmount
                             if (totalDrag.getDistance() > touchSlop) {
-                                // Finger moved past touchSlop -> user is swiping up to app drawer or scrolling.
-                                // Do NOT consume, so parent VerticalPager receives the gesture.
                                 gestureAction = "SWIPE"
                                 break
                             }
@@ -252,7 +249,6 @@ fun InteractivePinnedGrid(
                                         onReorder(pressedIndex, targetIdx)
                                     }
                                 } else if (!hasMoved) {
-                                    // User held down and released in place -> open popup menu
                                     selectedItemIndexForMenu = pressedIndex
                                 }
                                 break

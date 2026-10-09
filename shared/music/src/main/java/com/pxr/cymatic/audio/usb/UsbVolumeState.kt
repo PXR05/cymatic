@@ -48,7 +48,6 @@ object UsbVolumeState {
     @Synchronized
     internal fun beginDevice(key: String) {
         if (deviceKey != key) {
-            // Configuration runs on the audio thread. Restore before hardware volume is applied.
             val remembered =
                 runBlocking(Dispatchers.IO) { DeviceVolumeSettings.get(key, direct = true) }
             deviceKey = key

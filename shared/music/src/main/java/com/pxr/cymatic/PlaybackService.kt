@@ -102,6 +102,8 @@ class PlaybackService : MediaLibraryService() {
                 .setRenderersFactory(UsbRenderersFactory(this, eqAudioProcessor))
                 .setMediaSourceFactory(DefaultMediaSourceFactory(this, UsbExtractorsFactory()))
                 .setAudioAttributes(audioAttributes, true)
+                // Initial route is Android output; UsbPlaybackCoordinator toggles both audio
+                // focus handling and becoming-noisy handling whenever the route changes.
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build()
@@ -166,6 +168,14 @@ class PlaybackService : MediaLibraryService() {
                     logPlayerState(
                         "playWhenReady changed: $playWhenReady, reason=${playWhenReadyReasonName(reason)}"
                     )
+                    if (
+                        !playWhenReady &&
+                            reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
+                    ) {
+                        OutputInfoState.event(
+                            "Playback auto-paused: ${playWhenReadyReasonName(reason)}"
+                        )
+                    }
                 }
 
                 override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) {
@@ -173,6 +183,13 @@ class PlaybackService : MediaLibraryService() {
                         "playback suppression changed: ${suppressionReasonName(playbackSuppressionReason)}",
                         warn = playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE,
                     )
+                    if (
+                        playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE
+                    ) {
+                        OutputInfoState.event(
+                            "Playback suppressed: ${suppressionReasonName(playbackSuppressionReason)}"
+                        )
+                    }
                 }
 
                 override fun onPlayerError(error: PlaybackException) {

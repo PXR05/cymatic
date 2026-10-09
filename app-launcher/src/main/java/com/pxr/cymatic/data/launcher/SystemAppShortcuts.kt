@@ -35,13 +35,10 @@ object SystemAppShortcuts {
     private fun openFirstAvailable(context: Context, intents: List<Intent>, unavailableMessage: Int) {
         for (intent in intents) {
             try {
-                // Launch directly: package visibility can hide handlers from resolveActivity().
                 context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 return
             } catch (_: ActivityNotFoundException) {
-                // Try the next standard intent.
             } catch (_: SecurityException) {
-                // A device or work-profile policy may restrict this handler.
             }
         }
         Toast.makeText(context, unavailableMessage, Toast.LENGTH_SHORT).show()

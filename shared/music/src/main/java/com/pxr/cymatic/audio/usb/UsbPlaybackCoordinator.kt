@@ -1,8 +1,6 @@
 package com.pxr.cymatic.audio.usb
 
 import android.content.Context
-import android.media.AudioFocusRequest
-import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.AudioAttributes
@@ -30,12 +28,11 @@ internal class UsbPlaybackCoordinator(
     private val fadingPlayer: FadingPlayer,
     private val audioAttributes: AudioAttributes,
 ) : Closeable {
-    private val audio = context.getSystemService(AudioManager::class.java)
     private val handler = Handler(Looper.getMainLooper())
     private val failedTracks = mutableMapOf<String, String>()
-    private var focus: AudioFocusRequest? = null
     private var pendingRoute: Runnable? = null
     private var switching = false
+    private var handleBecomingNoisy = true
     private var unavailableReason = "USB DAC unavailable"
     private val devices =
         UsbConnectionManager(
@@ -60,17 +57,7 @@ internal class UsbPlaybackCoordinator(
                 if (switching) return
                 if (playWhenReady && preferredRoute() != UsbPlaybackState.routeToUsb) {
                     refreshRoute()
-                } else if (playWhenReady && UsbPlaybackState.routeToUsb && !requestFocus()) {
-                    player.pause()
-                    UsbPlaybackState.update("Paused: audio focus unavailable")
-                } else if (!playWhenReady && player.playbackState == Player.STATE_IDLE) {
-                    releaseFocus()
                 }
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED)
-                    releaseFocus()
             }
 
             override fun onTracksChanged(tracks: Tracks) {
@@ -113,6 +100,7 @@ internal class UsbPlaybackCoordinator(
         player.addListener(listener)
         UsbPlaybackState.enabled = enabled
         devices.start(enabled)
+        applyBackgroundPlaybackPolicy(UsbPlaybackState.routeToUsb)
         refreshRoute()
     }
 
@@ -189,64 +177,39 @@ internal class UsbPlaybackCoordinator(
         try {
             fadingPlayer.cancelFade()
             player.stop()
-            releaseFocus()
             UsbPlaybackState.setActive(false)
             UsbPlaybackState.routeToUsb = direct
             player.setAudioAttributes(audioAttributes, !direct)
+            applyBackgroundPlaybackPolicy(direct)
             player.setPlaybackParameters(PlaybackParameters.DEFAULT)
             if (player.mediaItemCount > 0) {
                 player.seekTo(index.coerceIn(0, player.mediaItemCount - 1), position)
                 player.prepare()
-                player.playWhenReady = resume && (!direct || requestFocus())
-                if (resume && direct && !player.playWhenReady)
-                    UsbPlaybackState.update("Paused: audio focus unavailable")
+                player.playWhenReady = resume
             }
         } finally {
             switching = false
         }
     }
 
-    private fun requestFocus(): Boolean {
-        if (focus != null) return true
-        val request =
-            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(
-                    android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setWillPauseWhenDucked(true)
-                .setOnAudioFocusChangeListener(
-                    { change ->
-                        if (change < 0 && UsbPlaybackState.routeToUsb) {
-                            player.pause()
-                            player.stop()
-                            releaseFocus()
-                            UsbPlaybackState.update("Paused: audio focus lost")
-                        }
-                    },
-                    handler,
-                )
-                .build()
-        if (audio.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
-            return false
-        focus = request
-        return true
-    }
-
-    private fun releaseFocus() {
-        focus?.let(audio::abandonAudioFocusRequest)
-        focus = null
-    }
-
     override fun close() {
         pendingRoute?.let(handler::removeCallbacks)
         player.removeListener(listener)
         devices.close()
-        releaseFocus()
+        applyBackgroundPlaybackPolicy(false)
         UsbPlaybackState.setActive(false)
         UsbPlaybackState.routeToUsb = false
+    }
+
+    /**
+     * Direct USB bypasses AudioTrack, so ExoPlayer's automatic pauses for audio focus and for
+     * audio-becoming-noisy (speaker fallback on route changes, e.g. when another app comes to
+     * the foreground) must both stay off. Otherwise backgrounding the app pauses a healthy
+     * USB stream even though there is no speaker output to protect.
+     */
+    private fun applyBackgroundPlaybackPolicy(direct: Boolean) {
+        handleBecomingNoisy = !direct
+        player.setHandleAudioBecomingNoisy(!direct)
     }
 
     internal fun diagnosticSnapshot(): JSONObject =
@@ -263,8 +226,13 @@ internal class UsbPlaybackCoordinator(
             .put("deviceWaitingReason", if (devices.ready) "None" else unavailableReason)
             .put(
                 "audioFocus",
-                if (UsbPlaybackState.routeToUsb)
-                    if (focus != null) "Granted to direct USB" else "Not held"
-                else "Managed by ExoPlayer; grant not exposed",
+                if (UsbPlaybackState.routeToUsb) "Disabled for direct USB"
+                else "Managed by ExoPlayer",
+            )
+            .put(
+                "audioBecomingNoisy",
+                if (UsbPlaybackState.routeToUsb) "Ignored for direct USB"
+                else if (handleBecomingNoisy) "Pauses playback"
+                else "Ignored",
             )
 }

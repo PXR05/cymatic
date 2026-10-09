@@ -83,7 +83,6 @@ class MainActivity : MusicActivity() {
 
 
         CompositionLocalProvider(LocalScreenBackdrop provides { LibraryWallpaperBackdrop() }) {
-            // Destinations own their backgrounds. Keep the host stable during transitions.
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color.Transparent

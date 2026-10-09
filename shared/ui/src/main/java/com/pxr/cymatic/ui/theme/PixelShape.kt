@@ -39,7 +39,6 @@ class PixelCornerShape(
         val steps = (rPx / pPx).roundToInt().coerceAtLeast(1)
         val stepSize = rPx / steps
 
-        // Quantized circular insets from the outer bounding box edge
         // r = 0 is at y = 0 (top/bottom boundary), r = steps - 1 is at y = rPx (flush with straight edge)
         val insets = FloatArray(steps) { r ->
             val yAtBottom = (r + 1) * stepSize
@@ -51,7 +50,6 @@ class PixelCornerShape(
             ((rawInset / stepSize).roundToInt() * stepSize).coerceIn(0f, rPx)
         }
 
-        // Ensure insets are strictly non-increasing and the final row meets the straight wall (0)
         insets[steps - 1] = 0f
         for (i in steps - 2 downTo 0) {
             if (insets[i] < insets[i + 1]) {

@@ -17,8 +17,6 @@
 #include <vector>
 
 namespace {
-    // Queue 128 ms of output at both full and high speed. A 16 ms runway can
-    // drain during a scheduler delay even when the PCM ring is full.
     constexpr int packetCount = 64;
     constexpr int transferCount = 16;
     using Clock = std::chrono::steady_clock;
