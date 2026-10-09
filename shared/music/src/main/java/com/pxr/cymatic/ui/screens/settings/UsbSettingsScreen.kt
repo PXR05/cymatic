@@ -19,7 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.dsdSettingsKey
@@ -50,6 +54,21 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
     val wheel = LocalWheelNavigation.current
     val controller = LocalMediaController.current
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var batteryExempt by remember {
+        mutableStateOf(BackgroundPlaybackGuide.isExempt(context))
+    }
+    DisposableEffect(lifecycleOwner) {
+        batteryExempt = BackgroundPlaybackGuide.isExempt(context)
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                batteryExempt = BackgroundPlaybackGuide.isExempt(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     var details by remember { mutableStateOf<Pair<String, String>?>(null) }
     var dsdDevice by remember { mutableStateOf<Pair<String, String>?>(null) }
     val export =
@@ -86,6 +105,28 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                         checked = enabled,
                     ) {
                         scope.launch { UsbPlaybackSettings.setEnabled(!enabled) }
+                    }
+                )
+                add(
+                    NavigationItem(
+                        "Background playback",
+                        if (batteryExempt) "Unrestricted · keeps playing when hidden"
+                        else "Battery optimized · may stop when hidden",
+                        key = "background-playback",
+                    ) {
+                        if (batteryExempt) BackgroundPlaybackGuide.openBatterySettings(context)
+                        else BackgroundPlaybackGuide.requestExemption(context)
+                    }
+                )
+                add(
+                    NavigationItem(
+                        "Device steps",
+                        "${BackgroundPlaybackGuide.manufacturerLabel()} · keep Cymatic alive",
+                        key = "background-steps",
+                    ) {
+                        details =
+                            "Background playback · ${BackgroundPlaybackGuide.manufacturerLabel()}" to
+                                BackgroundPlaybackGuide.stepsText()
                     }
                 )
                 if (report?.devices.isNullOrEmpty()) {
