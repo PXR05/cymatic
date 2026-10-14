@@ -33,6 +33,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                     NavigationItem(
                         label = "$marker${index + 1}. $title",
                         subLabel = metadata.artist?.toString(),
+                        subLabelMaxLines = 1,
                         showIndicator = false,
                         onClick = {
                             controller?.seekTo(entry.mediaItemIndex, 0L)

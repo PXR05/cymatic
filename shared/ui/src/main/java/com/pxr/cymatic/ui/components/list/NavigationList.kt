@@ -34,6 +34,7 @@ data class NavigationItem(
     val key: Any? = null,
     val checked: Boolean? = null,
     val showIndicator: Boolean = true,
+    val subLabelMaxLines: Int = 2,
     val onLongClick: () -> Unit = {},
     val onClick: () -> Unit = {},
 )
@@ -51,7 +52,6 @@ fun NavigationList(
             items.size,
             listState,
             onSelect = { if (items[it].enabled) items[it].onClick() },
-            selectableIndices = items.indices.filter { items[it].enabled },
             onContext = { if (items[it].enabled) items[it].onLongClick() },
         )
     LazyColumn(state = listState, modifier = modifier) {
@@ -63,7 +63,7 @@ fun NavigationList(
             ListItem(
                 label = item.label,
                 subLabel = item.subLabel,
-                subLabelMaxLines = 2,
+                subLabelMaxLines = item.subLabelMaxLines,
                 icon = item.icon,
                 trailing =
                     if (item.enabled && item.showIndicator && item.checked == null) ">" else null,
@@ -120,7 +120,7 @@ fun NavigationList(
                     ),
                 onClick = { if (item.enabled) item.onClick() },
                 onLongClick = { if (item.enabled) item.onLongClick() },
-                isActive = item.enabled && index == selectedIndex,
+                isActive = index == selectedIndex,
                 enabled = item.enabled,
                 modifier =
                     Modifier.semantics {
