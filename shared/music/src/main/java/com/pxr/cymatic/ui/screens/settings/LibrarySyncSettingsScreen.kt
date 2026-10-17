@@ -97,30 +97,10 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
                     )
                 else
                     buildList {
-                        if (state.running) {
-                            add(
-                                SyncSetting(
-                                    if (state.progress == SyncProgress.Cancelling) "Stopping…"
-                                    else "Stop sync",
-                                    state.statusLabel,
-                                    enabled = state.progress != SyncProgress.Cancelling,
-                                    onClick = model::cancel,
-                                )
-                            )
-                        } else {
-                            add(
-                                SyncSetting(
-                                    "Sync now",
-                                    "Download ${state.musicLabel.lowercase()}",
-                                    enabled = state.canEdit,
-                                    onClick = model::startSync,
-                                )
-                            )
-                        }
                         add(
                             SyncSetting(
                                 "Status",
-                                state.statusLabel,
+                                state.statusSummary,
                                 enabled = !state.loading,
                                 onClick = { page = SyncPage.STATUS },
                             )
@@ -205,7 +185,13 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
                 model::setNetwork,
                 model::setInterval,
             )
-        SyncPage.STATUS -> SyncStatusPage(state, { page = null })
+        SyncPage.STATUS ->
+            SyncStatusPage(
+                state = state,
+                onDismiss = { page = null },
+                onStart = model::startSync,
+                onCancel = model::cancel,
+            )
         SyncPage.HELP -> SyncHelpPage { page = null }
         null -> Unit
     }

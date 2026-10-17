@@ -98,6 +98,31 @@ internal data class LibrarySyncSettingsState(
                         else -> lastResult
                     }
             }
+
+    val statusSummary: String
+        get() =
+            when (val current = progress) {
+                is SyncProgress.Preparing ->
+                    if (refreshingCatalog) "Connecting…" else "Preparing"
+                is SyncProgress.Downloading ->
+                    "Downloading (${current.current}/${current.total})"
+                SyncProgress.Cancelling -> "Stopping…"
+                is SyncProgress.Failed -> "Needs attention"
+                SyncProgress.Cancelled -> "Stopped"
+                else ->
+                    when {
+                        starting -> "Starting…"
+                        nextStep != null -> "Setup needed"
+                        lastResult.startsWith("Synced") || lastResult.startsWith("Playlist") ->
+                            "Synced"
+                        lastResult.contains("fail", ignoreCase = true) ||
+                            lastResult.contains("incomplete", ignoreCase = true) ->
+                            "Needs attention"
+                        lastResult.contains("stopped", ignoreCase = true) -> "Stopped"
+                        lastTime > 0 -> "Synced"
+                        else -> "Idle"
+                    }
+            }
 }
 
 internal fun syncHostLabel(url: String): String =

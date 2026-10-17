@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -146,42 +145,130 @@ internal fun SyncErrorPage(error: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-internal fun SyncStatusPage(state: LibrarySyncSettingsState, onDismiss: () -> Unit) {
+internal fun SyncStatusPage(
+    state: LibrarySyncSettingsState,
+    onDismiss: () -> Unit,
+    onStart: () -> Unit,
+    onCancel: () -> Unit,
+) {
     val context = LocalContext.current
-    SyncReadingPage("Sync status", onDismiss) {
-        Text(state.statusLabel)
-        when (val progress = state.progress) {
-            is SyncProgress.Preparing -> {
-                Text(progress.message)
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+    val isRunning = state.running
+    val isCancelling = state.progress is SyncProgress.Cancelling
+
+    val items = buildList {
+        add(
+            if (isRunning) {
+                NavigationItem(
+                    label = if (isCancelling) "Stopping…" else "Stop sync",
+                    subLabel = state.statusLabel,
+                    enabled = !isCancelling,
+                    showIndicator = true,
+                    key = "sync_action",
+                    onClick = onCancel,
+                )
+            } else {
+                NavigationItem(
+                    label = "Sync now",
+                    subLabel =
+                        if (state.canEdit) "Download ${state.musicLabel.lowercase()}"
+                        else "Sync not configured",
+                    enabled = state.canEdit,
+                    showIndicator = true,
+                    key = "sync_action",
+                    onClick = onStart,
+                )
             }
-            is SyncProgress.Downloading -> {
-                Text(progress.title)
-                Text("${progress.current} of ${progress.total} tracks")
-                Text(syncBytesLabel(progress.bytesDownloaded, progress.totalBytes))
-                if (progress.totalBytes > 0)
-                    LinearProgressIndicator(
-                        progress = {
-                            (progress.bytesDownloaded.toFloat() / progress.totalBytes).coerceIn(
-                                0f,
-                                1f,
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                else LinearProgressIndicator(Modifier.fillMaxWidth())
-            }
-            is SyncProgress.Failed -> Text(progress.message)
-            SyncProgress.Cancelled ->
-                Text("Finished files are kept. The partial download was removed.")
-            else -> Unit
-        }
-        state.message?.let { Text(it) }
-        if (state.lastTime > 0)
-            Text(
-                "Last run ${DateFormat.getMediumDateFormat(context).format(Date(state.lastTime))} " +
-                    DateFormat.getTimeFormat(context).format(Date(state.lastTime))
+        )
+
+        add(
+            NavigationItem(
+                label = "Status",
+                subLabel = state.statusSummary,
+                enabled = false,
+                showIndicator = false,
+                key = "status",
             )
+        )
+
+        val progressText = when (val progress = state.progress) {
+            is SyncProgress.Downloading -> {
+                val fraction =
+                    if (progress.totalBytes > 0) {
+                        (progress.bytesDownloaded.toFloat() / progress.totalBytes).coerceIn(0f, 1f)
+                    } else if (progress.total > 0) {
+                        (progress.current.toFloat() / progress.total).coerceIn(0f, 1f)
+                    } else 0f
+                val percent = (fraction * 100).toInt()
+                buildString {
+                    append("${progress.current} of ${progress.total} tracks ($percent%)")
+                    if (progress.totalBytes > 0 || progress.bytesDownloaded > 0) {
+                        append(" · ")
+                        append(syncBytesLabel(progress.bytesDownloaded, progress.totalBytes))
+                    }
+                    if (progress.title.isNotBlank()) {
+                        append("\n")
+                        append(progress.title)
+                    }
+                }
+            }
+            is SyncProgress.Preparing -> progress.message
+            is SyncProgress.Cancelling -> "Stopping sync and cleaning up temporary files…"
+            else -> if (state.lastTime > 0) "Completed" else "No active transfer"
+        }
+        add(
+            NavigationItem(
+                label = "Progress",
+                subLabel = progressText,
+                subLabelMaxLines = 4,
+                enabled = false,
+                showIndicator = false,
+                key = "progress",
+            )
+        )
+
+        val errorMsg = (state.progress as? SyncProgress.Failed)?.message ?: state.message
+        val lastRunText =
+            if (state.lastTime > 0) {
+                DateFormat.getMediumDateFormat(context).format(Date(state.lastTime)) + " " +
+                    DateFormat.getTimeFormat(context).format(Date(state.lastTime))
+            } else {
+                null
+            }
+
+        val logText = buildString {
+            if (!errorMsg.isNullOrBlank()) {
+                append("Error: ")
+                append(errorMsg)
+                append("\n")
+            }
+            if (lastRunText != null) {
+                append(lastRunText)
+                if (state.lastResult.isNotBlank() && state.lastResult != "Not synced yet") {
+                    append("\n")
+                    append(state.lastResult)
+                }
+            } else {
+                append(state.lastResult)
+            }
+        }.ifBlank { "No logs recorded" }
+
+        add(
+            NavigationItem(
+                label = "Logs",
+                subLabel = logText,
+                subLabelMaxLines = 6,
+                enabled = false,
+                showIndicator = false,
+                key = "logs",
+            )
+        )
+    }
+
+    SyncSettingsPage("Sync status", onDismiss) {
+        NavigationList(
+            items = items,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
