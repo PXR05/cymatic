@@ -35,35 +35,10 @@ fun ScreenHeader(
     if (compact) {
         WheelScreenHeader(
             modifier = modifier,
-            onBackClick = onBackClick,
+            onBackClick = onBackClick ?: onTitleClick,
             onMenuLongClick = onMenuLongClick,
             actions = actions
-        ) {
-            val titleModifier = when {
-                onTitleClick != null && onMenuLongClick != null -> {
-                    Modifier.combinedClickable(
-                        onClick = onTitleClick,
-                        onLongClick = onMenuLongClick
-                    )
-                }
-                onTitleClick != null -> Modifier.clickable(onClick = onTitleClick)
-                onMenuLongClick != null -> Modifier.combinedClickable(
-                    onClick = onMenuLongClick,
-                    onLongClick = onMenuLongClick
-                )
-                else -> Modifier
-            }
-            Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = titleModifier
-            )
-        }
+        )
         return
     }
 

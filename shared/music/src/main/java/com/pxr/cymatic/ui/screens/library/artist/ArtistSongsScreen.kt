@@ -70,7 +70,7 @@ fun ArtistSongsScreen(
     BaseScreen(
         title = artistName,
         onBackClick = { navController.popBackStack() },
-        onTitleClick = { showHeaderMenu = true },
+        onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
         showWallpaperBackdrop = true
     ) {

@@ -63,7 +63,6 @@ fun ArtistsScreen(
     BaseScreen(
         title = "Artists",
         onBackClick = { navController.popBackStack() },
-        onTitleClick = { showPageMenu = true },
         onMenuLongClick = { showPageMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,

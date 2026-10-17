@@ -62,7 +62,6 @@ fun AllSongsScreen(
     BaseScreen(
         title = "All Songs",
         onBackClick = { navController.popBackStack() },
-        onTitleClick = { showHeaderMenu = true },
         onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,

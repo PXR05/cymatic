@@ -63,7 +63,6 @@ fun AlbumsScreen(
     BaseScreen(
         title = "Albums",
         onBackClick = { navController.popBackStack() },
-        onTitleClick = { showPageMenu = true },
         onMenuLongClick = { showPageMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,

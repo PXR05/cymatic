@@ -63,16 +63,20 @@ internal fun WheelSearchableScreenHeader(
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
         WheelScreenHeader(
             modifier = modifier,
-            onBackClick = closeSearch,
-            onMenuLongClick = onMenuLongClick,
+            onBackClick = null,
+            onMenuLongClick = null,
             actions = {
-                if (searchQuery.isNotEmpty()) {
-                    Box(
-                        Modifier.size(48.dp).clickable { onSearchQueryChange("") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("X", fontSize = 16.sp)
-                    }
+                Box(
+                    Modifier.size(40.dp).clickable {
+                        if (searchQuery.isNotEmpty()) {
+                            onSearchQueryChange("")
+                        } else {
+                            closeSearch()
+                        }
+                    },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("X", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         ) {
@@ -81,7 +85,7 @@ internal fun WheelSearchableScreenHeader(
                 onValueChange = onSearchQueryChange,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 ),
                 singleLine = true,
@@ -92,7 +96,7 @@ internal fun WheelSearchableScreenHeader(
                     if (searchQuery.isEmpty()) {
                         Text(
                             "Search...",
-                            fontSize = 16.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }

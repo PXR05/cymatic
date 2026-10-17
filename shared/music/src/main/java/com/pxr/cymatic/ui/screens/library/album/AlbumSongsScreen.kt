@@ -75,7 +75,7 @@ fun AlbumSongsScreen(
     BaseScreen(
         title = albumName,
         onBackClick = { navController.popBackStack() },
-        onTitleClick = { showHeaderMenu = true },
+        onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
         showWallpaperBackdrop = true
     ) {
