@@ -44,17 +44,27 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
-fun WheelSettingsOverlay(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
+fun WheelSettingsOverlay(
+    title: String,
+    onDismiss: () -> Unit,
+    onMenuLongClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     val wheel = LocalWheelNavigation.current ?: return
     val currentTitle by rememberUpdatedState(title)
     val dismiss by rememberUpdatedState(onDismiss)
+    val currentMenuLongClick by rememberUpdatedState(onMenuLongClick)
     val body by rememberUpdatedState(content)
     val overlay =
         remember(wheel) {
             WheelOverlay(
                 {
                     BackHandler(enabled = wheel.overlay === LocalWheelOverlay.current) { dismiss() }
-                    BaseScreen(title = currentTitle, onBackClick = { dismiss() }) { body() }
+                    BaseScreen(
+                        title = currentTitle,
+                        onBackClick = { dismiss() },
+                        onMenuLongClick = currentMenuLongClick,
+                    ) { body() }
                 },
                 { dismiss() },
             )

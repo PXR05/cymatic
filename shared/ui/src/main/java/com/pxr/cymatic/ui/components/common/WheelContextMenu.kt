@@ -11,17 +11,27 @@ import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 
 @Composable
-fun WheelContextMenu(title: String, items: List<NavigationItem>, onDismiss: () -> Unit) {
+fun WheelContextMenu(
+    title: String,
+    items: List<NavigationItem>,
+    onDismiss: () -> Unit,
+    onMenuLongClick: (() -> Unit)? = null,
+) {
     val wheel = LocalWheelNavigation.current ?: return
     val currentTitle by rememberUpdatedState(title)
     val currentItems by rememberUpdatedState(items)
     val dismiss by rememberUpdatedState(onDismiss)
+    val currentMenuLongClick by rememberUpdatedState(onMenuLongClick)
     val overlay =
         remember(wheel) {
             WheelOverlay(
                 content = {
                     BackHandler(enabled = wheel.overlay === LocalWheelOverlay.current) { dismiss() }
-                    BaseScreen(title = currentTitle, onBackClick = { dismiss() }) {
+                    BaseScreen(
+                        title = currentTitle,
+                        onBackClick = { dismiss() },
+                        onMenuLongClick = currentMenuLongClick,
+                    ) {
                         NavigationList(
                             currentItems + NavigationItem("Cancel", onClick = { dismiss() })
                         )

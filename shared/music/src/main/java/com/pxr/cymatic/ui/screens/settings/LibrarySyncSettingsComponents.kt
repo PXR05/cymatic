@@ -92,7 +92,7 @@ internal fun SyncSettingsPage(
     content: @Composable () -> Unit,
 ) {
     if (LocalWheelNavigation.current != null) {
-        WheelSettingsOverlay(title, onDismiss, content)
+        WheelSettingsOverlay(title = title, onDismiss = onDismiss, content = content)
     } else {
         BackHandler(onBack = onDismiss)
         BaseScreen(title, onDismiss) { content() }

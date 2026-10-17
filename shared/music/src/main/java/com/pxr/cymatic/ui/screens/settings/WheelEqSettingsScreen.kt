@@ -41,17 +41,24 @@ internal fun WheelEqSettingsScreen(
     preset: EqPreset,
     viewModel: EqViewModel,
     onImport: () -> Unit,
-    onExport: () -> Unit,
+    onExport: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val nav = LocalNavController.current
-    var menu by remember { mutableStateOf<String?>(null) }
+    var showPresets by remember { mutableStateOf(false) }
+    var showPresetsPageMenu by remember { mutableStateOf(false) }
+    var selectedPresetForActions by remember { mutableStateOf<String?>(null) }
+    var presetToRename by remember { mutableStateOf<String?>(null) }
+    var presetToDelete by remember { mutableStateOf<String?>(null) }
+    var showNewPresetDialog by remember { mutableStateOf(false) }
+
     var bandIndex by remember { mutableIntStateOf(-1) }
+    var showFilterTypeMenu by remember { mutableStateOf(false) }
     var number by remember { mutableStateOf<EqNumberEdit?>(null) }
-    var nameAction by remember { mutableStateOf<String?>(null) }
-    var delete by remember { mutableStateOf(false) }
     var graph by remember { mutableStateOf(false) }
+
     fun db(value: Float) = String.format(Locale.US, "%.1f dB", value)
+
     BaseScreen(title = "Equalizer", onBackClick = { nav.popBackStack() }, modifier = modifier) {
         NavigationList(
             buildList {
@@ -64,8 +71,7 @@ internal fun WheelEqSettingsScreen(
                         viewModel.setEnabled(!state.eqEnabled)
                     }
                 )
-                add(NavigationItem("Preset", state.selectedPresetName) { menu = "Presets" })
-                add(NavigationItem("Preset actions") { menu = "Preset actions" })
+                add(NavigationItem("Preset", state.selectedPresetName) { showPresets = true })
                 add(NavigationItem("Response graph") { graph = true })
                 add(
                     NavigationItem("Preamp", db(preset.preamp)) {
@@ -101,6 +107,105 @@ internal fun WheelEqSettingsScreen(
             }
         )
     }
+
+    if (showPresets) {
+        WheelSettingsOverlay(
+            title = "Presets",
+            onDismiss = { showPresets = false },
+            onMenuLongClick = { showPresetsPageMenu = true },
+        ) {
+            NavigationList(
+                state.presets.map { choice ->
+                    NavigationItem(
+                        label = choice.name,
+                        subLabel = if (choice.name == state.selectedPresetName) "Selected" else null,
+                        checked = choice.name == state.selectedPresetName,
+                        onClick = {
+                            viewModel.selectPreset(choice.name)
+                            showPresets = false
+                        },
+                        onLongClick = {
+                            selectedPresetForActions = choice.name
+                        },
+                    )
+                }
+            )
+        }
+    }
+
+    selectedPresetForActions?.let { presetName ->
+        WheelContextMenu(
+            title = presetName,
+            items = listOf(
+                NavigationItem("Rename") {
+                    selectedPresetForActions = null
+                    presetToRename = presetName
+                },
+                NavigationItem("Delete", enabled = state.presets.size > 1) {
+                    selectedPresetForActions = null
+                    presetToDelete = presetName
+                },
+                NavigationItem("Export") {
+                    selectedPresetForActions = null
+                    onExport(presetName)
+                },
+            ),
+            onDismiss = { selectedPresetForActions = null },
+        )
+    }
+
+    if (showPresetsPageMenu) {
+        WheelContextMenu(
+            title = "Presets",
+            items = listOf(
+                NavigationItem("New preset") {
+                    showPresetsPageMenu = false
+                    showNewPresetDialog = true
+                },
+                NavigationItem("Import") {
+                    showPresetsPageMenu = false
+                    onImport()
+                },
+            ),
+            onDismiss = { showPresetsPageMenu = false },
+        )
+    }
+
+    if (showNewPresetDialog) {
+        WheelTextEditor(
+            title = "New preset",
+            value = "",
+            onSave = { name ->
+                viewModel.addPreset(name.trim())
+            },
+            onDismiss = { showNewPresetDialog = false },
+        )
+    }
+
+    presetToRename?.let { target ->
+        WheelTextEditor(
+            title = "Rename preset",
+            value = target,
+            onSave = { newName ->
+                viewModel.renamePreset(target, newName.trim())
+            },
+            onDismiss = { presetToRename = null },
+        )
+    }
+
+    presetToDelete?.let { target ->
+        WheelContextMenu(
+            title = "Delete preset?",
+            items = listOf(
+                NavigationItem("Delete $target") {
+                    viewModel.deletePreset(target)
+                    presetToDelete = null
+                }
+            ),
+            onDismiss = { presetToDelete = null },
+        )
+    }
+
     if (bandIndex in preset.bands.indices) {
         val index = bandIndex
         val band = preset.bands[index]
@@ -114,7 +219,7 @@ internal fun WheelEqSettingsScreen(
                     ) {
                         viewModel.updateBand(index, band.copy(enabled = !band.enabled))
                     },
-                    NavigationItem("Type", band.type.displayName) { menu = "Filter type" },
+                    NavigationItem("Type", band.type.displayName) { showFilterTypeMenu = true },
                     NavigationItem("Frequency", "${band.frequency.toInt()} Hz") {
                         number =
                             EqNumberEdit(
@@ -161,81 +266,25 @@ internal fun WheelEqSettingsScreen(
             )
         }
     }
-    menu?.let { title ->
-        val items =
-            when (title) {
-                "Presets" ->
-                    state.presets.map { choice ->
-                        NavigationItem(
-                            choice.name,
-                            if (choice.name == state.selectedPresetName) "Selected" else null,
-                            checked = choice.name == state.selectedPresetName,
-                        ) {
-                            viewModel.selectPreset(choice.name)
-                            menu = null
-                        }
-                    }
-                "Filter type" ->
-                    FilterType.entries.map { type ->
-                        NavigationItem(
-                            type.displayName,
-                            checked = preset.bands.getOrNull(bandIndex)?.type == type,
-                        ) {
-                            preset.bands.getOrNull(bandIndex)?.let {
-                                viewModel.updateBand(bandIndex, it.copy(type = type))
-                            }
-                            menu = null
-                        }
-                    }
-                else ->
-                    listOf(
-                        NavigationItem("New preset") {
-                            menu = null
-                            nameAction = "New preset"
-                        },
-                        NavigationItem("Rename preset") {
-                            menu = null
-                            nameAction = "Rename preset"
-                        },
-                        NavigationItem("Delete preset", enabled = state.presets.size > 1) {
-                            menu = null
-                            delete = true
-                        },
-                        NavigationItem("Import") {
-                            menu = null
-                            onImport()
-                        },
-                        NavigationItem("Export") {
-                            menu = null
-                            onExport()
-                        },
-                    )
-            }
-        WheelContextMenu(title, items, { menu = null })
-    }
-    nameAction?.let { action ->
-        WheelTextEditor(
-            action,
-            if (action == "Rename preset") state.selectedPresetName else "",
-            onSave = {
-                if (action == "Rename preset")
-                    viewModel.renamePreset(state.selectedPresetName, it.trim())
-                else viewModel.addPreset(it.trim())
-            },
-            onDismiss = { nameAction = null },
-        )
-    }
-    if (delete)
+
+    if (showFilterTypeMenu) {
         WheelContextMenu(
-            "Delete preset?",
-            listOf(
-                NavigationItem("Delete ${state.selectedPresetName}") {
-                    viewModel.deletePreset(state.selectedPresetName)
-                    delete = false
+            title = "Filter type",
+            items = FilterType.entries.map { type ->
+                NavigationItem(
+                    type.displayName,
+                    checked = preset.bands.getOrNull(bandIndex)?.type == type,
+                ) {
+                    preset.bands.getOrNull(bandIndex)?.let {
+                        viewModel.updateBand(bandIndex, it.copy(type = type))
+                    }
+                    showFilterTypeMenu = false
                 }
-            ),
-            { delete = false },
+            },
+            onDismiss = { showFilterTypeMenu = false },
         )
+    }
+
     number?.let { edit ->
         WheelNumberEditor(
             edit.title,
@@ -247,8 +296,10 @@ internal fun WheelEqSettingsScreen(
             onDismiss = { number = null },
         )
     }
-    if (graph)
+
+    if (graph) {
         WheelReadingPage("Response graph", { graph = false }) {
             EqBodePlot(preset, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
         }
+    }
 }

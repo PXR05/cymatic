@@ -76,13 +76,16 @@ fun EQSettingsScreen(
 
     var dialogInput by remember { mutableStateOf("") }
     var expandedBandIndex by remember { mutableIntStateOf(-1) }
+    var presetToExport by remember { mutableStateOf<String?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                viewModel.exportPreset(context, state.selectedPresetName, uri)
+                val presetName = presetToExport ?: state.selectedPresetName
+                viewModel.exportPreset(context, presetName, uri)
+                presetToExport = null
             }
         }
     }
@@ -101,20 +104,26 @@ fun EQSettingsScreen(
     }
 
     if (LocalWheelNavigation.current != null) {
-        WheelEqSettingsScreen(state, activePreset, viewModel,
+        WheelEqSettingsScreen(
+            state = state,
+            preset = activePreset,
+            viewModel = viewModel,
             onImport = {
                 importLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "*/*"
                 })
             },
-            onExport = {
+            onExport = { presetName ->
+                presetToExport = presetName
                 exportLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TITLE, "${state.selectedPresetName}.txt")
+                    putExtra(Intent.EXTRA_TITLE, "$presetName.txt")
                 })
-            }, modifier = modifier)
+            },
+            modifier = modifier
+        )
         return
     }
 
@@ -319,6 +328,7 @@ fun EQSettingsScreen(
                             },
                             onClick = {
                                 showPresetMenu = false
+                                presetToExport = state.selectedPresetName
                                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                                     addCategory(Intent.CATEGORY_OPENABLE)
                                     type = "text/plain"
