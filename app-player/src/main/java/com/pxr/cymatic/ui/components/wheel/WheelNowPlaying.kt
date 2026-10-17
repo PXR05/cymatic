@@ -46,6 +46,8 @@ internal fun WheelNowPlaying(
     coverVisible: Boolean,
     onToggleCover: () -> Unit,
     onSeek: (Long) -> Unit,
+    onSeekStart: () -> Unit = {},
+    onSeekEnd: () -> Unit = {},
 ) {
     val metadata =
         playback.metadata ?: LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
@@ -159,7 +161,7 @@ internal fun WheelNowPlaying(
                     )
                 }
                 Spacer(Modifier.height(gap / 2))
-                WheelPlaybackMeters(playback, volume, maxVolume, gap, onSeek)
+                WheelPlaybackMeters(playback, volume, maxVolume, gap, onSeek, onSeekStart, onSeekEnd)
             }
         }
     }

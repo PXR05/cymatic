@@ -40,7 +40,7 @@ internal class WheelPlayerControls(
                 state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
                 else -> selectItem()
             }
-            WheelButton.PLAY -> if (state.isNowPlaying) togglePlay() else state.nowPlaying()
+            WheelButton.PLAY -> if (state.controlsPlayback) togglePlay() else state.nowPlaying()
         }
     }
 
@@ -55,12 +55,18 @@ internal class WheelPlayerControls(
                 state.wheel.actions?.onContext?.invoke()
             }
             WheelButton.PREVIOUS, WheelButton.NEXT -> if (state.controlsPlayback) {
-                seekBy(if (button == WheelButton.NEXT) 3000L else -3000L)
+                state.seekBy(controller, durationMs, if (button == WheelButton.NEXT) 3000L else -3000L)
             }
             WheelButton.PLAY -> {
                 controller?.stop()
                 state.showBrowser()
             }
+        }
+    }
+
+    fun endHold(button: WheelButton) {
+        if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
+            state.endSeek(controller)
         }
     }
 
@@ -76,12 +82,6 @@ internal class WheelPlayerControls(
                 it.prepare()
                 it.play()
             }
-        }
-    }
-
-    private fun seekBy(deltaMs: Long) {
-        controller?.let {
-            it.seekTo((it.currentPosition + deltaMs).coerceIn(0L, durationMs ?: Long.MAX_VALUE))
         }
     }
 }

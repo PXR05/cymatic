@@ -45,7 +45,7 @@ fun WheelPlayer() {
     val wheel = remember { WheelNavigation() }
     val state =
         rememberWheelPlayerState(LocalNavController.current, wheel, settings.coverVisibleByDefault)
-    val volume = rememberMusicVolumeState(poll = state.isNowPlaying)
+    val volume = rememberMusicVolumeState(poll = state.controlsPlayback)
     val controls = WheelPlayerControls(state, controller, volume, playback.durationMs)
 
     SideEffect {
@@ -59,7 +59,7 @@ fun WheelPlayer() {
             LocalInterfaceSettings provides settings,
             LocalScreenHeaderStatus provides { BatteryIndicator(battery) },
         ) {
-            WheelPlayerLayout(controls, overlay = { WheelOverlays(wheel) }) {
+            WheelPlayerLayout(controls, overlay = {}) {
                 PlayerScreen(
                     state = state,
                     playback = playback,
@@ -67,7 +67,7 @@ fun WheelPlayer() {
                     maxVolume = volume.maxVolume,
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
-                if (!state.isNowPlaying) {
+                if (!state.controlsPlayback) {
                     WheelPlaybackBar(
                         title = controller?.currentMediaItem?.mediaMetadata?.title?.toString(),
                         isPlaying = playback.isPlaying,
@@ -102,12 +102,15 @@ private fun PlayerScreen(
                     coverVisible = state.coverVisible,
                     onToggleCover = state::toggleCover,
                     onSeek = { controller?.seekTo(it) },
+                    onSeekStart = { state.beginSeek(controller) },
+                    onSeekEnd = { state.endSeek(controller) },
                 )
             WheelPanel.QUICK_SETTINGS,
             WheelPanel.TRACK_ACTIONS -> {
                 WheelPlayerMenu(state, playback, controller)
             }
         }
+        WheelOverlays(state.wheel)
     }
 }
 

@@ -91,26 +91,15 @@ fun ScrollingTrackText(
                 style = style,
                 maxLines = 1,
                 softWrap = false,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            val ellipsis =
-                remember(style, density) {
-                    measurer.measure("\u2026", style = style, softWrap = false, maxLines = 1)
-                }
             Canvas(Modifier.fillMaxWidth().height(height)) {
                 val position = offset.value.coerceIn(0f, distance)
-                val leading = position > 0f
-                val trailing = position < distance
-                val ellipsisWidth = ellipsis.size.width.toFloat().coerceAtMost(size.width / 2)
-                val left = if (leading) ellipsisWidth else 0f
-                val right = size.width - if (trailing) ellipsisWidth else 0f
-                clipRect(left = left, right = right) {
+                clipRect {
                     drawText(layout, topLeft = Offset(-position, 0f))
                 }
-                if (leading) drawText(ellipsis, topLeft = Offset.Zero)
-                if (trailing) drawText(ellipsis, topLeft = Offset(size.width - ellipsisWidth, 0f))
             }
         }
     }

@@ -134,6 +134,7 @@ private fun PlayerWheel(modifier: Modifier, diameter: Dp, controls: WheelPlayerC
             controls::rotate,
             controls::press,
             controls::hold,
+            onHoldEnd = controls::endHold,
             sensitivity = sensitivity,
             movementPauseMs = settings.gesturePauseMs,
             hapticsEnabled = settings.hapticsEnabled,

@@ -104,3 +104,50 @@ suspend fun SettingsStore.setStandbyTimeoutMs(value: Long) {
         it[StandbyTimeoutKey] = if (value == 0L) 0L else value.coerceIn(10_000L, 600_000L)
     }
 }
+
+data class WheelPageState(
+    val panel: String = "BROWSER",
+    val previousPanel: String = "BROWSER",
+    val browserRoute: String = "wheel_music",
+    val browserRoot: String = "wheel_music",
+    val backStack: List<String> = listOf("home"),
+)
+
+private val WheelPanelKey = stringPreferencesKey("WHEEL_LAST_PANEL")
+private val WheelPreviousPanelKey = stringPreferencesKey("WHEEL_LAST_PREVIOUS_PANEL")
+private val WheelBrowserRouteKey = stringPreferencesKey("WHEEL_LAST_BROWSER_ROUTE")
+private val WheelBrowserRootKey = stringPreferencesKey("WHEEL_LAST_BROWSER_ROOT")
+private val WheelBackStackKey = stringPreferencesKey("WHEEL_LAST_BACK_STACK")
+
+private fun readWheelPageState(prefs: Preferences?): WheelPageState? {
+    val p = prefs ?: return null
+    val panel = p[WheelPanelKey] ?: return null
+    val previousPanel = p[WheelPreviousPanelKey] ?: "BROWSER"
+    val browserRoute = p[WheelBrowserRouteKey] ?: "wheel_music"
+    val browserRoot = p[WheelBrowserRootKey] ?: "wheel_music"
+    val backStack =
+        p[WheelBackStackKey]?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+    return WheelPageState(
+        panel = panel,
+        previousPanel = previousPanel,
+        browserRoute = browserRoute,
+        browserRoot = browserRoot,
+        backStack = if (backStack.isEmpty()) listOf("home") else backStack,
+    )
+}
+
+val SettingsStore.wheelPageStateFlow: Flow<WheelPageState?>
+    get() = store.data.map(::readWheelPageState)
+
+val SettingsStore.currentWheelPageState: WheelPageState?
+    get() = readWheelPageState(currentPreferences)
+
+suspend fun SettingsStore.setWheelPageState(state: WheelPageState) {
+    store.edit {
+        it[WheelPanelKey] = state.panel
+        it[WheelPreviousPanelKey] = state.previousPanel
+        it[WheelBrowserRouteKey] = state.browserRoute
+        it[WheelBrowserRootKey] = state.browserRoot
+        it[WheelBackStackKey] = state.backStack.joinToString("\n")
+    }
+}

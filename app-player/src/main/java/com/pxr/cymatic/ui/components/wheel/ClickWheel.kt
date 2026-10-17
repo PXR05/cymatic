@@ -60,6 +60,7 @@ internal fun ClickWheel(
     onRotate: (Int) -> Unit,
     onPress: (WheelButton) -> Unit,
     onHold: (WheelButton) -> Unit,
+    onHoldEnd: (WheelButton) -> Unit = {},
     sensitivity: Float = 1f,
     movementPauseMs: Long = 220L,
     hapticsEnabled: Boolean = true,
@@ -69,6 +70,7 @@ internal fun ClickWheel(
     val rotate by rememberUpdatedState(onRotate)
     val press by rememberUpdatedState(onPress)
     val hold by rememberUpdatedState(onHold)
+    val holdEnd by rememberUpdatedState(onHoldEnd)
     val currentSensitivity by rememberUpdatedState(sensitivity)
     val currentPauseMs by rememberUpdatedState(movementPauseMs)
     val feedbackEnabled by rememberUpdatedState(hapticsEnabled)
@@ -185,6 +187,7 @@ internal fun ClickWheel(
                             }
                         } finally {
                             holdJob.cancel()
+                            if (held) holdEnd(button)
                             pressed = null
                         }
                     }
@@ -225,6 +228,7 @@ internal fun ClickWheel(
                         }
                         onLongClick {
                             hold(button)
+                            holdEnd(button)
                             true
                         }
                     }

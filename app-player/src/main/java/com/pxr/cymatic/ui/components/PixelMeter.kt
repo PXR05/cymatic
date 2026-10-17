@@ -31,8 +31,12 @@ internal fun PixelMeter(
     fraction: Float,
     description: String,
     modifier: Modifier = Modifier,
+    onDragStart: (() -> Unit)? = null,
+    onDragEnd: (() -> Unit)? = null,
     onFractionChange: ((Float) -> Unit)? = null
 ) {
+    val onStart by rememberUpdatedState(onDragStart)
+    val onEnd by rememberUpdatedState(onDragEnd)
     val onChange by rememberUpdatedState(onFractionChange)
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     val progress = (dragFraction ?: fraction).coerceIn(0f, 1f)
@@ -43,7 +47,9 @@ internal fun PixelMeter(
                 contentDescription = description
                 progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f)
                 if (onFractionChange != null) setProgress { value ->
+                    onStart?.invoke()
                     onChange?.invoke(value.coerceIn(0f, 1f))
+                    onEnd?.invoke()
                     true
                 }
             }
@@ -55,6 +61,7 @@ internal fun PixelMeter(
                     fun fractionAt(x: Float) = (x / size.width.coerceAtLeast(1)).coerceIn(0f, 1f)
                     var target = fractionAt(down.position.x)
                     dragFraction = target
+                    onStart?.invoke()
                     try {
                         val released = drag(down.id) { change ->
                             target = fractionAt(change.position.x)
@@ -64,6 +71,7 @@ internal fun PixelMeter(
                         if (released) onChange?.invoke(target)
                     } finally {
                         dragFraction = null
+                        onEnd?.invoke()
                     }
                 }
             },

@@ -31,6 +31,8 @@ internal fun WheelPlaybackMeters(
     maxVolume: Int,
     gap: Dp,
     onSeek: (Long) -> Unit,
+    onSeekStart: () -> Unit = {},
+    onSeekEnd: () -> Unit = {},
 ) {
     val directUsb by UsbPlaybackState.active.collectAsState()
     val usbVolume by UsbVolumeState.level.collectAsState()
@@ -89,6 +91,8 @@ internal fun WheelPlaybackMeters(
                 if (duration > 0) position.toFloat() / duration else 0f,
                 "Playback position",
                 Modifier.weight(1f),
+                onDragStart = if (duration > 0) onSeekStart else null,
+                onDragEnd = if (duration > 0) onSeekEnd else null,
                 onFractionChange =
                     if (duration > 0) {
                         { fraction -> onSeek((fraction * duration).roundToLong()) }

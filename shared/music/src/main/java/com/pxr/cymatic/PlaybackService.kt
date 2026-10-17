@@ -134,7 +134,7 @@ class PlaybackService : MediaLibraryService() {
                 requireNotNull(packageManager.getLaunchIntentForPackage(packageName)) {
                         "The host app must declare a launch activity"
                     }
-                    .apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
+                    .apply { addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP) },
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
 

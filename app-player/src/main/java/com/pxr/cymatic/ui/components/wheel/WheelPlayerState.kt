@@ -8,11 +8,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.media3.session.MediaController
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.WheelPageState
+import com.pxr.cymatic.data.store.currentWheelPageState
+import com.pxr.cymatic.data.store.setWheelPageState
+import com.pxr.cymatic.data.store.wheelPageStateFlow
 import com.pxr.cymatic.ui.components.common.WheelNavigation
 import com.pxr.cymatic.ui.navigation.Screen
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 
 internal const val MUSIC_BROWSER_ROUTE = "wheel_music"
 
@@ -24,14 +37,15 @@ internal enum class WheelPanel {
 }
 
 internal class WheelPlayerState(
-    private val nav: NavHostController,
-    val wheel: WheelNavigation,
+    var nav: NavHostController,
+    var wheel: WheelNavigation,
     panel: WheelPanel = WheelPanel.BROWSER,
     previousPanel: WheelPanel = WheelPanel.BROWSER,
     coverVisible: Boolean = true,
     coverDefault: Boolean = true,
     browserRoute: String = MUSIC_BROWSER_ROUTE,
     browserRoot: String = MUSIC_BROWSER_ROUTE,
+    internal var needsBackStackRestore: Boolean = false,
 ) {
     var panel by mutableStateOf(panel)
         private set
@@ -55,6 +69,10 @@ internal class WheelPlayerState(
     var showTrackInfo by mutableStateOf(false)
     var showOutputInfo by mutableStateOf(false)
 
+    private var seeking = false
+    private var resumeAfterSeek = false
+    private var seekPositionMs: Long? = null
+
     val isNowPlaying: Boolean
         get() = panel == WheelPanel.NOW_PLAYING
 
@@ -63,6 +81,43 @@ internal class WheelPlayerState(
 
     val controlsPlayback: Boolean
         get() = isNowPlaying && wheel.overlay == null
+
+    fun beginSeek(controller: MediaController?) {
+        val player = controller ?: return
+        if (seeking) return
+        seeking = true
+        resumeAfterSeek = player.isPlaying || player.playWhenReady
+        seekPositionMs = player.currentPosition
+        if (resumeAfterSeek) player.pause()
+    }
+
+    fun seekBy(controller: MediaController?, durationMs: Long?, deltaMs: Long) {
+        val player = controller ?: return
+        beginSeek(player)
+        val base = seekPositionMs ?: player.currentPosition
+        val next = (base + deltaMs).coerceIn(0L, durationMs ?: Long.MAX_VALUE)
+        seekPositionMs = next
+        player.seekTo(next)
+    }
+
+    fun endSeek(controller: MediaController?) {
+        if (!seeking) return
+        val shouldResume = resumeAfterSeek
+        seeking = false
+        resumeAfterSeek = false
+        seekPositionMs = null
+        if (shouldResume) {
+            controller?.prepare()
+            controller?.play()
+        }
+    }
+
+    fun clearDialogs() {
+        wheel.clearOverlays()
+        showPlaylistPicker = false
+        showTrackInfo = false
+        showOutputInfo = false
+    }
 
     fun rememberBrowser(entry: NavBackStackEntry?) {
         val route = entry?.musicBrowserRoute() ?: return
@@ -85,10 +140,7 @@ internal class WheelPlayerState(
                 launchSingleTop = true
             }
         }
-        wheel.clearOverlays()
-        showPlaylistPicker = false
-        showTrackInfo = false
-        showOutputInfo = false
+        clearDialogs()
         panel = WheelPanel.BROWSER
     }
 
@@ -105,10 +157,12 @@ internal class WheelPlayerState(
     }
 
     fun nowPlaying() {
+        clearDialogs()
         panel = WheelPanel.NOW_PLAYING
     }
 
     fun browse() {
+        clearDialogs()
         panel = WheelPanel.BROWSER
         if (nav.currentBackStackEntry?.musicBrowserRoute() != null) return
         if (nav.popBackStack(browserRoute, false)) return
@@ -129,11 +183,13 @@ internal class WheelPlayerState(
     }
 
     fun open(route: String) {
+        clearDialogs()
         panel = WheelPanel.BROWSER
         nav.navigate(route) { launchSingleTop = true }
     }
 
     fun showBrowser() {
+        clearDialogs()
         panel = WheelPanel.BROWSER
     }
 
@@ -146,7 +202,17 @@ internal class WheelPlayerState(
         coverDefault = visible
         coverVisible = visible
     }
+
+    internal fun applyPersistedState(saved: WheelPageState) {
+        panel = saved.panel.toWheelPanel()
+        previousPanel = saved.previousPanel.toWheelPanel()
+        browserRoute = saved.browserRoute
+        browserRoot = saved.browserRoot
+    }
 }
+
+private fun String.toWheelPanel(): WheelPanel =
+    WheelPanel.entries.firstOrNull { it.name == this } ?: WheelPanel.BROWSER
 
 @Composable
 internal fun rememberWheelPlayerState(
@@ -171,25 +237,89 @@ internal fun rememberWheelPlayerState(
                     WheelPlayerState(
                         nav = nav,
                         wheel = wheel,
-                        panel = WheelPanel.valueOf(it[0] as String),
-                        previousPanel = WheelPanel.valueOf(it[1] as String),
+                        panel = (it[0] as String).toWheelPanel(),
+                        previousPanel = (it[1] as String).toWheelPanel(),
                         coverVisible = it[2] as Boolean,
                         coverDefault = it.getOrNull(5) as? Boolean ?: coverDefault,
                         browserRoute = it[3] as String,
                         browserRoot = it[4] as String,
+                        needsBackStackRestore = false,
                     )
                 },
             )
         }
     val state =
-        rememberSaveable(nav, wheel, saver = saver) {
-            WheelPlayerState(nav, wheel, coverVisible = coverDefault, coverDefault = coverDefault)
+        rememberSaveable(saver = saver) {
+            val saved = SettingsStore.currentWheelPageState
+            WheelPlayerState(
+                nav = nav,
+                wheel = wheel,
+                panel = saved?.panel?.toWheelPanel() ?: WheelPanel.BROWSER,
+                previousPanel = saved?.previousPanel?.toWheelPanel() ?: WheelPanel.BROWSER,
+                coverVisible = coverDefault,
+                coverDefault = coverDefault,
+                browserRoute = saved?.browserRoute ?: MUSIC_BROWSER_ROUTE,
+                browserRoot = saved?.browserRoot ?: MUSIC_BROWSER_ROUTE,
+                needsBackStackRestore = true,
+            )
         }
+    state.nav = nav
+    state.wheel = wheel
     LaunchedEffect(coverDefault) { state.updateCoverDefault(coverDefault) }
     val entry by nav.currentBackStackEntryAsState()
     LaunchedEffect(entry) { state.rememberBrowser(entry) }
+
+    LaunchedEffect(state, nav) {
+        snapshotFlow { entry }.filterNotNull().first()
+        val navigator =
+            runCatching { nav.navigatorProvider.getNavigator<ComposeNavigator>("composable") }
+                .getOrNull() ?: return@LaunchedEffect
+        if (state.needsBackStackRestore) {
+            val saved = SettingsStore.currentWheelPageState ?: SettingsStore.wheelPageStateFlow.first()
+            if (saved != null) {
+                val currentRoutes =
+                    navigator.backStack.value.mapNotNull { it.resolvedRoute() }
+                if (currentRoutes.size <= 1 && saved.backStack.isNotEmpty()) {
+                    saved.backStack
+                        .dropWhile { it == Screen.Home.route }
+                        .forEach { route ->
+                            runCatching { nav.navigate(route) { launchSingleTop = true } }
+                        }
+                }
+                state.applyPersistedState(saved)
+            }
+            state.needsBackStackRestore = false
+        }
+        combine(
+                snapshotFlow {
+                    listOf(
+                        state.panel.name,
+                        state.previousPanel.name,
+                        state.browserRoute,
+                        state.browserRoot,
+                    )
+                },
+                navigator.backStack,
+            ) { stateFields, backStackEntries ->
+                val routes =
+                    backStackEntries.mapNotNull { it.resolvedRoute() }.ifEmpty {
+                        listOf(Screen.Home.route)
+                    }
+                WheelPageState(
+                    panel = stateFields[0],
+                    previousPanel = stateFields[1],
+                    browserRoute = stateFields[2],
+                    browserRoot = stateFields[3],
+                    backStack = routes,
+                )
+            }
+            .distinctUntilChanged()
+            .collectLatest { pageState -> SettingsStore.setWheelPageState(pageState) }
+    }
     return state
 }
+
+private fun NavBackStackEntry.resolvedRoute(): String? = musicBrowserRoute() ?: destination.route
 
 private fun NavBackStackEntry.musicBrowserRoute(): String? {
     val artist = arguments?.getString("artistName")

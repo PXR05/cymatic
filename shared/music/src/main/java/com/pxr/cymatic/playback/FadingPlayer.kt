@@ -23,6 +23,7 @@ class FadingPlayer(
 ) : ForwardingPlayer(player) {
 
     private var fadeJob: Job? = null
+    private var fadingOut = false
     private val fadeDurationMs = 300L
     private val fadeIntervalMs = 15L
 
@@ -83,8 +84,27 @@ class FadingPlayer(
         setPlayWhenReady(false)
     }
 
+    override fun seekTo(positionMs: Long) {
+        finishFadeOutBeforeSeek()
+        super.seekTo(positionMs)
+    }
+
+    override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+        finishFadeOutBeforeSeek()
+        super.seekTo(mediaItemIndex, positionMs)
+    }
+
+    private fun finishFadeOutBeforeSeek() {
+        if (!fadingOut) return
+        fadeJob?.cancel()
+        fadingOut = false
+        super.setPlayWhenReady(false)
+        player.volume = 1.0f
+    }
+
     override fun setPlayWhenReady(playWhenReady: Boolean) {
         fadeJob?.cancel()
+        fadingOut = false
         if (!SettingsStore.currentFadeEnabled || UsbPlaybackState.routeToUsb) {
             player.volume = 1.0f
             super.setPlayWhenReady(playWhenReady)
@@ -108,6 +128,7 @@ class FadingPlayer(
                 }
         } else {
             if (player.playWhenReady) {
+                fadingOut = true
                 val startVolume = player.volume
                 fadeJob =
                     scope.launch(Dispatchers.Main) {
@@ -117,6 +138,7 @@ class FadingPlayer(
                             val newVolume = startVolume - startVolume * (i.toFloat() / steps)
                             player.volume = newVolume.coerceIn(0.0f, 1.0f)
                         }
+                        fadingOut = false
                         player.volume = 0.0f
                         super.setPlayWhenReady(false)
                         player.volume = 1.0f
@@ -129,11 +151,13 @@ class FadingPlayer(
 
     override fun release() {
         fadeJob?.cancel()
+        fadingOut = false
         super.release()
     }
 
     fun cancelFade() {
         fadeJob?.cancel()
+        fadingOut = false
         player.volume = 1f
     }
 
