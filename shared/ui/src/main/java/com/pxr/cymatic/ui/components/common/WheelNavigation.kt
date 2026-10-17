@@ -27,6 +27,7 @@ class WheelNavigation {
 
     private val handlers = mutableStateListOf<Handler>()
     private val overlayStack = mutableStateListOf<WheelOverlay>()
+    private val menuHoldHandlers = mutableStateListOf<() -> Unit>()
     val actions: WheelActions?
         get() = handlers.lastOrNull { it.overlay === overlay }?.actions
 
@@ -36,8 +37,19 @@ class WheelNavigation {
     val overlay: WheelOverlay?
         get() = overlayStack.lastOrNull()
 
+    val onMenuHold: (() -> Unit)?
+        get() = menuHoldHandlers.lastOrNull()
+
     var onPlaybackRequested: () -> Unit = {}
     var onBackRequested: (() -> Unit)? = null
+
+    fun registerMenuHold(handler: () -> Unit) {
+        menuHoldHandlers.add(handler)
+    }
+
+    fun unregisterMenuHold(handler: () -> Unit) {
+        menuHoldHandlers.removeAll { it === handler }
+    }
 
     fun register(actions: WheelActions, overlay: WheelOverlay? = null) {
         handlers.add(Handler(actions, overlay))

@@ -1,6 +1,8 @@
 package com.pxr.cymatic.ui.components.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,12 +18,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
     onBackClick: (() -> Unit)?,
     onTitleClick: (() -> Unit)? = null,
+    onMenuLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val compact = LocalWheelNavigation.current != null
@@ -29,7 +33,26 @@ fun ScreenHeader(
     val isTitleCJK = title.contains(cjkRegex)
 
     if (compact) {
-        WheelScreenHeader(modifier = modifier, onBackClick = onBackClick, actions = actions) {
+        WheelScreenHeader(
+            modifier = modifier,
+            onBackClick = onBackClick,
+            onMenuLongClick = onMenuLongClick,
+            actions = actions
+        ) {
+            val titleModifier = when {
+                onTitleClick != null && onMenuLongClick != null -> {
+                    Modifier.combinedClickable(
+                        onClick = onTitleClick,
+                        onLongClick = onMenuLongClick
+                    )
+                }
+                onTitleClick != null -> Modifier.clickable(onClick = onTitleClick)
+                onMenuLongClick != null -> Modifier.combinedClickable(
+                    onClick = onMenuLongClick,
+                    onLongClick = onMenuLongClick
+                )
+                else -> Modifier
+            }
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -38,7 +61,7 @@ fun ScreenHeader(
                 letterSpacing = if (isTitleCJK) 2.sp else 0.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier
+                modifier = titleModifier
             )
         }
         return
@@ -49,19 +72,55 @@ fun ScreenHeader(
         modifier = modifier.fillMaxWidth()
     ) {
         if (onBackClick != null) {
+            val backModifier = if (onMenuLongClick != null) {
+                Modifier.combinedClickable(
+                    onClick = onBackClick,
+                    onLongClick = onMenuLongClick,
+                    indication = null,
+                    interactionSource = null
+                )
+            } else {
+                Modifier.clickable(
+                    onClick = onBackClick,
+                    indication = null,
+                    interactionSource = null
+                )
+            }
             Text(
                 text = "<",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .clickable(
-                        onClick = onBackClick,
-                        indication = null,
-                        interactionSource = null
-                    )
+                    .then(backModifier)
                     .padding(24.dp, 16.dp)
             )
+        }
+        val titleModifier = when {
+            onTitleClick != null && onMenuLongClick != null -> {
+                Modifier.combinedClickable(
+                    onClick = onTitleClick,
+                    onLongClick = onMenuLongClick,
+                    indication = null,
+                    interactionSource = null
+                )
+            }
+            onTitleClick != null -> {
+                Modifier.clickable(
+                    onClick = onTitleClick,
+                    indication = null,
+                    interactionSource = null
+                )
+            }
+            onMenuLongClick != null -> {
+                Modifier.combinedClickable(
+                    onClick = onMenuLongClick,
+                    onLongClick = onMenuLongClick,
+                    indication = null,
+                    interactionSource = null
+                )
+            }
+            else -> Modifier
         }
         Text(
             text = title,
@@ -76,17 +135,7 @@ fun ScreenHeader(
                     top = 16.dp,
                     bottom = 16.dp
                 )
-                .then(
-                    if (onTitleClick != null) {
-                        Modifier.clickable(
-                            onClick = onTitleClick,
-                            indication = null,
-                            interactionSource = null
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
+                .then(titleModifier)
         )
         actions()
     }

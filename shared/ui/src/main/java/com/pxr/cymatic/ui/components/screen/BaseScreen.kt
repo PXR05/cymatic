@@ -11,6 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,17 +27,32 @@ fun BaseScreen(
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onTitleClick: (() -> Unit)? = null,
+    onMenuLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     searchQuery: String? = null,
     onSearchQueryChange: ((String) -> Unit)? = null,
     isSearchActive: Boolean = false,
     onSearchActiveChange: ((Boolean) -> Unit)? = null,
+    showSearchAction: Boolean = true,
     showWallpaperBackdrop: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val wheel = LocalWheelNavigation.current
     val back = if (onBackClick != null) wheel?.onBackRequested ?: onBackClick else null
     val backdrop = if (showWallpaperBackdrop) LocalScreenBackdrop.current else null
+
+    val menuHold = onMenuLongClick ?: onTitleClick
+    if (menuHold != null && wheel != null) {
+        val currentMenuHold by rememberUpdatedState(menuHold)
+        DisposableEffect(wheel) {
+            val handler: () -> Unit = { currentMenuHold() }
+            wheel.registerMenuHold(handler)
+            onDispose {
+                wheel.unregisterMenuHold(handler)
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         backdrop?.invoke()
 
@@ -54,17 +72,20 @@ fun BaseScreen(
                         title = title,
                         onBackClick = back,
                         onTitleClick = onTitleClick,
+                        onMenuLongClick = onMenuLongClick,
                         isSearchActive = isSearchActive,
                         onSearchActiveChange = onSearchActiveChange,
                         searchQuery = searchQuery,
                         onSearchQueryChange = onSearchQueryChange,
-                        actions = actions
+                        actions = actions,
+                        showSearchAction = showSearchAction
                     )
                 } else {
                     ScreenHeader(
                         title = title,
                         onBackClick = back,
                         onTitleClick = onTitleClick,
+                        onMenuLongClick = onMenuLongClick,
                         actions = actions
                     )
                 }

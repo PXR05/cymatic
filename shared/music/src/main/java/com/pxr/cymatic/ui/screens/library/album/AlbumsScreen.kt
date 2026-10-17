@@ -46,6 +46,7 @@ fun AlbumsScreen(
         }
     }
 
+    var showPageMenu by remember { mutableStateOf(false) }
     var selectedAlbum by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
@@ -62,11 +63,14 @@ fun AlbumsScreen(
     BaseScreen(
         title = "Albums",
         onBackClick = { navController.popBackStack() },
+        onTitleClick = { showPageMenu = true },
+        onMenuLongClick = { showPageMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
+        showSearchAction = false,
         showWallpaperBackdrop = true
     ) {
         if (!hasPermission) {
@@ -164,6 +168,17 @@ fun AlbumsScreen(
                         }
                     }
                 }
+            }
+        )
+    }
+
+    if (showPageMenu) {
+        AlbumArtistContextMenu(
+            title = "Albums",
+            onDismiss = { showPageMenu = false },
+            onSearch = {
+                showPageMenu = false
+                viewModel.onSearchActiveChange(true)
             }
         )
     }

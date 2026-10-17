@@ -13,6 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
 @Composable
 internal fun WheelSearchableScreenHeader(
@@ -34,11 +36,13 @@ internal fun WheelSearchableScreenHeader(
     title: String,
     onBackClick: (() -> Unit)?,
     onTitleClick: (() -> Unit)?,
+    onMenuLongClick: (() -> Unit)? = null,
     isSearchActive: Boolean,
     onSearchActiveChange: (Boolean) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    actions: @Composable RowScope.() -> Unit
+    actions: @Composable RowScope.() -> Unit,
+    showSearchAction: Boolean = true
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -48,10 +52,19 @@ internal fun WheelSearchableScreenHeader(
             onSearchQueryChange("")
         }
         BackHandler(onBack = closeSearch)
+        val wheel = LocalWheelNavigation.current
+        val previousBack = wheel?.onBackRequested
+        DisposableEffect(wheel) {
+            wheel?.onBackRequested = closeSearch
+            onDispose {
+                wheel?.onBackRequested = previousBack
+            }
+        }
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
         WheelScreenHeader(
             modifier = modifier,
             onBackClick = closeSearch,
+            onMenuLongClick = onMenuLongClick,
             actions = {
                 if (searchQuery.isNotEmpty()) {
                     Box(
@@ -91,13 +104,21 @@ internal fun WheelSearchableScreenHeader(
             )
         }
     } else {
-        ScreenHeader(modifier, title, onBackClick, onTitleClick) {
+        ScreenHeader(
+            modifier = modifier,
+            title = title,
+            onBackClick = onBackClick,
+            onTitleClick = onTitleClick,
+            onMenuLongClick = onMenuLongClick
+        ) {
             actions()
-            Box(
-                Modifier.size(48.dp).clickable { onSearchActiveChange(true) },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(painterResource(R.drawable.ic_pixel_search), "Search", Modifier.size(20.dp))
+            if (showSearchAction) {
+                Box(
+                    Modifier.size(48.dp).clickable { onSearchActiveChange(true) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(painterResource(R.drawable.ic_pixel_search), "Search", Modifier.size(20.dp))
+                }
             }
         }
     }

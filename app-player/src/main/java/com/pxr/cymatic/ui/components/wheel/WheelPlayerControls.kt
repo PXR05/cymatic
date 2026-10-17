@@ -47,7 +47,16 @@ internal class WheelPlayerControls(
     fun hold(button: WheelButton) {
         when (button) {
             WheelButton.MENU -> if (state.wheel.overlay == null) {
-                if (state.panel == WheelPanel.QUICK_SETTINGS) state.back() else state.quickSettings()
+                if (state.panel == WheelPanel.QUICK_SETTINGS) {
+                    state.back()
+                } else {
+                    val menuHold = state.wheel.onMenuHold
+                    if (menuHold != null) {
+                        menuHold()
+                    } else {
+                        state.quickSettings()
+                    }
+                }
             }
             WheelButton.SELECT -> if (state.controlsPlayback) {
                 state.trackActions()

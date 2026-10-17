@@ -1,24 +1,19 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pxr.cymatic.design.R
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
+import com.pxr.cymatic.ui.components.common.PlaylistsPageContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
@@ -36,6 +31,7 @@ fun PlaylistsScreen(
     val mediaController = LocalMediaController.current
 
     val uiState by viewModel.uiState.collectAsState()
+    var showPageMenu by remember { mutableStateOf(false) }
 
     val items = uiState.playlists.map { playlist ->
         NavigationItem(
@@ -50,31 +46,15 @@ fun PlaylistsScreen(
     BaseScreen(
         title = "Playlists",
         onBackClick = { navController.popBackStack() },
+        onTitleClick = { showPageMenu = true },
+        onMenuLongClick = { showPageMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
-        showWallpaperBackdrop = true,
-        actions = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clickable(
-                        onClick = { viewModel.showCreateDialog = true },
-                        indication = null,
-                        interactionSource = null
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_pixel_plus),
-                    contentDescription = "Create playlist",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+        showSearchAction = false,
+        showWallpaperBackdrop = true
     ) {
         if (uiState.errorMessage != null) {
             ErrorState(
@@ -93,13 +73,29 @@ fun PlaylistsScreen(
             } else {
                 EmptyState(
                     title = "No Playlists",
-                    message = "Tap the '+' icon on the top right to create a playlist.",
-                    iconText = "( ! )"
+                    message = "Long press Menu to create a playlist.",
+                    iconText = "( ! )",
+                    actionLabel = "NEW PLAYLIST",
+                    onActionClick = { viewModel.showCreateDialog = true }
                 )
             }
         } else {
             NavigationList(items = items)
         }
+    }
+
+    if (showPageMenu) {
+        PlaylistsPageContextMenu(
+            onDismiss = { showPageMenu = false },
+            onCreatePlaylist = {
+                showPageMenu = false
+                viewModel.showCreateDialog = true
+            },
+            onSearch = {
+                showPageMenu = false
+                viewModel.onSearchActiveChange(true)
+            }
+        )
     }
 
     if (viewModel.showCreateDialog) {

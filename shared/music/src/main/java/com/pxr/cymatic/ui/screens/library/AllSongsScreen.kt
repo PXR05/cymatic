@@ -63,11 +63,13 @@ fun AllSongsScreen(
         title = "All Songs",
         onBackClick = { navController.popBackStack() },
         onTitleClick = { showHeaderMenu = true },
+        onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
         searchQuery = viewModel.searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
+        showSearchAction = false,
         showWallpaperBackdrop = true
     ) {
         if (!hasPermission) {
@@ -168,43 +170,53 @@ fun AllSongsScreen(
         )
     }
 
-    if (showHeaderMenu && uiState.songs.isNotEmpty()) {
+    if (showHeaderMenu) {
         AlbumArtistContextMenu(
             title = "All Songs",
             onDismiss = { showHeaderMenu = false },
-            onPlay = {
-                mediaController?.let { controller ->
-                    val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                    controller.setMediaItems(items, 0, 0L)
-                    controller.prepare()
-                    controller.play()
-                }
-            },
-            onPlayNext = {
-                mediaController?.let { controller ->
-                    val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                    val currentIndex = controller.currentMediaItemIndex
-                    val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
-                    if (controller.mediaItemCount == 0) {
-                        controller.setMediaItems(items)
+            onPlay = if (uiState.songs.isNotEmpty()) {
+                {
+                    mediaController?.let { controller ->
+                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
+                        controller.setMediaItems(items, 0, 0L)
                         controller.prepare()
                         controller.play()
-                    } else {
-                        controller.addMediaItems(targetIndex, items)
                     }
                 }
-            },
-            onAddToQueue = {
-                mediaController?.let { controller ->
-                    val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                    if (controller.mediaItemCount == 0) {
-                        controller.setMediaItems(items)
-                        controller.prepare()
-                        controller.play()
-                    } else {
-                        controller.addMediaItems(items)
+            } else null,
+            onPlayNext = if (uiState.songs.isNotEmpty()) {
+                {
+                    mediaController?.let { controller ->
+                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
+                        val currentIndex = controller.currentMediaItemIndex
+                        val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                        if (controller.mediaItemCount == 0) {
+                            controller.setMediaItems(items)
+                            controller.prepare()
+                            controller.play()
+                        } else {
+                            controller.addMediaItems(targetIndex, items)
+                        }
                     }
                 }
+            } else null,
+            onAddToQueue = if (uiState.songs.isNotEmpty()) {
+                {
+                    mediaController?.let { controller ->
+                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
+                        if (controller.mediaItemCount == 0) {
+                            controller.setMediaItems(items)
+                            controller.prepare()
+                            controller.play()
+                        } else {
+                            controller.addMediaItems(items)
+                        }
+                    }
+                }
+            } else null,
+            onSearch = {
+                showHeaderMenu = false
+                viewModel.onSearchActiveChange(true)
             }
         )
     }

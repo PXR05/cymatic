@@ -1,7 +1,9 @@
 package com.pxr.cymatic.ui.components.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,17 +32,20 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SearchableScreenHeader(
     modifier: Modifier = Modifier,
     title: String,
     onBackClick: (() -> Unit)?,
     onTitleClick: (() -> Unit)? = null,
+    onMenuLongClick: (() -> Unit)? = null,
     isSearchActive: Boolean,
     onSearchActiveChange: (Boolean) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable RowScope.() -> Unit = {},
+    showSearchAction: Boolean = true
 ) {
     if (LocalWheelNavigation.current != null) {
         WheelSearchableScreenHeader(
@@ -48,11 +53,13 @@ fun SearchableScreenHeader(
             title = title,
             onBackClick = onBackClick,
             onTitleClick = onTitleClick,
+            onMenuLongClick = onMenuLongClick,
             isSearchActive = isSearchActive,
             onSearchActiveChange = onSearchActiveChange,
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
-            actions = actions
+            actions = actions,
+            showSearchAction = showSearchAction
         )
         return
     }
@@ -153,19 +160,55 @@ fun SearchableScreenHeader(
             modifier = modifier.fillMaxWidth()
         ) {
             if (onBackClick != null) {
+                val backModifier = if (onMenuLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = onBackClick,
+                        onLongClick = onMenuLongClick,
+                        indication = null,
+                        interactionSource = null
+                    )
+                } else {
+                    Modifier.clickable(
+                        onClick = onBackClick,
+                        indication = null,
+                        interactionSource = null
+                    )
+                }
                 Text(
                     text = "<",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .clickable(
-                            onClick = onBackClick,
-                            indication = null,
-                            interactionSource = null
-                        )
+                        .then(backModifier)
                         .padding(24.dp, 16.dp)
                 )
+            }
+            val titleModifier = when {
+                onTitleClick != null && onMenuLongClick != null -> {
+                    Modifier.combinedClickable(
+                        onClick = onTitleClick,
+                        onLongClick = onMenuLongClick,
+                        indication = null,
+                        interactionSource = null
+                    )
+                }
+                onTitleClick != null -> {
+                    Modifier.clickable(
+                        onClick = onTitleClick,
+                        indication = null,
+                        interactionSource = null
+                    )
+                }
+                onMenuLongClick != null -> {
+                    Modifier.combinedClickable(
+                        onClick = onMenuLongClick,
+                        onLongClick = onMenuLongClick,
+                        indication = null,
+                        interactionSource = null
+                    )
+                }
+                else -> Modifier
             }
             Text(
                 text = title,
@@ -180,36 +223,28 @@ fun SearchableScreenHeader(
                         top = 16.dp,
                         bottom = 16.dp
                     )
-                    .then(
-                        if (onTitleClick != null) {
-                            Modifier.clickable(
-                                onClick = onTitleClick,
-                                indication = null,
-                                interactionSource = null
-                            )
-                        } else {
-                            Modifier
-                        }
-                    )
+                    .then(titleModifier)
             )
 
             actions()
 
-            Icon(
-                painter = painterResource(R.drawable.ic_pixel_search),
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .clickable(
-                        onClick = {
-                            onSearchActiveChange(true)
-                        },
-                        indication = null,
-                        interactionSource = null
-                    )
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .size(24.dp)
-            )
+            if (showSearchAction) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_pixel_search),
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .clickable(
+                            onClick = {
+                                onSearchActiveChange(true)
+                            },
+                            indication = null,
+                            interactionSource = null
+                        )
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .size(24.dp)
+                )
+            }
         }
     }
 }

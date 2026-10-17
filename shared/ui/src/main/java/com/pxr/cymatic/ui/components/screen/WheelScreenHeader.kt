@@ -1,6 +1,8 @@
 package com.pxr.cymatic.ui.components.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -21,10 +23,12 @@ import androidx.compose.ui.unit.sp
 
 val LocalScreenHeaderStatus = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WheelScreenHeader(
     modifier: Modifier = Modifier,
     onBackClick: (() -> Unit)? = null,
+    onMenuLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable () -> Unit
 ) {
@@ -38,12 +42,20 @@ fun WheelScreenHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (onBackClick != null) {
+            val backModifier = if (onMenuLongClick != null) {
+                Modifier.combinedClickable(
+                    onClick = onBackClick,
+                    onLongClick = onMenuLongClick
+                )
+            } else {
+                Modifier.clickable(onClick = onBackClick)
+            }
             Box(
                 Modifier
                     .padding(start = 12.dp)
                     .width(44.dp)
                     .fillMaxHeight()
-                    .clickable(onClick = onBackClick),
+                    .then(backModifier),
                 contentAlignment = Alignment.Center
             ) {
                 Text("<", fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)

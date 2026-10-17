@@ -32,29 +32,51 @@ import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 fun AlbumArtistContextMenu(
     title: String,
     onDismiss: () -> Unit,
-    onPlay: () -> Unit,
-    onPlayNext: () -> Unit,
-    onAddToQueue: () -> Unit
+    onPlay: (() -> Unit)? = null,
+    onPlayNext: (() -> Unit)? = null,
+    onAddToQueue: (() -> Unit)? = null,
+    onSearch: (() -> Unit)? = null,
 ) {
     val wheel = LocalWheelNavigation.current
     if (wheel != null) {
+        val items = buildList {
+            if (onPlay != null) {
+                add(
+                    NavigationItem("Play", onClick = {
+                        onPlay()
+                        onDismiss()
+                        wheel.onPlaybackRequested()
+                    })
+                )
+            }
+            if (onPlayNext != null) {
+                add(
+                    NavigationItem("Play Next", onClick = {
+                        onPlayNext()
+                        onDismiss()
+                    })
+                )
+            }
+            if (onAddToQueue != null) {
+                add(
+                    NavigationItem("Add to Queue", onClick = {
+                        onAddToQueue()
+                        onDismiss()
+                    })
+                )
+            }
+            if (onSearch != null) {
+                add(
+                    NavigationItem("Search", onClick = {
+                        onSearch()
+                        onDismiss()
+                    })
+                )
+            }
+        }
         WheelContextMenu(
             title = title,
-            items = listOf(
-                NavigationItem("Play", onClick = {
-                    onPlay()
-                    onDismiss()
-                    wheel.onPlaybackRequested()
-                }),
-                NavigationItem("Play Next", onClick = {
-                    onPlayNext()
-                    onDismiss()
-                }),
-                NavigationItem("Add to Queue", onClick = {
-                    onAddToQueue()
-                    onDismiss()
-                })
-            ),
+            items = items,
             onDismiss = onDismiss
         )
         return
@@ -70,30 +92,46 @@ fun AlbumArtistContextMenu(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                ContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_play,
-                    label = "Play",
-                    onClick = {
-                        onPlay()
-                        onDismiss()
-                    }
-                )
-                ContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_next,
-                    label = "Play Next",
-                    onClick = {
-                        onPlayNext()
-                        onDismiss()
-                    }
-                )
-                ContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_queue,
-                    label = "Add to Queue",
-                    onClick = {
-                        onAddToQueue()
-                        onDismiss()
-                    }
-                )
+                if (onPlay != null) {
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_play,
+                        label = "Play",
+                        onClick = {
+                            onPlay()
+                            onDismiss()
+                        }
+                    )
+                }
+                if (onPlayNext != null) {
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_next,
+                        label = "Play Next",
+                        onClick = {
+                            onPlayNext()
+                            onDismiss()
+                        }
+                    )
+                }
+                if (onAddToQueue != null) {
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_queue,
+                        label = "Add to Queue",
+                        onClick = {
+                            onAddToQueue()
+                            onDismiss()
+                        }
+                    )
+                }
+                if (onSearch != null) {
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_search,
+                        label = "Search",
+                        onClick = {
+                            onSearch()
+                            onDismiss()
+                        }
+                    )
+                }
             }
         },
         buttons = {
