@@ -22,11 +22,17 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,10 +46,13 @@ private val MaxWheelSize = 288.dp
 internal fun WheelPlayerLayout(
     controls: WheelPlayerControls,
     overlay: @Composable () -> Unit,
+    onUpdateScreenBounds: (Rect?) -> Unit = {},
+    onUpdateWheelBounds: (Offset?, Float?) -> Unit = { _, _ -> },
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val settings = LocalInterfaceSettings.current
     val screenPadding = settings.screenPaddingDp.dp
+
     BoxWithConstraints(
         Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
@@ -73,33 +82,72 @@ internal fun WheelPlayerLayout(
             )
         val displayHeight = if (keyboardVisible) maxHeight - screenPadding else screenHeight
 
+        LaunchedEffect(keyboardVisible) {
+            if (keyboardVisible) {
+                onUpdateWheelBounds(null, null)
+            }
+        }
+
         if (landscape && !keyboardVisible) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 PlayerDisplay(
                     Modifier.weight(1f)
                         .fillMaxWidth()
                         .padding(start = screenPadding, top = screenPadding, bottom = screenPadding)
-                        .height(screenHeight),
+                        .height(screenHeight)
+                        .onGloballyPositioned { coordinates ->
+                            if (coordinates.isAttached) {
+                                onUpdateScreenBounds(coordinates.boundsInWindow())
+                            }
+                        },
                     content,
                     overlay,
                 )
-                PlayerWheel(Modifier.size(wheelAreaSize), wheelSize, controls)
+                PlayerWheel(
+                    Modifier.size(wheelAreaSize),
+                    wheelSize,
+                    controls,
+                    onWheelPositioned = { coordinates ->
+                        if (coordinates.isAttached) {
+                            val bounds = coordinates.boundsInWindow()
+                            onUpdateWheelBounds(
+                                bounds.center,
+                                minOf(bounds.width, bounds.height) / 2f,
+                            )
+                        }
+                    },
+                )
             }
         } else {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 PlayerDisplay(
                     Modifier.fillMaxWidth()
                         .padding(start = screenPadding, end = screenPadding, top = screenPadding)
-                        .height(displayHeight),
+                        .height(displayHeight)
+                        .onGloballyPositioned { coordinates ->
+                            if (coordinates.isAttached) {
+                                onUpdateScreenBounds(coordinates.boundsInWindow())
+                            }
+                        },
                     content,
                     overlay,
                 )
-                if (!keyboardVisible)
+                if (!keyboardVisible) {
                     PlayerWheel(
                         Modifier.weight(1f).fillMaxWidth(),
                         wheelSize,
                         controls,
+                        onWheelPositioned = { coordinates ->
+                            if (coordinates.isAttached) {
+                                val bounds = coordinates.boundsInWindow()
+                                onUpdateWheelBounds(
+                                    bounds.center,
+                                    minOf(bounds.width, bounds.height) / 2f,
+                                )
+                            }
+                        },
                     )
+                }
             }
         }
     }
@@ -122,7 +170,12 @@ private fun PlayerDisplay(
 }
 
 @Composable
-private fun PlayerWheel(modifier: Modifier, diameter: Dp, controls: WheelPlayerControls) {
+private fun PlayerWheel(
+    modifier: Modifier,
+    diameter: Dp,
+    controls: WheelPlayerControls,
+    onWheelPositioned: (LayoutCoordinates) -> Unit = {},
+) {
     val settings = LocalInterfaceSettings.current
     val sensitivity by
         SettingsStore.wheelSensitivityFlow.collectAsState(
@@ -139,6 +192,7 @@ private fun PlayerWheel(modifier: Modifier, diameter: Dp, controls: WheelPlayerC
             movementPauseMs = settings.gesturePauseMs,
             hapticsEnabled = settings.hapticsEnabled,
             onMovementStarted = controls::beginMovement,
+            modifier = Modifier.onGloballyPositioned(onWheelPositioned),
         )
     }
 }

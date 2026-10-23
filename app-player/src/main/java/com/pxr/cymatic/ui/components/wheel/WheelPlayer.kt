@@ -14,6 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import com.pxr.cymatic.data.store.SettingsStore
@@ -33,7 +35,10 @@ import com.pxr.cymatic.ui.state.PlaybackState
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
-fun WheelPlayer() {
+fun WheelPlayer(
+    onUpdateScreenBounds: (Rect?) -> Unit = {},
+    onUpdateWheelBounds: (Offset?, Float?) -> Unit = { _, _ -> },
+) {
     val controller = LocalMediaController.current
     val playback = rememberPlaybackState(controller)
     val settings by
@@ -59,7 +64,12 @@ fun WheelPlayer() {
             LocalInterfaceSettings provides settings,
             LocalScreenHeaderStatus provides { BatteryIndicator(battery) },
         ) {
-            WheelPlayerLayout(controls, overlay = {}) {
+            WheelPlayerLayout(
+                controls,
+                overlay = {},
+                onUpdateScreenBounds = onUpdateScreenBounds,
+                onUpdateWheelBounds = onUpdateWheelBounds,
+            ) {
                 PlayerScreen(
                     state = state,
                     playback = playback,
