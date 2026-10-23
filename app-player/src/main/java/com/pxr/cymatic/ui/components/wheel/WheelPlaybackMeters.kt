@@ -34,7 +34,7 @@ internal fun WheelPlaybackMeters(
     onSeekStart: () -> Unit = {},
     onSeekEnd: () -> Unit = {},
 ) {
-    val directUsb by UsbPlaybackState.active.collectAsState()
+    val directUsb by UsbPlaybackState.volumeActive.collectAsState()
     val usbVolume by UsbVolumeState.level.collectAsState()
     val requestedVolume by UsbVolumeState.requestedPercent.collectAsState()
     val duration = (playback.durationMs ?: 0L).coerceAtLeast(0L)

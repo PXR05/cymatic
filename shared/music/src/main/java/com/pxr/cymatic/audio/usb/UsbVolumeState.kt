@@ -25,6 +25,7 @@ object UsbVolumeState {
     @Volatile private var deviceKey: String? = null
     internal val volumeProfileKey: String?
         get() = deviceKey
+    private var unmutedPercent = 25
 
     private val saves = Channel<Pair<String, Int>>(Channel.UNLIMITED)
 
@@ -40,9 +41,28 @@ object UsbVolumeState {
     }
 
     @Synchronized
-    internal fun setRequested(percent: Int) {
-        mutableRequested.value = percent.coerceIn(0, 100)
-        deviceKey?.let { saves.trySend(it to mutableRequested.value) }
+    fun setRequested(percent: Int) {
+        val clamped = percent.coerceIn(0, 100)
+        if (clamped > 0) unmutedPercent = clamped
+        mutableRequested.value = clamped
+        if (!UsbPlaybackState.active.value) {
+            mutableLevel.value =
+                UsbVolumeLevel(
+                    message = if (clamped == 0) "DAC hardware mute" else "DAC hardware volume",
+                    muted = clamped == 0,
+                )
+        }
+        deviceKey?.let { saves.trySend(it to clamped) }
+    }
+
+    @Synchronized
+    fun setMuted(muted: Boolean) {
+        if (muted) {
+            if (mutableRequested.value > 0) unmutedPercent = mutableRequested.value
+            setRequested(0)
+        } else if (mutableRequested.value == 0) {
+            setRequested(unmutedPercent.coerceAtLeast(2))
+        }
     }
 
     @Synchronized
@@ -51,9 +71,28 @@ object UsbVolumeState {
             val remembered =
                 runBlocking(Dispatchers.IO) { DeviceVolumeSettings.get(key, direct = true) }
             deviceKey = key
-            mutableRequested.value = (remembered ?: 25).coerceIn(0, 100)
+            val initial = (remembered ?: 25).coerceIn(0, 100)
+            if (initial > 0) unmutedPercent = initial
+            mutableRequested.value = initial
         }
-        mutableLevel.value = UsbVolumeLevel(message = "Reading DAC volume")
+        if (!UsbPlaybackState.active.value) {
+            val muted = mutableRequested.value == 0
+            mutableLevel.value =
+                UsbVolumeLevel(
+                    message = if (muted) "DAC hardware mute" else "DAC hardware volume",
+                    muted = muted,
+                )
+        }
+    }
+
+    @Synchronized
+    internal fun standby() {
+        val muted = mutableRequested.value == 0
+        mutableLevel.value =
+            UsbVolumeLevel(
+                message = if (muted) "DAC hardware mute" else "DAC hardware volume",
+                muted = muted,
+            )
     }
 
     internal fun confirm(percent: Int, decibels: Float?, muted: Boolean) {

@@ -20,17 +20,17 @@ internal class MusicVolumeState(private val audio: AudioManager) {
 
     val maxVolume: Int
         get() =
-            if (UsbPlaybackState.active.value) 100
+            if (UsbPlaybackState.volumeActive.value) 100
             else audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
     fun refresh() {
         volume =
-            if (UsbPlaybackState.active.value) UsbVolumeState.requestedPercent.value
+            if (UsbPlaybackState.volumeActive.value) UsbVolumeState.requestedPercent.value
             else audio.getStreamVolume(AudioManager.STREAM_MUSIC)
     }
 
     fun adjust(steps: Int) {
-        if (UsbPlaybackState.active.value) {
+        if (UsbPlaybackState.volumeActive.value) {
             UsbVolumeState.adjust(steps * 2)
             refresh()
             return

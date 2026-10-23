@@ -394,6 +394,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             }
         } finally {
             UsbPlaybackState.setActive(false)
+            UsbVolumeState.standby()
             device = null
             stream = null
             packer = null

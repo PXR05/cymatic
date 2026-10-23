@@ -121,6 +121,8 @@ internal class UsbConnectionManager(
             deniedDevice = null
             if (readyDevice != device.deviceId) {
                 readyDevice = device.deviceId
+                val identity = runCatching { device.serialNumber }.getOrNull().orEmpty()
+                UsbVolumeState.beginDevice("${device.vendorId}:${device.productId}:$identity")
                 UsbDsdSupport.refresh(context, device)
                 UsbPlaybackState.deviceReady = true
                 UsbPlaybackState.update("USB DAC connected · direct output ready")

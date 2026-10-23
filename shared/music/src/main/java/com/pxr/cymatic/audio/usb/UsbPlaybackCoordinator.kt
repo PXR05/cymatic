@@ -130,7 +130,9 @@ internal class UsbPlaybackCoordinator(
         }
 
     private fun supportedSource(): Boolean {
-        return DirectUsbSourcePolicy.isCandidate(player.currentMediaItem?.toAudioMetadata()?.format)
+        return player.currentMediaItem?.let {
+            DirectUsbSourcePolicy.isCandidate(it.toAudioMetadata()?.format)
+        } ?: true
     }
 
     private fun preferredRoute(): Boolean =

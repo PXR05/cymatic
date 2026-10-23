@@ -10,10 +10,16 @@ object UsbPlaybackState {
 
     @Volatile
     internal var deviceReady = false
-    @Volatile
-    internal var routeToUsb = false
     private val mutableActive = MutableStateFlow(false)
     val active = mutableActive.asStateFlow()
+    private val mutableVolumeActive = MutableStateFlow(false)
+    val volumeActive = mutableVolumeActive.asStateFlow()
+    @Volatile
+    internal var routeToUsb = false
+        set(value) {
+            field = value
+            mutableVolumeActive.value = mutableActive.value || value
+        }
     private val mutableStatus = MutableStateFlow("Off")
     val status = mutableStatus.asStateFlow()
     private val mutableReports = MutableStateFlow<List<String>>(emptyList())
@@ -21,6 +27,7 @@ object UsbPlaybackState {
 
     internal fun setActive(value: Boolean) {
         mutableActive.value = value
+        mutableVolumeActive.value = value || routeToUsb
     }
 
     internal fun update(message: String) {

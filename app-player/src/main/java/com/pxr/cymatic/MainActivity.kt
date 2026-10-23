@@ -108,6 +108,12 @@ class MainActivity : MusicActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+                event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        ) {
+            return super.dispatchKeyEvent(event)
+        }
         if (standby?.asleep == true && event.action == KeyEvent.ACTION_DOWN)
             wakingKey = event.keyCode
         standby?.interact()
