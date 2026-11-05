@@ -210,7 +210,12 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
     if (showPlaylists)
         SyncPlaylistsPage(
             state,
-            onDismiss = { if (!state.saving) showPlaylists = false },
+            onDismiss = {
+                if (!state.saving) {
+                    showPlaylists = false
+                    model.commitPlaylists()
+                }
+            },
             onChange = model::setPlaylists,
             onRefresh = model::refreshPlaylists,
         )

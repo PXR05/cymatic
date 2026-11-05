@@ -16,8 +16,10 @@ import com.pxr.cymatic.sync.SyncLayout
 import com.pxr.cymatic.sync.SyncNetwork
 import com.pxr.cymatic.sync.SyncProgress
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -30,6 +32,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
     private val mutableState = MutableStateFlow(LibrarySyncSettingsState())
     val state = mutableState.asStateFlow()
     private var requestBaseline: SyncProgress? = null
+    private var playlistsDirty = false
 
     init {
         viewModelScope.launch {
@@ -145,13 +148,25 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         mutableState.update { it.copy(contentMode = mode, musicConfigured = true) }
     }
 
-    fun setPlaylists(selection: Set<String>) = save {
-        SettingsStore.setSyncSelectedPlaylists(selection)
-        mutableState.update {
-            it.copy(
-                selectedPlaylists = selection,
-                musicConfigured = it.musicConfigured || selection.isNotEmpty(),
-            )
+    fun setPlaylists(selection: Set<String>) {
+        if (selection == state.value.selectedPlaylists) return
+        playlistsDirty = true
+        save(reschedule = false) {
+            SettingsStore.setSyncSelectedPlaylists(selection)
+            mutableState.update {
+                it.copy(
+                    selectedPlaylists = selection,
+                    musicConfigured = it.musicConfigured || selection.isNotEmpty(),
+                )
+            }
+        }
+    }
+
+    fun commitPlaylists() {
+        if (!playlistsDirty) return
+        playlistsDirty = false
+        viewModelScope.launch {
+            withContext(NonCancellable) { LibrarySyncJobService.reschedule(context) }
         }
     }
 
@@ -173,14 +188,17 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         mutableState.update { it.copy(interval = interval) }
     }
 
-    private fun save(action: suspend () -> Unit) {
+    private fun save(reschedule: Boolean = true, action: suspend () -> Unit) {
         if (!state.value.canEdit) return
         mutableState.update { it.copy(saving = true, message = null) }
         viewModelScope.launch {
             try {
                 withContext(NonCancellable) {
                     action()
-                    LibrarySyncJobService.reschedule(context)
+                    if (reschedule) {
+                        playlistsDirty = false
+                        LibrarySyncJobService.reschedule(context)
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -190,6 +208,16 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                 mutableState.update { it.copy(saving = false) }
             }
         }
+    }
+
+    override fun onCleared() {
+        if (playlistsDirty) {
+            playlistsDirty = false
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                LibrarySyncJobService.reschedule(context)
+            }
+        }
+        super.onCleared()
     }
 
     fun refreshPlaylists() {
