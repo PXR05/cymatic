@@ -42,14 +42,25 @@ Grant music access, then use **Settings → Storage** to scan your music. You ca
 all media or choose individual directories. **Settings → Interface**
 contains the wheel, display-padding, scrolling, and standby controls.
 
-Use **Settings → Remote library** to connect an AudioStream account. Connecting and
-refreshing only fetch the catalog. **Keep offline** optionally downloads all music or
-selected playlists into Cymatic's private storage; downloaded songs appear in the local
-library. Automatic downloads default to a daily Wi-Fi check when first enabled.
-Custom folders, file layout, and scheduling are under **Advanced**. Existing custom
-folders are preserved. Turning offline downloads off keeps downloaded files; uninstalling
-the app removes its private downloads. Remote streaming and additional providers are
-planned, but are not available yet.
+Use **Settings → Remote library** to connect an AudioStream account. Songs and playlists
+appear in the normal library immediately after connecting. Tap a remote song to stream
+it; playback prefers a downloaded copy when one is available. Local-storage permission
+is only needed for music stored outside Cymatic.
+
+Long press a song, playlist, album, or artist and choose **Keep offline** to download it.
+You can queue more items while downloads are running. A small animated pixel icon marks
+queued or processing items in place. The download icon marks offline items, a half-filled
+circle marks partially offline items, and the cloud marks stream-only items.
+Download status updates as files complete.
+Cymatic manages storage automatically; custom folders, bulk downloads, layout, and
+scheduling remain in remote-library settings. Automatic downloads default to a daily
+Wi-Fi check when first enabled. Uninstalling the app removes its private downloads.
+Additional providers are planned; the connection UI currently supports AudioStream.
+
+Hold **Menu → Show** in a library screen to choose **All music**, **Offline only**,
+or **Not offline**. The filter is shared across library screens and remembered.
+Partially offline playlists appear under **Not offline**. Use the active-filter label
+or the same menu to return to all music.
 
 ## Wheel controls
 
@@ -130,12 +141,11 @@ The APK is in `app-player/build/outputs/apk/debug/`. Use
 ## Checks and releases
 
 ```bash
-./gradlew :shared:music:testDebugUnitTest :app-player:lintDebug
-python scripts/verify_app_separation.py debug
+./gradlew :app-player:lintDebug
 ```
 
 Shared versions live in `gradle.properties`, dependencies live in
-`gradle/libs.versions.toml`. CI builds both apps and signs both release APKs.
+`gradle/libs.versions.toml`. CI builds and signs the Player APK.
 
 To release, increment `cymaticVersionCode`, update `cymaticVersionName` in
 `gradle.properties`, and push to `main`. The Auto Tag workflow creates the version

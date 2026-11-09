@@ -4,10 +4,6 @@ import android.content.Context
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.util.Log
-import com.pxr.cymatic.data.media.PlaylistRepository
-import com.pxr.cymatic.data.media.loadCachedAudioFiles
-import com.pxr.cymatic.data.media.syncAudioFilesToDb
-import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
 import java.io.EOFException
 import java.io.IOException
@@ -75,6 +71,8 @@ object LibrarySyncManager {
     val progress: StateFlow<SyncProgress> = _progress.asStateFlow()
     private val manualScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    val isRunning: Boolean get() = running.get()
+
     fun start(context: Context): Boolean {
         if (!begin()) return false
         manualScope.launch {
@@ -94,10 +92,10 @@ object LibrarySyncManager {
         if (!running.get()) _progress.value = SyncProgress.Idle
     }
 
-    suspend fun sync(context: Context): SyncSummary =
+    suspend fun sync(context: Context, source: RemoteLibrarySource? = null): SyncSummary =
         withContext(Dispatchers.IO) {
             check(begin()) { "A library sync is already running" }
-            syncAcquired(context.applicationContext)
+            syncAcquired(context.applicationContext, source)
         }
 
     private fun begin(): Boolean {
@@ -107,9 +105,9 @@ object LibrarySyncManager {
         return true
     }
 
-    private suspend fun syncAcquired(context: Context): SyncSummary {
+    private suspend fun syncAcquired(context: Context, source: RemoteLibrarySource? = null): SyncSummary {
         return try {
-            syncBlocking(context.applicationContext).also {
+            syncBlocking(context.applicationContext, source).also {
                 _progress.value = SyncProgress.Complete(it)
             }
         } catch (_: SyncCancelledException) {
@@ -129,48 +127,54 @@ object LibrarySyncManager {
             )
             throw error
         } finally {
+            LibraryOfflineManager.setSyncWork(OfflineWorkItems())
             activeClient.set(null)
             running.set(false)
         }
     }
 
-    private suspend fun syncBlocking(context: Context): SyncSummary {
-        val source = RemoteLibraries.currentSource()
+    private suspend fun syncBlocking(context: Context, requestedSource: RemoteLibrarySource?): SyncSummary {
+        val currentSource = RemoteLibraries.currentSource()
+        val source = requestedSource ?: currentSource
+        val current = source.id == currentSource.id
         SyncCredentialStore.migrateLegacy(context, source.id)
         SyncCatalogStore.migrateLegacy(context, source)
         SettingsStore.migrateSyncPlaylistIds(source.id)
         val client = RemoteLibraries.client(context, source)
         activeClient.set(client)
         val catalog = RemoteLibraries.catalogRepository(context).refresh(source, client, ::checkCancelled)
+        RemoteLibraryRepository.publish(context, source, catalog)
         val tracks = catalog.tracks
         val remotePlaylists = catalog.playlists
 
-        val mode = SyncContentMode.from(SettingsStore.getSyncContentMode())
-        val selectedIds = SettingsStore.getSyncSelectedPlaylists()
+        val mode = if (current) SyncContentMode.from(SettingsStore.getSyncContentMode()) else SyncContentMode.NONE
+        val pins = OfflineSelectionStore.read(context, source.id)
+        val selectedIds = (if (current) SettingsStore.getSyncSelectedPlaylists() else emptySet()) + pins.playlists
         val playlistsToSync =
             when (mode) {
-                SyncContentMode.NONE -> emptyList()
+                SyncContentMode.NONE -> remotePlaylists.filter { it.id in pins.playlists }
                 SyncContentMode.ALL -> remotePlaylists
                 SyncContentMode.SELECTED_PLAYLISTS ->
                     remotePlaylists.filter { it.id in selectedIds }
             }
-        val tracksToSync =
-            when (mode) {
-                SyncContentMode.NONE -> emptyList()
-                SyncContentMode.ALL -> tracks
-                SyncContentMode.SELECTED_PLAYLISTS -> {
-                    val trackIds = playlistsToSync.flatMapTo(mutableSetOf()) { it.trackIds }
-                    tracks.filter { it.id in trackIds }
-                }
-            }
-        if (mode == SyncContentMode.NONE ||
-            (mode == SyncContentMode.SELECTED_PLAYLISTS && playlistsToSync.isEmpty())) {
-            val summary = SyncSummary(0, 0, 0, 0, 0)
+        val selectedTrackIds = pins.trackIds(catalog) + playlistsToSync.flatMap { it.trackIds }
+        val tracksToSync = if (mode == SyncContentMode.ALL) tracks else tracks.filter { it.id in selectedTrackIds }
+        if (tracksToSync.isEmpty()) {
             SettingsStore.setSyncResult(System.currentTimeMillis(), "No music selected for download")
-            return summary
+            return SyncSummary(0, 0, 0, 0, 0)
         }
 
-        val directory = SettingsStore.getSyncDirectory()
+        val offline = com.pxr.cymatic.data.media.AudioRepository.getInstance(context).getAllAudio()
+            .filter { it.sourceId == source.id && it.offlineUri != null }
+            .mapNotNullTo(mutableSetOf()) { it.remoteId }
+        val pending = tracksToSync.map { it.id }.toSet() - offline
+        LibraryOfflineManager.setSyncWork(OfflineWorkItems(
+            pending.mapTo(mutableSetOf()) { source.itemKey(it) },
+            playlistsToSync.filter { playlist -> playlist.trackIds.any { it in pending } }
+                .mapTo(mutableSetOf()) { source.itemKey(it.id) },
+        ))
+
+        val directory = if (current) SettingsStore.getSyncDirectory() else ""
         val tree: SyncStorage = if (directory.isBlank()) {
             ManagedSyncStorage(java.io.File(context.filesDir, "library-downloads/${source.id}"))
         } else {
@@ -230,43 +234,22 @@ object LibrarySyncManager {
                     }
                 },
             )
-        syncPlaylists(context, source.id, playlistsToSync, tracksToSync, null)
-        syncPlaylists(context, source.id, playlistsToSync, tracksToSync, loadCachedAudioFiles(context))
         var downloaded = 0
         var unchanged = 0
         var failed = 0
         var firstFailure: String? = null
         val pendingPaths = linkedMapOf<String, String>()
-        val localUrisByRemoteId = mutableMapOf<String, List<String>>()
 
         suspend fun indexCompletedTracks() {
             if (pendingPaths.isEmpty()) return
             _progress.value = SyncProgress.Preparing("Adding downloaded tracks to playlists")
             writeManifest(tree, reuse.entries, source.id)
             val paths = pendingPaths.keys.mapNotNull(tree::absolutePath)
-            val scanned = scanMediaFiles(context, paths)
-            pendingPaths.forEach { (path, remoteId) ->
-                localUrisByRemoteId[remoteId] =
-                    listOfNotNull(
-                        scanned[tree.absolutePath(path)]?.toString(),
-                        tree.documentUri(path)?.toString(),
-                    )
+            scanMediaFiles(context, paths)
+            RemoteLibraryRepository.publish(context, source, catalog)
+            pendingPaths.values.distinct().forEach { remoteId ->
+                LibraryArtworkProvider.cache(context, source.itemKey(remoteId))
             }
-            val localFiles =
-                syncAudioFilesToDb(
-                    context,
-                    SettingsStore.getScanDirectories() + directory,
-                    SettingsStore.getScanAllMedia(),
-                )
-            syncPlaylists(
-                context,
-                source.id,
-                playlistsToSync,
-                tracksToSync,
-                localFiles,
-                checkCancellation = false,
-                localUrisByRemoteId = localUrisByRemoteId,
-            )
             pendingPaths.clear()
         }
 
@@ -340,7 +323,7 @@ object LibrarySyncManager {
         checkCancelled()
         val entries = reuse.entries
         val next = entries.toMutableMap()
-        if (failed == 0) {
+        if (failed == 0 && mode != SyncContentMode.NONE) {
             val desiredPaths = desired.mapTo(mutableSetOf()) { it.relativePath }
             (entries.keys - desiredPaths).forEach { path ->
                 if (tree.delete(path)) {
@@ -359,31 +342,8 @@ object LibrarySyncManager {
                 .distinct()
                 .filterNot { it.substringAfterLast('/').startsWith(".cymatic-sync-") }
                 .mapNotNull(tree::absolutePath)
-        val scanned = scanMediaFiles(context, syncedPaths)
-        next.forEach { (path, entry) ->
-            if (!path.substringAfterLast('/').startsWith(".cymatic-sync-")) {
-                localUrisByRemoteId[entry.remoteId] =
-                    listOfNotNull(
-                        scanned[tree.absolutePath(path)]?.toString(),
-                        tree.documentUri(path)?.toString(),
-                    )
-            }
-        }
-        val localFiles =
-            syncAudioFilesToDb(
-                context,
-                SettingsStore.getScanDirectories() + directory,
-                SettingsStore.getScanAllMedia(),
-            )
-        syncPlaylists(
-            context,
-            source.id,
-            playlistsToSync,
-            tracksToSync,
-            localFiles,
-            removeMissing = failed == 0,
-            localUrisByRemoteId = localUrisByRemoteId,
-        )
+        scanMediaFiles(context, syncedPaths)
+        RemoteLibraryRepository.publish(context, source, catalog)
 
         val summary = SyncSummary(downloaded, unchanged, removed, failed, playlistsToSync.size)
         val message =
@@ -573,83 +533,4 @@ object LibrarySyncManager {
         return results
     }
 
-    private suspend fun syncPlaylists(
-        context: Context,
-        sourceId: String,
-        remotePlaylists: List<RemotePlaylist>,
-        tracks: List<RemoteTrack>,
-        localFiles: List<AudioFile>?,
-        removeMissing: Boolean = false,
-        checkCancellation: Boolean = true,
-        localUrisByRemoteId: Map<String, List<String>> = emptyMap(),
-    ) {
-        _progress.value =
-            SyncProgress.Preparing(
-                if (localFiles == null) "Creating playlists" else "Syncing playlists"
-            )
-        if (checkCancellation) checkCancelled()
-        val playlistRepository = PlaylistRepository.getInstance(context)
-        val existing = playlistRepository.getPlaylists().associateBy { it.id }.toMutableMap()
-        val mappedIds = SettingsStore.getSyncPlaylistIds(sourceId).toMutableMap()
-        val remoteIds = remotePlaylists.mapTo(mutableSetOf()) { it.id }
-
-        if (removeMissing)
-            (mappedIds.keys - remoteIds).forEach { remoteId ->
-                mappedIds.remove(remoteId)?.let { localId ->
-                    if (existing.containsKey(localId)) playlistRepository.deletePlaylist(localId)
-                    existing.remove(localId)
-                }
-            }
-
-        val localByUri = localFiles.orEmpty().associateBy { it.uri.toString() }
-        val localByRemoteId = tracks.associate { track ->
-            track.id to
-                (localUrisByRemoteId[track.id].orEmpty().firstNotNullOfOrNull(localByUri::get)
-                    ?: bestLocalMatch(track, localFiles.orEmpty()))
-        }
-        remotePlaylists.forEach { remote ->
-            if (checkCancellation) checkCancelled()
-            var localId = mappedIds[remote.id]?.takeIf(existing::containsKey)
-            if (localId == null) {
-                val usedNames = existing.values.mapTo(mutableSetOf()) { it.name.lowercase() }
-                var localName = remote.name
-                var suffix = 1
-                while (localName.lowercase() in usedNames) {
-                    localName =
-                        if (suffix == 1) "${remote.name} (Remote)"
-                        else "${remote.name} (Remote $suffix)"
-                    suffix++
-                }
-                localId = playlistRepository.createPlaylist(localName)
-                mappedIds[remote.id] = localId
-                SettingsStore.setSyncPlaylistIds(mappedIds, sourceId)
-                playlistRepository.getPlaylist(localId)?.let { existing[localId] = it }
-            }
-            val current = existing[localId]
-            if (
-                current != null &&
-                    current.name != remote.name &&
-                    existing.values.none {
-                        it.id != localId && it.name.equals(remote.name, ignoreCase = true)
-                    }
-            ) {
-                playlistRepository.renamePlaylist(localId, remote.name)
-            }
-            if (localFiles != null) {
-                val audioIds = remote.trackIds.mapNotNull { localByRemoteId[it]?.id }.distinct()
-                playlistRepository.replacePlaylistAudio(localId, audioIds)
-            }
-        }
-        SettingsStore.setSyncPlaylistIds(mappedIds, sourceId)
-    }
-
-    private fun bestLocalMatch(track: RemoteTrack, files: List<AudioFile>): AudioFile? {
-        val sizeMatches = files.filter { track.size < 0 || it.size.toLong() == track.size }
-        fun String?.same(value: String) = orEmpty().trim().equals(value.trim(), ignoreCase = true)
-        return sizeMatches.firstOrNull {
-            it.metadata.title.same(track.title) &&
-                it.metadata.artist.same(track.artist) &&
-                it.metadata.album.same(track.album)
-        } ?: sizeMatches.firstOrNull { it.metadata.title.same(track.title) }
-    }
 }

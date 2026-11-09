@@ -94,6 +94,9 @@ abstract class MusicActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalMediaController provides mediaController,
                     LocalNavController provides navController,
+                    com.pxr.cymatic.ui.components.screen.LocalScreenNotice provides {
+                        com.pxr.cymatic.ui.components.common.OfflineQueueNotice()
+                    },
                 ) {
                     AppContent()
                 }

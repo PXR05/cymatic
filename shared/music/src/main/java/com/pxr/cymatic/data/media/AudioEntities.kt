@@ -19,7 +19,10 @@ data class AudioEntity(
     @ColumnInfo(name = "sample_rate") val sampleRate: Long?,
     val format: String?,
     @ColumnInfo(name = "artwork_uri") val artworkUri: String?,
-    @ColumnInfo(name = "date_modified") val dateModified: Long
+    @ColumnInfo(name = "date_modified") val dateModified: Long,
+    val sourceId: String? = null,
+    val remoteId: String? = null,
+    val offlineUri: String? = null,
 )
 
 data class AudioIndexEntry(
@@ -36,7 +39,9 @@ data class PlaylistEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "updated_at") val updatedAt: Long
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    val sourceId: String? = null,
+    val remoteId: String? = null,
 )
 
 @Entity(

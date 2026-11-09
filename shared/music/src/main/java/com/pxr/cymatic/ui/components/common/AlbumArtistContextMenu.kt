@@ -17,6 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,7 +40,15 @@ fun AlbumArtistContextMenu(
     onPlayNext: (() -> Unit)? = null,
     onAddToQueue: (() -> Unit)? = null,
     onSearch: (() -> Unit)? = null,
+    onKeepOffline: (() -> Unit)? = null,
+    showLibraryFilter: Boolean = false,
 ) {
+    var choosingFilter by remember { mutableStateOf(false) }
+    val filter by LibraryFilterStore.filter.collectAsState()
+    if (choosingFilter) {
+        LibraryFilterMenu({ choosingFilter = false }, onSelected = onDismiss)
+        return
+    }
     val wheel = LocalWheelNavigation.current
     if (wheel != null) {
         val items = buildList {
@@ -65,6 +77,11 @@ fun AlbumArtistContextMenu(
                     })
                 )
             }
+            if (onKeepOffline != null) add(NavigationItem("Keep offline", onClick = {
+                onKeepOffline()
+                onDismiss()
+            }))
+            if (showLibraryFilter) add(NavigationItem("Show · ${filter.label}", onClick = { choosingFilter = true }))
             if (onSearch != null) {
                 add(
                     NavigationItem("Search", onClick = {
@@ -122,6 +139,16 @@ fun AlbumArtistContextMenu(
                         }
                     )
                 }
+                if (onKeepOffline != null) ContextMenuAction(
+                    iconRes = R.drawable.ic_pixel_offline,
+                    label = "Keep offline",
+                    onClick = { onKeepOffline(); onDismiss() },
+                )
+                if (showLibraryFilter) ContextMenuAction(
+                    iconRes = R.drawable.ic_pixel_songs,
+                    label = "Show · ${filter.label}",
+                    onClick = { choosingFilter = true },
+                )
                 if (onSearch != null) {
                     ContextMenuAction(
                         iconRes = R.drawable.ic_pixel_search,

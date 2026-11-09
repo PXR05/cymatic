@@ -40,6 +40,7 @@ object LibraryCatalogManager {
                 val catalog = RemoteLibraries.catalogRepository(application).refresh(source, connection) {
                     if (cancelled.get()) throw SyncCancelledException()
                 }
+                RemoteLibraryRepository.publish(application, source, catalog)
                 mutableProgress.value = CatalogProgress.Complete(source, catalog)
             } catch (error: Exception) {
                 mutableProgress.value = if (cancelled.get()) CatalogProgress.Cancelled

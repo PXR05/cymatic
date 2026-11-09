@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
 val LocalScreenBackdrop = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
+val LocalScreenNotice = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
 @Composable
 fun BaseScreen(
@@ -89,6 +90,7 @@ fun BaseScreen(
                         actions = actions
                     )
                 }
+                LocalScreenNotice.current?.invoke()
                 content()
             }
         }

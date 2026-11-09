@@ -65,7 +65,7 @@ fun AddToPlaylistDialog(
     LaunchedEffect(audioId) {
         withContext(Dispatchers.IO) {
             val repo = PlaylistRepository.getInstance(context)
-            val all = repo.getPlaylists()
+            val all = repo.getPlaylists().filter { it.sourceId == null }
             val members =
                 all.filter { playlist ->
                         repo.getPlaylistAudio(playlist.id).any { it.id == audioId }

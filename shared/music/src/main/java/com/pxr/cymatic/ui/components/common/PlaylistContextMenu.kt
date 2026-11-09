@@ -19,6 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.data.model.LibraryAvailability
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +45,13 @@ fun PlaylistContextMenu(
     onRename: (playlistId: Long, newName: String) -> Unit,
     onDelete: (playlistId: Long) -> Unit,
 ) {
+    val context = LocalContext.current
+    val keepOffline = {
+        if (playlist.sourceId != null && playlist.remoteId != null)
+            LibraryOfflineManager.keepPlaylist(context, playlist.sourceId, playlist.remoteId, playlist.name)
+        else LibraryOfflineManager.keepPlaylist(context, playlist.id, playlist.name)
+        onDismiss()
+    }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var renameValue by remember { mutableStateOf(playlist.name) }
@@ -104,7 +114,7 @@ fun PlaylistContextMenu(
     if (wheel != null) {
         WheelContextMenu(
             title = playlist.name,
-            items = listOf(
+            items = listOfNotNull(
                 NavigationItem("Play", onClick = {
                     onPlay()
                     onDismiss()
@@ -118,8 +128,10 @@ fun PlaylistContextMenu(
                     onAddToQueue()
                     onDismiss()
                 }),
-                NavigationItem("Rename", onClick = { showRenameDialog = true }),
-                NavigationItem("Delete", onClick = { showDeleteConfirm = true })
+                if (playlist.availability != LibraryAvailability.OFFLINE)
+                    NavigationItem("Keep offline", onClick = keepOffline) else null,
+                if (playlist.sourceId == null) NavigationItem("Rename", onClick = { showRenameDialog = true }) else null,
+                if (playlist.sourceId == null) NavigationItem("Delete", onClick = { showDeleteConfirm = true }) else null
             ),
             onDismiss = onDismiss
         )
@@ -161,12 +173,17 @@ fun PlaylistContextMenu(
                         onDismiss()
                     }
                 )
-                PlaylistContextMenuAction(
+                if (playlist.availability != LibraryAvailability.OFFLINE) PlaylistContextMenuAction(
+                    iconRes = R.drawable.ic_pixel_offline,
+                    label = "Keep offline",
+                    onClick = keepOffline,
+                )
+                if (playlist.sourceId == null) PlaylistContextMenuAction(
                     iconRes = R.drawable.ic_pixel_edit,
                     label = "Rename",
                     onClick = { showRenameDialog = true }
                 )
-                PlaylistContextMenuAction(
+                if (playlist.sourceId == null) PlaylistContextMenuAction(
                     iconRes = R.drawable.ic_pixel_trash,
                     label = "Delete",
                     onClick = { showDeleteConfirm = true }

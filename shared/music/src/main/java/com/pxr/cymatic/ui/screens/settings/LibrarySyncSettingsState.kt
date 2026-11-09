@@ -37,6 +37,7 @@ internal data class LibrarySyncSettingsState(
     val layout: SyncLayout = SyncLayout.ARTIST_ALBUM_TRACKS,
     val contentMode: SyncContentMode = SyncContentMode.NONE,
     val musicConfigured: Boolean = false,
+    val hasPinnedMusic: Boolean = false,
     val selectedPlaylists: Set<String> = emptySet(),
     val catalog: RemoteCatalog? = null,
     val progress: SyncProgress = SyncProgress.Idle,
@@ -78,18 +79,19 @@ internal data class LibrarySyncSettingsState(
             when {
                 !connected -> SyncSetupStep.CONNECTION
                 directory.isNotBlank() && !folderAccessible -> SyncSetupStep.FOLDER
-                contentMode == SyncContentMode.NONE -> SyncSetupStep.MUSIC
-                contentMode == SyncContentMode.SELECTED_PLAYLISTS && selection.isEmpty() ->
+                contentMode == SyncContentMode.NONE && !hasPinnedMusic -> SyncSetupStep.MUSIC
+                contentMode == SyncContentMode.SELECTED_PLAYLISTS && selection.isEmpty() && !hasPinnedMusic ->
                     SyncSetupStep.MUSIC
                 else -> null
             }
 
     val musicLabel: String
         get() = when (contentMode) {
-            SyncContentMode.NONE -> "Off"
+            SyncContentMode.NONE -> if (hasPinnedMusic) "Chosen songs and playlists" else "Stream only"
             SyncContentMode.ALL -> "All music"
             SyncContentMode.SELECTED_PLAYLISTS ->
-                if (selection.isEmpty()) "Choose playlists" else "${selection.size} playlists"
+                if (selection.isNotEmpty()) "${selection.size} playlists"
+                else if (hasPinnedMusic) "Chosen songs and playlists" else "Choose playlists"
         }
 
     val statusLabel: String
@@ -105,7 +107,7 @@ internal data class LibrarySyncSettingsState(
                     when {
                         starting -> "Starting…"
                         !connected -> "Connect a library"
-                        contentMode == SyncContentMode.NONE -> "Offline downloads off"
+                        contentMode == SyncContentMode.NONE && !hasPinnedMusic -> "Stream only"
                         nextStep != null -> "Choose offline music"
                         else -> lastResult
                     }
@@ -125,7 +127,7 @@ internal data class LibrarySyncSettingsState(
                     when {
                         starting -> "Starting…"
                         !connected -> "Connect a library"
-                        contentMode == SyncContentMode.NONE -> "Offline downloads off"
+                        contentMode == SyncContentMode.NONE && !hasPinnedMusic -> "Stream only"
                         nextStep != null -> "Choose offline music"
                         lastResult.startsWith("Synced") || lastResult.startsWith("Playlist") ->
                             "Synced"

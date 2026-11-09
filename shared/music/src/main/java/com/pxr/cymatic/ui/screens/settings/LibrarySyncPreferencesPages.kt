@@ -33,7 +33,7 @@ internal fun SyncMusicPage(
                     onClick = onPlaylists,
                 ))
             }
-            if (state.contentMode != SyncContentMode.NONE) {
+            if (state.contentMode != SyncContentMode.NONE || state.hasPinnedMusic) {
                 add(SyncSetting(
                     "Automatic downloads",
                     if (state.network == SyncNetwork.NEVER) "Off · download manually"
@@ -51,7 +51,7 @@ internal fun SyncMusicPage(
             }
             add(SyncSetting(
                 "About offline music",
-                "Downloads appear in your local library. Turning this off pauses downloads and keeps existing files.",
+                "Long press a song or playlist in the library and choose Keep offline. Playback uses the downloaded copy whenever it is available.",
                 enabled = false,
             ))
         })
@@ -151,13 +151,13 @@ internal fun SyncSchedulePage(
 internal fun SyncHelpPage(onDismiss: () -> Unit) {
     SyncReadingPage("Remote library", onDismiss) {
         Text("Connect your library")
-        Text("Enter your AudioStream server address and login. Connecting loads the song and playlist catalog without downloading audio. Use Library to browse it or refresh it later.")
+        Text("Enter your AudioStream server address and login. Connecting adds songs and playlists to your app library without downloading audio. Tap a song to stream it; playback uses an offline copy when one is available.")
         Text("Keep music offline")
-        Text("Optional. Choose all music or selected playlists, then Download now. Cymatic manages storage automatically. Downloaded songs appear in your local library for playback. Streaming is not available yet.")
+        Text("Long press a song or playlist and choose Keep offline. Cymatic manages storage automatically. You can also download all music or selected playlists here.")
         Text("When you first enable offline music, automatic downloads use Wi-Fi with a daily check. Change this in Advanced → Automatic downloads.")
         Text("Storage and downloads")
         Text("Advanced contains custom folders, folder layout, and automatic downloads. Existing custom folders stay selected. Cymatic storage is private to this app and is removed if you uninstall it. Changing storage leaves existing files in place and may download another copy.")
-        Text("Turning downloads off")
-        Text("Nothing pauses future downloads and keeps existing files. While downloads are enabled, the next successful download sync can remove files it previously saved when they are no longer selected.")
+        Text("Library icons")
+        Text("The download icon means available offline. The cloud with a download arrow means partially offline. The cloud means stream only. Choosing items in the library keeps their offline selections, including when you change the bulk download setting.")
     }
 }

@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.album
 
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -45,7 +46,7 @@ class AlbumSongsViewModel(
             _isLoading.value = false
         }
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 loadAlbumSongs(albumName, artistName)
             }
         }
@@ -70,9 +71,9 @@ class AlbumSongsViewModel(
 
     private fun filterSongs(songs: List<AudioFile>, albumName: String, artistName: String?): List<AudioFile> {
         return if (artistName == null) {
-            filterByAlbum(songs, albumName)
+            filterByAlbum(LibraryFilterStore.audio(songs), albumName)
         } else {
-            filterByArtistAndAlbum(songs, artistName, albumName)
+            filterByArtistAndAlbum(LibraryFilterStore.audio(songs), artistName, albumName)
         }
     }
 }

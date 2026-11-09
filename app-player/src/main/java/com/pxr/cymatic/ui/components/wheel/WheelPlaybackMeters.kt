@@ -38,7 +38,7 @@ internal fun WheelPlaybackMeters(
     val usbVolume by UsbVolumeState.level.collectAsState()
     val requestedVolume by UsbVolumeState.requestedPercent.collectAsState()
     val duration = (playback.durationMs ?: 0L).coerceAtLeast(0L)
-    val position = playback.currentPositionMs.coerceIn(0L, duration)
+    val position = playback.currentPositionMs.coerceAtLeast(0L).let { if (duration > 0) it.coerceAtMost(duration) else it }
     val volumeLimit = maxVolume.coerceAtLeast(1)
     Column(
         Modifier.fillMaxWidth(),
@@ -101,7 +101,7 @@ internal fun WheelPlaybackMeters(
                     },
             )
             Text(
-                playbackTime(duration),
+                if (duration > 0) playbackTime(duration) else "--:--",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.End,

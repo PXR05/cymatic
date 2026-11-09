@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.Role
@@ -35,6 +36,7 @@ data class NavigationItem(
     val checked: Boolean? = null,
     val showIndicator: Boolean = true,
     val subLabelMaxLines: Int = 2,
+    val trailingContent: @Composable ((Color) -> Unit)? = null,
     val onLongClick: () -> Unit = {},
     val onClick: () -> Unit = {},
 )
@@ -68,7 +70,7 @@ fun NavigationList(
                 trailing =
                     if (item.enabled && item.showIndicator && item.checked == null) ">" else null,
                 trailingContent =
-                    if (item.enabled && item.showIndicator && item.checked != null) {
+                    item.trailingContent ?: if (item.enabled && item.showIndicator && item.checked != null) {
                         { color ->
                             Canvas(Modifier.size(20.dp)) {
                                 val pixels = if (item.checked) {

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -106,7 +108,7 @@ fun ListItem(
     ) {
         if (icon != null) {
             Box(modifier = Modifier.padding(end = 16.dp)) {
-                icon()
+                CompositionLocalProvider(LocalContentColor provides labelColor) { icon() }
             }
         }
         Column(modifier = Modifier.weight(1f)) {

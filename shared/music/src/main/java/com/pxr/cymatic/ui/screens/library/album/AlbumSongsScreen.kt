@@ -1,5 +1,13 @@
 package com.pxr.cymatic.ui.screens.library.album
 
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
+import com.pxr.cymatic.ui.screens.library.LibraryGroup
+import com.pxr.cymatic.ui.screens.library.filterByArtist
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -67,10 +75,17 @@ fun AlbumSongsScreen(
         viewModel.loadAlbumSongs(albumName, artistName)
     }
 
+    val groups = rememberLibraryGroups()
+    val offlineGroup = groups.albums[albumName]?.let { album ->
+        LibraryGroup(if (artistName == null) album.songs else filterByArtist(album.songs, artistName))
+    }
+
     var showHeaderMenu by remember { mutableStateOf(false) }
     val filteredFiles by viewModel.songs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
     BaseScreen(
         title = albumName,
@@ -79,7 +94,8 @@ fun AlbumSongsScreen(
         modifier = modifier,
         showWallpaperBackdrop = true
     ) {
-        if (!hasPermission) {
+        LibraryFilterStatus(availabilityFilter)
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && filteredFiles.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -98,6 +114,8 @@ fun AlbumSongsScreen(
             )
         } else if (isLoading) {
             LoadingState()
+        } else if (availabilityFilter != LibraryFilter.ALL && filteredFiles.isEmpty()) {
+            LibraryFilteredEmptyState()
         } else if (filteredFiles.isEmpty()) {
             EmptyState(
                 title = "No Songs Found",
@@ -167,9 +185,13 @@ fun AlbumSongsScreen(
         )
     }
 
-    if (showHeaderMenu && filteredFiles.isNotEmpty()) {
+    if (showHeaderMenu) {
         AlbumArtistContextMenu(
+            showLibraryFilter = true,
             title = albumName,
+            onKeepOffline = offlineGroup?.takeIf { it.canKeepOffline }?.let { group ->
+                { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
+            },
             onDismiss = { showHeaderMenu = false },
             onPlay = {
                 mediaController?.let { controller ->

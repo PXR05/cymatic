@@ -19,6 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.data.model.LibraryAvailability
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +46,12 @@ fun AudioFileContextMenu(
     onTrackInfo: (AudioFile) -> Unit,
 ) {
     val title = audioFile.metadata.title ?: "Unknown Title"
+    val context = LocalContext.current
+    val canDownload = audioFile.sourceId != null && audioFile.remoteId != null && audioFile.availability != LibraryAvailability.OFFLINE
+    val keepOffline = {
+        LibraryOfflineManager.keepTrack(context, requireNotNull(audioFile.sourceId), requireNotNull(audioFile.remoteId), title)
+        onDismiss()
+    }
 
     var showPlaylistPicker by remember { mutableStateOf(false) }
 
@@ -61,7 +70,7 @@ fun AudioFileContextMenu(
     if (wheel != null) {
         WheelContextMenu(
             title = title,
-            items = listOf(
+            items = listOfNotNull(
                 NavigationItem("Play", onClick = {
                     onPlay(audioFile)
                     onDismiss()
@@ -76,6 +85,7 @@ fun AudioFileContextMenu(
                     onDismiss()
                 }),
                 NavigationItem("Add to Playlist", onClick = { showPlaylistPicker = true }),
+                if (canDownload) NavigationItem("Keep offline", onClick = keepOffline) else null,
                 NavigationItem("Track Info", onClick = {
                     onTrackInfo(audioFile)
                     onDismiss()
@@ -125,6 +135,11 @@ fun AudioFileContextMenu(
                     iconRes = R.drawable.ic_pixel_add_playlist,
                     label = "Add to Playlist",
                     onClick = { showPlaylistPicker = true }
+                )
+                if (canDownload) ContextMenuAction(
+                    iconRes = R.drawable.ic_pixel_offline,
+                    label = "Keep offline",
+                    onClick = keepOffline,
                 )
                 ContextMenuAction(
                     iconRes = R.drawable.ic_pixel_info,

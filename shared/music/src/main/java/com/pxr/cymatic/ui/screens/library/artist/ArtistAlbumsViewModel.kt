@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -30,7 +31,7 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 currentArtist?.let(::load)
             }
         }
@@ -57,7 +58,7 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun buildState(songs: List<AudioFile>, artistName: String, isLoading: Boolean): ArtistAlbumsState {
-        val artistSongs = filterByArtist(songs, artistName)
+        val artistSongs = filterByArtist(LibraryFilterStore.audio(songs), artistName)
         val albums = artistSongs
             .groupingBy(::albumDisplayName)
             .eachCount()

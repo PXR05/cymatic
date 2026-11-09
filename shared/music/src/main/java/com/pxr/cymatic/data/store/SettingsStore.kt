@@ -74,6 +74,9 @@ object SettingsStore {
     private val SYNC_CONTENT_MODE_KEY = stringPreferencesKey("SYNC_CONTENT_MODE")
     private val SYNC_CONTENT_CONFIGURED_KEY = booleanPreferencesKey("SYNC_CONTENT_CONFIGURED")
     private val SYNC_SELECTED_PLAYLISTS_KEY = stringSetPreferencesKey("SYNC_SELECTED_PLAYLISTS")
+    private val LIBRARY_FILTER_KEY = stringPreferencesKey("LIBRARY_FILTER")
+    val libraryFilterFlow: Flow<String> get() = store.data.map { it[LIBRARY_FILTER_KEY] ?: "all" }
+    suspend fun setLibraryFilter(value: String) = store.edit { it[LIBRARY_FILTER_KEY] = value }
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore

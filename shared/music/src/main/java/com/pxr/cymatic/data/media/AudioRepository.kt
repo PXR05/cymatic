@@ -20,7 +20,10 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
             if (doubleChecked != null) {
                 doubleChecked
             } else {
-                val dbList = audioDao.getAllAudio().map { it.toAudioFile() }
+                val dbList = audioDao.getAllAudio().let { records ->
+                    val remoteCopies = records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
+                    records.filter { it.sourceId != null || it.uri !in remoteCopies }.map { it.toAudioFile() }
+                }
                 cachedAudio = dbList
                 dbList
             }
@@ -62,6 +65,10 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
         cacheMutex.withLock { cachedAudio = null }
     }
 
+    suspend fun invalidate() {
+        cacheMutex.withLock { cachedAudio = null }
+    }
+
     companion object {
         @Volatile private var instance: AudioRepository? = null
 
@@ -82,6 +89,9 @@ fun AudioEntity.toAudioFile(): AudioFile {
         id = id,
         uri = uri.toUri(),
         size = size,
+        sourceId = sourceId,
+        remoteId = remoteId,
+        offlineUri = offlineUri?.toUri(),
         metadata =
             AudioMetadata(
                 title = title,

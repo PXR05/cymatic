@@ -35,6 +35,7 @@ fun createMediaItem(audioFile: AudioFile, queueSource: String? = null): MediaIte
     return MediaItem.Builder()
         .setMediaId(audioFile.id.toString())
         .setUri(audioFile.uri)
+        .setMimeType(audioFile.metadata.format)
         .setMediaMetadata(mediaMetadata)
         .build()
 }

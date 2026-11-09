@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +29,7 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
     private val repository = AudioRepository.getInstance(application)
 
     private val initialArtists = repository.getCachedAudio()?.let { songs ->
-        songs.map(::artistDisplayName).distinct().sortedBy { it.lowercase() }
+        LibraryFilterStore.audio(songs).map(::artistDisplayName).distinct().sortedBy { it.lowercase() }
     }
 
     private val _artists = MutableStateFlow<List<String>?>(initialArtists)
@@ -75,7 +76,7 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 loadArtists()
             }
         }
@@ -86,7 +87,7 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val songs = repository.getAllAudio()
+                val songs = LibraryFilterStore.audio(repository.getAllAudio())
                 _artists.value = songs
                     .map(::artistDisplayName)
                     .distinct()
@@ -111,7 +112,7 @@ class ArtistsViewModel(application: Application) : AndroidViewModel(application)
 
     fun getSongsForArtist(artistName: String, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val all = repository.getAllAudio()
+            val all = LibraryFilterStore.audio(repository.getAllAudio())
             val filtered = com.pxr.cymatic.ui.screens.library.filterByArtist(all, artistName)
             withContext(Dispatchers.Main) {
                 onResult(filtered)

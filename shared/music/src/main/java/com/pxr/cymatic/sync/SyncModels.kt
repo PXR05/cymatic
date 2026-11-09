@@ -22,7 +22,7 @@ enum class SyncLayout(val value: String, val label: String) {
 }
 
 enum class SyncContentMode(val value: String, val label: String) {
-    NONE("none", "Nothing"),
+    NONE("none", "Choose in library"),
     ALL("all", "All music"),
     SELECTED_PLAYLISTS("selected_playlists", "Selected playlists");
 
@@ -40,6 +40,9 @@ data class RemoteTrack(
     val artist: String,
     val album: String,
     val trackNumber: Int? = null,
+    val durationMs: Long? = null,
+    val bitRate: Long? = null,
+    val sampleRate: Long? = null,
 )
 
 data class PlaylistPlacement(val name: String, val position: Int)

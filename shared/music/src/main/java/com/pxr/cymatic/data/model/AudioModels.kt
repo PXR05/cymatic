@@ -17,6 +17,12 @@ data class AudioFile(
     val id: Long,
     val uri: Uri,
     val size: Int,
-    val metadata: AudioMetadata
-)
+    val metadata: AudioMetadata,
+    val sourceId: String? = null,
+    val remoteId: String? = null,
+    val offlineUri: Uri? = null,
+) {
+    val availability: LibraryAvailability
+        get() = if (sourceId == null || offlineUri != null) LibraryAvailability.OFFLINE else LibraryAvailability.STREAM
+}
 

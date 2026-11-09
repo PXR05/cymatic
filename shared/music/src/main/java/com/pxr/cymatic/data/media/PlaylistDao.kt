@@ -9,6 +9,20 @@ import androidx.room.Update
 
 @Dao
 interface PlaylistDao {
+    @Query("SELECT * FROM playlists WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
+    suspend fun getRemotePlaylist(sourceId: String, remoteId: String): PlaylistEntity?
+
+    @Query("""
+        SELECT playlists.id AS playlistId, COUNT(audio_files.id) AS total,
+        SUM(CASE WHEN audio_files.id IS NOT NULL AND (audio_files.sourceId IS NULL OR audio_files.offlineUri IS NOT NULL) THEN 1 ELSE 0 END) AS offline
+        FROM playlists LEFT JOIN playlist_items ON playlists.id = playlist_items.playlist_id
+        LEFT JOIN audio_files ON playlist_items.audio_id = audio_files.id
+        GROUP BY playlists.id
+    """)
+    suspend fun availability(): List<PlaylistAvailabilityCount>
+
+    @Query("UPDATE OR IGNORE playlist_items SET audio_id = :newId WHERE audio_id = :oldId")
+    suspend fun remapAudio(oldId: Long, newId: Long)
     @Query("SELECT * FROM playlists ORDER BY name COLLATE NOCASE ASC")
     suspend fun getPlaylists(): List<PlaylistEntity>
 

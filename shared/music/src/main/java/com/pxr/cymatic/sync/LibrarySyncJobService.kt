@@ -67,7 +67,8 @@ class LibrarySyncJobService : JobService() {
             )
                 return
 
-            if (!SettingsStore.getSyncContentConfigured()) return
+            val pins = OfflineSelectionStore.read(context, source.id)
+            if (!SettingsStore.getSyncContentConfigured() && pins.isEmpty) return
 
             if (
                 directory.isNotBlank() && context.contentResolver.persistedUriPermissions.none {
@@ -77,11 +78,11 @@ class LibrarySyncJobService : JobService() {
                 return
 
             val mode = SyncContentMode.from(SettingsStore.syncContentModeFlow.first())
-            if (mode == SyncContentMode.NONE) return
+            if (mode == SyncContentMode.NONE && pins.isEmpty) return
             if (
                 mode ==
                     SyncContentMode.SELECTED_PLAYLISTS &&
-                    SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty()
+                    SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty() && pins.isEmpty
             )
                 return
 

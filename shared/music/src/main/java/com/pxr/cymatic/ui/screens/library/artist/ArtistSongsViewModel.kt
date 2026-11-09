@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -37,11 +38,11 @@ class ArtistSongsViewModel(
     init {
         val cached = repository.getCachedAudio()
         if (cached != null) {
-            _songs.value = filterByArtist(cached, artistName)
+            _songs.value = filterByArtist(LibraryFilterStore.audio(cached), artistName)
             _isLoading.value = false
         }
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 loadArtistSongs(artistName)
             }
         }
@@ -55,7 +56,7 @@ class ArtistSongsViewModel(
             _errorMessage.value = null
             try {
                 val allSongs = repository.getAllAudio()
-                _songs.value = filterByArtist(allSongs, artistName)
+                _songs.value = filterByArtist(LibraryFilterStore.audio(allSongs), artistName)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load artist songs"
             } finally {

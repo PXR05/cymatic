@@ -1,5 +1,11 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -62,10 +68,15 @@ fun ArtistSongsScreen(
         viewModel.loadArtistSongs(artistName)
     }
 
+    val groups = rememberLibraryGroups()
+    val offlineGroup = groups.artists[artistName]
+
     var showHeaderMenu by remember { mutableStateOf(false) }
     val filteredFiles by viewModel.songs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+
+    val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
     BaseScreen(
         title = artistName,
@@ -74,7 +85,8 @@ fun ArtistSongsScreen(
         modifier = modifier,
         showWallpaperBackdrop = true
     ) {
-        if (!hasPermission) {
+        LibraryFilterStatus(availabilityFilter)
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && filteredFiles.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -93,6 +105,8 @@ fun ArtistSongsScreen(
             )
         } else if (isLoading) {
             LoadingState()
+        } else if (availabilityFilter != LibraryFilter.ALL && filteredFiles.isEmpty()) {
+            LibraryFilteredEmptyState()
         } else if (filteredFiles.isEmpty()) {
             EmptyState(
                 title = "No Songs Found",
@@ -162,9 +176,13 @@ fun ArtistSongsScreen(
         )
     }
 
-    if (showHeaderMenu && filteredFiles.isNotEmpty()) {
+    if (showHeaderMenu) {
         AlbumArtistContextMenu(
+            showLibraryFilter = true,
             title = artistName,
+            onKeepOffline = offlineGroup?.takeIf { it.canKeepOffline }?.let { group ->
+                { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
+            },
             onDismiss = { showHeaderMenu = false },
             onPlay = {
                 mediaController?.let { controller ->

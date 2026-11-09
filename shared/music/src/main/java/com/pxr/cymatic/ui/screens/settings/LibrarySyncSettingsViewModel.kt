@@ -66,11 +66,25 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     contentMode = if (SettingsStore.getSyncContentConfigured())
                         SyncContentMode.from(SettingsStore.getSyncContentMode()) else SyncContentMode.NONE,
                     musicConfigured = SettingsStore.getSyncContentConfigured(),
+                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(context, source.id).isEmpty,
                     selectedPlaylists = SettingsStore.getSyncSelectedPlaylists(),
                     catalog = catalog,
                     progress = LibrarySyncManager.progress.value,
                     catalogProgress = LibraryCatalogManager.progress.value,
                 )
+            launch {
+                com.pxr.cymatic.data.media.LibraryChanges.version.collect {
+                    val pins = withContext(Dispatchers.IO) {
+                        com.pxr.cymatic.sync.OfflineSelectionStore.read(context, RemoteLibraries.currentSource().id)
+                    }
+                    mutableState.update { it.copy(hasPinnedMusic = !pins.isEmpty) }
+                }
+            }
+            launch {
+                SettingsStore.syncNetworkFlow.collect { network ->
+                    mutableState.update { it.copy(network = SyncNetwork.from(network)) }
+                }
+            }
             launch {
                 SettingsStore.syncLastTimeFlow.collect { time ->
                     mutableState.update { it.copy(lastTime = time) }
@@ -179,6 +193,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     progress = if (changed) SyncProgress.Idle else it.progress,
                     selectedPlaylists = if (changed) emptySet() else it.selectedPlaylists,
                     musicConfigured = if (changed) false else it.musicConfigured,
+                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(context, source.id).isEmpty,
                 )
             }
             onSaved()

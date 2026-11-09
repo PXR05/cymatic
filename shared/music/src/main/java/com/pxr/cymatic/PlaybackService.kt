@@ -2,6 +2,7 @@ package com.pxr.cymatic
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Bundle
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -100,12 +101,13 @@ class PlaybackService : MediaLibraryService() {
             ExoPlayer.Builder(this)
                 .setReleaseTimeoutMs(3000L)
                 .setRenderersFactory(UsbRenderersFactory(this, eqAudioProcessor))
-                .setMediaSourceFactory(DefaultMediaSourceFactory(this, UsbExtractorsFactory()))
+                .setMediaSourceFactory(DefaultMediaSourceFactory(this, UsbExtractorsFactory())
+                    .setDataSourceFactory(com.pxr.cymatic.sync.RemoteLibraryDataSource.Factory(this)))
                 .setAudioAttributes(audioAttributes, true)
                 // Initial route is Android output; UsbPlaybackCoordinator toggles both audio
                 // focus handling and becoming-noisy handling whenever the route changes.
                 .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_LOCAL)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
                 .build()
 
         fadingPlayer = FadingPlayer(player, serviceScope)
@@ -149,6 +151,7 @@ class PlaybackService : MediaLibraryService() {
         player.addListener(
             object : Player.Listener {
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    refreshCurrentLibraryMetadata()
                     logPlayerState(
                         "media item transition: ${mediaItem?.mediaId}, reason=${transitionReasonName(reason)}"
                     )
@@ -303,6 +306,41 @@ class PlaybackService : MediaLibraryService() {
             UsbPlaybackSettings.dsdModesFlow.drop(1).collect { usbPlayback.refreshDsdOutput() }
         }
         restorePlaybackState()
+        serviceScope.launch {
+            com.pxr.cymatic.data.media.LibraryChanges.version.collect { refreshCurrentLibraryMetadata() }
+        }
+    }
+
+    private fun refreshCurrentLibraryMetadata() {
+        serviceScope.launch {
+            val id = withContext(Dispatchers.Main) { player.currentMediaItem?.mediaId?.toLongOrNull() }
+                ?: return@launch
+            val metadata = AudioRepository.getInstance(this@PlaybackService)
+                .getAudioByIds(listOf(id)).firstOrNull()?.metadata ?: return@launch
+            withContext(Dispatchers.Main) {
+                val item = player.currentMediaItem?.takeIf { it.mediaId == id.toString() }
+                    ?: return@withContext
+                val known = item.mediaMetadata.extras
+                val bitRate = metadata.bitRate?.takeIf { it > 0L && (known?.getLong("bit_rate") ?: 0L) <= 0L }
+                val sampleRate = metadata.sampleRate?.takeIf { it > 0L && (known?.getLong("sample_rate") ?: 0L) <= 0L }
+                val duration = metadata.duration?.takeIf { it > 0L && (known?.getLong("duration") ?: 0L) <= 0L }
+                val artwork = metadata.artworkUri ?: item.mediaMetadata.artworkUri
+                if (bitRate == null && sampleRate == null && duration == null && artwork == item.mediaMetadata.artworkUri)
+                    return@withContext
+                val extras = Bundle(item.mediaMetadata.extras ?: Bundle())
+                bitRate?.let { extras.putLong("bit_rate", it) }
+                sampleRate?.let { extras.putLong("sample_rate", it) }
+                duration?.let { extras.putLong("duration", it) }
+                val updated = item.mediaMetadata.buildUpon()
+                    .setExtras(extras)
+                    .setArtworkUri(artwork)
+                    .build()
+                if (updated != item.mediaMetadata) {
+                    player.replaceMediaItem(player.currentMediaItemIndex,
+                        item.buildUpon().setMediaMetadata(updated).build())
+                }
+            }
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {

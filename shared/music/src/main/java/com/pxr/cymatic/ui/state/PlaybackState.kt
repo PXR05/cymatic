@@ -150,8 +150,9 @@ fun rememberPlaybackState(
 }
 
 private fun MediaController?.durationOrNull(): Long? {
-    val duration = this?.duration ?: return null
-    return if (duration == C.TIME_UNSET) null else duration
+    val controller = this ?: return null
+    return controller.duration.takeIf { it != C.TIME_UNSET && it > 0L }
+        ?: controller.currentMediaItem?.toAudioMetadata()?.duration?.takeIf { it > 0L }
 }
 
 private fun MediaController?.queueSourceOrNull(): String? {

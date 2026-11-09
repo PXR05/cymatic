@@ -44,6 +44,9 @@ class AudioStreamClient(
                 result +=
                     RemoteTrack(
                         id = item.getString("id"),
+                        durationMs = metadata?.optDouble("duration")?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 1000).toLong() },
+                        bitRate = metadata?.optLong("bitrate", -1L)?.takeIf { it > 0L },
+                        sampleRate = metadata?.optLong("sampleRate", -1L)?.takeIf { it > 0L },
                         filename = item.getString("filename"),
                         size = item.optLong("size", -1L),
                         updatedAt = item.optString("updatedAt"),
@@ -97,6 +100,46 @@ class AudioStreamClient(
         }
     }
 
+    override fun openArtwork(trackId: String): RemoteLibraryDownload {
+        val connection = authenticatedGet("audio/${encodePath(trackId)}/image", binary = true)
+        return object : RemoteLibraryDownload {
+            override val input get() = connection.inputStream
+            override val contentLength get() = connection.getHeaderField("Content-Length")
+            override val contentEncoding get() = connection.getHeaderField("Content-Encoding")
+            override val contentType get() = connection.getHeaderField("Content-Type")
+            override fun close() = release(connection)
+        }
+    }
+
+    override fun openStream(trackId: String, position: Long, length: Long): RemoteLibraryDownload {
+        val range = StreamRange.header(position, length)
+        val connection = authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true, range = range)
+        try {
+            val partial = connection.responseCode == HttpURLConnection.HTTP_PARTIAL
+            if (partial) StreamRange.validateContentRange(connection.getHeaderField("Content-Range"), position)
+            else require(connection.responseCode == HttpURLConnection.HTTP_OK) { "The server did not return audio" }
+            val input = connection.inputStream.buffered()
+            if (!partial && position > 0) StreamRange.skipFully(input, position)
+            val available = StreamRange.responseLength(
+                connection.getHeaderFieldLong("Content-Length", -1L),
+                connection.getHeaderField("Content-Range"), position, partial,
+            )
+            return object : RemoteLibraryDownload {
+                override val responseHeaders get() = connection.headerFields.filterKeys { it != null }
+                override val input = input
+                override val contentLength = available.takeIf { it >= 0 }?.toString()
+                override val contentEncoding get() = connection.getHeaderField("Content-Encoding")
+                override val contentType get() = connection.getHeaderField("Content-Type")
+                override fun close() {
+                    try { input.close() } finally { release(connection) }
+                }
+            }
+        } catch (error: Throwable) {
+            release(connection)
+            throw error
+        }
+    }
+
     private fun openTrack(trackId: String): HttpURLConnection {
         val connection = authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true)
         if (connection.responseCode != HttpURLConnection.HTTP_OK) {
@@ -111,7 +154,7 @@ class AudioStreamClient(
         return connection
     }
 
-    private fun authenticatedGet(path: String, binary: Boolean = false): HttpURLConnection {
+    private fun authenticatedGet(path: String, binary: Boolean = false, range: String? = null): HttpURLConnection {
         repeat(2) { attempt ->
             ensureAuthenticated()
             checkNotCancelled()
@@ -119,6 +162,7 @@ class AudioStreamClient(
                 open(path).apply {
                     requestMethod = "GET"
                     setRequestProperty("Authorization", "Bearer $sessionId")
+                    range?.let { setRequestProperty("Range", it) }
                     if (binary) {
                         setRequestProperty("Accept", "application/octet-stream")
                         setRequestProperty("Accept-Encoding", "identity")

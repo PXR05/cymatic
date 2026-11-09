@@ -35,13 +35,12 @@ suspend fun syncAudioFilesToDb(
 ): List<AudioFile> =
     withContext(Dispatchers.IO) {
         audioScanMutex.withLock {
+            com.pxr.cymatic.sync.RemoteLibraryRepository.restore(context)
             val repository = AudioRepository.getInstance(context)
             val dsfDocuments = scanDsfDocuments(context, directories, scanAllMedia)
-            val managedDownloads = scanManagedDownloads(context)
             val mediaIndex =
                 queryMediaStoreIndex(context, directories, scanAllMedia) +
-                    dsfDocuments.mapValues { it.value.index() } +
-                    managedDownloads.mapValues { it.value.index() }
+                    dsfDocuments.mapValues { it.value.index() }
             Log.d(
                 "MediaStoreLoader",
                 "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
@@ -51,7 +50,7 @@ suspend fun syncAudioFilesToDb(
                 SettingsStore.store.data.first()[metadataReaderVersion] !=
                     CURRENT_METADATA_READER_VERSION
 
-            val toDelete = dbIndex.keys - mediaIndex.keys
+            val toDelete = dbIndex.keys - mediaIndex.keys - CymaticDatabase.getInstance(context).audioDao().getRemoteIds().toSet()
             Log.d(
                 "MediaStoreLoader",
                 "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore",
@@ -73,11 +72,10 @@ suspend fun syncAudioFilesToDb(
                 val records =
                     queryMediaStoreDetails(
                         context,
-                        (toUpsert - dsfDocuments.keys - managedDownloads.keys).toList(),
+                        (toUpsert - dsfDocuments.keys).toList(),
                         directories,
                         scanAllMedia,
-                    ) + readDsfRecords(context, dsfDocuments.filterKeys { it in toUpsert }.values) +
-                        readManagedDownloadRecords(context, managedDownloads.filterKeys { it in toUpsert }.values)
+                    ) + readDsfRecords(context, dsfDocuments.filterKeys { it in toUpsert }.values)
                 repository.upsertAudio(enrichAudioMetadata(context, records))
             }
             if (refreshMetadata)

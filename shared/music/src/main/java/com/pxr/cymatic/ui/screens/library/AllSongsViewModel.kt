@@ -26,7 +26,7 @@ data class AllSongsState(
 class AllSongsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>?>(repository.getCachedAudio())
+    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>?>(repository.getCachedAudio()?.let(LibraryFilterStore::audio))
     private val _isLoading = MutableStateFlow(repository.getCachedAudio() == null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
@@ -74,13 +74,13 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = AllSongsState(
             isLoading = repository.getCachedAudio() == null,
-            songs = repository.getCachedAudio().orEmpty()
+            songs = LibraryFilterStore.audio(repository.getCachedAudio().orEmpty())
         )
     )
 
     init {
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 loadAudioFiles()
             }
         }
@@ -91,7 +91,7 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                _rawAudioFiles.value = repository.getAllAudio()
+                _rawAudioFiles.value = LibraryFilterStore.audio(repository.getAllAudio())
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load audio files"
             } finally {

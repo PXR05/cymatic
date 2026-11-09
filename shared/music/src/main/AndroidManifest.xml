@@ -20,6 +20,11 @@
     <attribution android:tag="audioPlayback" android:label="@string/audio_playback_attribution" />
 
     <application>
+        <provider
+            android:name="com.pxr.cymatic.sync.LibraryArtworkProvider"
+            android:authorities="${applicationId}.library-artwork"
+            android:exported="false"
+            android:grantUriPermissions="true" />
         <service
             android:name="com.pxr.cymatic.PlaybackService"
             android:exported="true"

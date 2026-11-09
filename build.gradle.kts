@@ -25,7 +25,6 @@ subprojects {
                 targetSdk = 36
                 versionCode = providers.gradleProperty("cymaticVersionCode").get().toInt()
                 versionName = providers.gradleProperty("cymaticVersionName").get()
-                testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
             }
             buildTypes {
                 release {

@@ -2,6 +2,7 @@ package com.pxr.cymatic.data.media
 
 import android.content.Context
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.data.model.LibraryAvailability
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -9,8 +10,13 @@ data class Playlist(
     val id: Long,
     val name: String,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val sourceId: String? = null,
+    val remoteId: String? = null,
+    val availability: LibraryAvailability = LibraryAvailability.OFFLINE,
 )
+
+data class PlaylistAvailabilityCount(val playlistId: Long, val total: Int, val offline: Int)
 
 class PlaylistRepository private constructor(
     private val playlistDao: PlaylistDao
@@ -31,7 +37,12 @@ class PlaylistRepository private constructor(
             if (doubleChecked != null) {
                 doubleChecked
             } else {
-                val dbList = playlistDao.getPlaylists().map { it.toPlaylist() }
+                val counts = playlistDao.availability().associateBy { it.playlistId }
+                val dbList = playlistDao.getPlaylists().map { entity ->
+                    val count = counts[entity.id]
+                    entity.toPlaylist().copy(availability = LibraryAvailability.fromCounts(
+                        count?.offline ?: 0, count?.total ?: 0, entity.sourceId != null))
+                }
                 cachedPlaylists = dbList
                 dbList
             }
@@ -45,7 +56,7 @@ class PlaylistRepository private constructor(
     suspend fun getPlaylist(playlistId: Long): Playlist? {
         val cached = cachedPlaylists?.find { it.id == playlistId }
         if (cached != null) return cached
-        return playlistDao.getPlaylist(playlistId)?.toPlaylist()
+        return getPlaylists().find { it.id == playlistId }
     }
 
     suspend fun createPlaylist(name: String): Long {
@@ -60,6 +71,7 @@ class PlaylistRepository private constructor(
         playlistMutex.withLock {
             cachedPlaylists = null
         }
+        LibraryChanges.notifyChanged()
         return id
     }
 
@@ -74,6 +86,7 @@ class PlaylistRepository private constructor(
         playlistMutex.withLock {
             cachedPlaylists = null
         }
+        LibraryChanges.notifyChanged()
     }
 
     suspend fun deletePlaylist(playlistId: Long) {
@@ -82,6 +95,7 @@ class PlaylistRepository private constructor(
             cachedPlaylists = null
             cachedPlaylistAudio = cachedPlaylistAudio - playlistId
         }
+        LibraryChanges.notifyChanged()
     }
 
     suspend fun getPlaylistAudio(playlistId: Long): List<AudioFile> {
@@ -111,15 +125,19 @@ class PlaylistRepository private constructor(
             )
         )
         playlistMutex.withLock {
+            cachedPlaylists = null
             cachedPlaylistAudio = cachedPlaylistAudio - playlistId
         }
+        LibraryChanges.notifyChanged()
     }
 
     suspend fun removeAudioFromPlaylist(playlistId: Long, audioId: Long) {
         playlistDao.removePlaylistItem(playlistId, audioId)
         playlistMutex.withLock {
+            cachedPlaylists = null
             cachedPlaylistAudio = cachedPlaylistAudio - playlistId
         }
+        LibraryChanges.notifyChanged()
     }
 
     suspend fun replacePlaylistAudio(playlistId: Long, audioIds: List<Long>) {
@@ -129,7 +147,16 @@ class PlaylistRepository private constructor(
             addedAt = System.currentTimeMillis()
         )
         playlistMutex.withLock {
+            cachedPlaylists = null
             cachedPlaylistAudio = cachedPlaylistAudio - playlistId
+        }
+        LibraryChanges.notifyChanged()
+    }
+
+    suspend fun invalidate() {
+        playlistMutex.withLock {
+            cachedPlaylists = null
+            cachedPlaylistAudio = emptyMap()
         }
     }
 
@@ -151,6 +178,8 @@ private fun PlaylistEntity.toPlaylist(): Playlist {
         id = id,
         name = name,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        sourceId = sourceId,
+        remoteId = remoteId,
     )
 }

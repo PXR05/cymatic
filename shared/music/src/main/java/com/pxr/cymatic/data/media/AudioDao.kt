@@ -6,6 +6,14 @@ import androidx.room.Upsert
 
 @Dao
 interface AudioDao {
+    @Query("SELECT * FROM audio_files WHERE sourceId = :sourceId")
+    suspend fun getRemoteAudio(sourceId: String): List<AudioEntity>
+
+    @Query("SELECT id FROM audio_files WHERE sourceId IS NOT NULL")
+    suspend fun getRemoteIds(): List<Long>
+
+    @Query("SELECT * FROM audio_files WHERE id = :id")
+    suspend fun getAudio(id: Long): AudioEntity?
     @Query("SELECT * FROM audio_files ORDER BY uri COLLATE NOCASE ASC")
     suspend fun getAllAudio(): List<AudioEntity>
 

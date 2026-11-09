@@ -1,5 +1,9 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -8,6 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.data.model.LibraryAvailability
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
@@ -30,6 +37,7 @@ fun PlaylistSongsScreen(
     scrollTargetId: Long? = null,
     viewModel: PlaylistSongsViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
 
@@ -46,6 +54,8 @@ fun PlaylistSongsScreen(
 
     var showHeaderMenu by remember { mutableStateOf(false) }
 
+    val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+
     BaseScreen(
         title = playlist?.name ?: "Playlist",
         onBackClick = { navController.popBackStack() },
@@ -53,6 +63,7 @@ fun PlaylistSongsScreen(
         modifier = modifier,
         showWallpaperBackdrop = true
     ) {
+        LibraryFilterStatus(availabilityFilter)
         if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
@@ -60,6 +71,8 @@ fun PlaylistSongsScreen(
             )
         } else if (isLoading) {
             LoadingState()
+        } else if (availabilityFilter != LibraryFilter.ALL && audioFiles.isEmpty()) {
+            LibraryFilteredEmptyState()
         } else if (audioFiles.isEmpty()) {
             EmptyState(
                 title = "Playlist is Empty",
@@ -133,6 +146,13 @@ fun PlaylistSongsScreen(
 
     if (showHeaderMenu && audioFiles.isNotEmpty()) {
         AlbumArtistContextMenu(
+            showLibraryFilter = true,
+            onKeepOffline = if (playlist?.availability != LibraryAvailability.OFFLINE && audioFiles.isNotEmpty()) ({
+                val source = playlist?.sourceId
+                val remoteId = playlist?.remoteId
+                if (source != null && remoteId != null) LibraryOfflineManager.keepPlaylist(context, source, remoteId, playlist?.name ?: "Playlist")
+                else LibraryOfflineManager.keepPlaylist(context, playlistId, playlist?.name ?: "Playlist")
+            }) else null,
             title = playlist?.name ?: "Playlist",
             onDismiss = { showHeaderMenu = false },
             onPlay = {

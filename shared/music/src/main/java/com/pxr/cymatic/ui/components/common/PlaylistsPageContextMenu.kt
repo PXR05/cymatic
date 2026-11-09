@@ -17,6 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,11 +38,18 @@ fun PlaylistsPageContextMenu(
     onCreatePlaylist: () -> Unit,
     onSearch: () -> Unit,
 ) {
+    var choosingFilter by remember { mutableStateOf(false) }
+    val filter by LibraryFilterStore.filter.collectAsState()
+    if (choosingFilter) {
+        LibraryFilterMenu({ choosingFilter = false }, onSelected = onDismiss)
+        return
+    }
     val wheel = LocalWheelNavigation.current
     if (wheel != null) {
         WheelContextMenu(
             title = "Playlists",
             items = listOf(
+                NavigationItem("Show · ${filter.label}", onClick = { choosingFilter = true }),
                 NavigationItem(
                     label = "New playlist",
                     onClick = {
@@ -70,6 +81,11 @@ fun PlaylistsPageContextMenu(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
+                PlaylistsPageContextMenuAction(
+                    iconRes = R.drawable.ic_pixel_songs,
+                    label = "Show · ${filter.label}",
+                    onClick = { choosingFilter = true },
+                )
                 PlaylistsPageContextMenuAction(
                     iconRes = R.drawable.ic_pixel_plus,
                     label = "New playlist",

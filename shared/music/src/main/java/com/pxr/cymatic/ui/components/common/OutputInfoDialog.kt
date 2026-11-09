@@ -56,11 +56,6 @@ fun OutputInfoDialog(showDialog: Boolean, onDismissRequest: () -> Unit) {
         }
         if (section != null) {
             WheelReadingPage(section.title, { selected = null }) {
-                Text(
-                    "Rotate to scroll · Select to go back",
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontSize = 12.sp,
-                )
                 OutputInformation(OutputInfoReport(listOf(section)))
             }
         }
@@ -107,7 +102,6 @@ private fun OutputInformation(report: OutputInfoReport) {
     }
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.padding(vertical = 16.dp),
     ) {
         report.sections.forEach { section ->
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

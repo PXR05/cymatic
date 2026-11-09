@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.album
 
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +29,7 @@ class AlbumsViewModel(application: Application) : AndroidViewModel(application) 
     private val repository = AudioRepository.getInstance(application)
 
     private val initialAlbums = repository.getCachedAudio()?.let { songs ->
-        songs.map(::albumDisplayName).distinct().sortedBy { it.lowercase() }
+        LibraryFilterStore.audio(songs).map(::albumDisplayName).distinct().sortedBy { it.lowercase() }
     }
 
     private val _albums = MutableStateFlow<List<String>?>(initialAlbums)
@@ -75,7 +76,7 @@ class AlbumsViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
-            SettingsStore.lastScanTimeMsFlow.collect {
+            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
                 loadAlbums()
             }
         }
@@ -86,7 +87,7 @@ class AlbumsViewModel(application: Application) : AndroidViewModel(application) 
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val songs = repository.getAllAudio()
+                val songs = LibraryFilterStore.audio(repository.getAllAudio())
                 _albums.value = songs
                     .map(::albumDisplayName)
                     .distinct()
@@ -111,7 +112,7 @@ class AlbumsViewModel(application: Application) : AndroidViewModel(application) 
 
     fun getSongsForAlbum(albumName: String, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val all = repository.getAllAudio()
+            val all = LibraryFilterStore.audio(repository.getAllAudio())
             val filtered = com.pxr.cymatic.ui.screens.library.filterByAlbum(all, albumName)
             withContext(Dispatchers.Main) {
                 onResult(filtered)

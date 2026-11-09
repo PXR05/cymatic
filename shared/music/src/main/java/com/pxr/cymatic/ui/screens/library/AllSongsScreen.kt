@@ -1,5 +1,8 @@
 package com.pxr.cymatic.ui.screens.library
 
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.data.model.LibraryFilter
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -59,6 +62,8 @@ fun AllSongsScreen(
     var showHeaderMenu by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
 
+    val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+
     BaseScreen(
         title = "All Songs",
         onBackClick = { navController.popBackStack() },
@@ -71,7 +76,8 @@ fun AllSongsScreen(
         showSearchAction = false,
         showWallpaperBackdrop = true
     ) {
-        if (!hasPermission) {
+        LibraryFilterStatus(availabilityFilter)
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.songs.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -90,6 +96,8 @@ fun AllSongsScreen(
             )
         } else if (uiState.isLoading) {
             LoadingState()
+        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.songs.isEmpty()) {
+            LibraryFilteredEmptyState()
         } else if (uiState.songs.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
@@ -171,6 +179,7 @@ fun AllSongsScreen(
 
     if (showHeaderMenu) {
         AlbumArtistContextMenu(
+            showLibraryFilter = true,
             title = "All Songs",
             onDismiss = { showHeaderMenu = false },
             onPlay = if (uiState.songs.isNotEmpty()) {

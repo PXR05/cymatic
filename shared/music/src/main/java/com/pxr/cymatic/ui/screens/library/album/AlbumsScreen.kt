@@ -1,5 +1,12 @@
 package com.pxr.cymatic.ui.screens.library.album
 
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
+import com.pxr.cymatic.ui.screens.library.LibraryGroupIndicator
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,15 +57,20 @@ fun AlbumsScreen(
     var selectedAlbum by remember { mutableStateOf<String?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
+    val groups = rememberLibraryGroups()
+
     val items = uiState.albums.map { albumName ->
         NavigationItem(
             label = albumName,
+            trailingContent = { color -> LibraryGroupIndicator(groups.albums[albumName], color) },
             onClick = {
                 navController.navigate(Screen.AlbumSongs.createRoute(albumName))
             },
             onLongClick = { selectedAlbum = albumName }
         )
     }
+
+    val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
     BaseScreen(
         title = "Albums",
@@ -72,7 +84,8 @@ fun AlbumsScreen(
         showSearchAction = false,
         showWallpaperBackdrop = true
     ) {
-        if (!hasPermission) {
+        LibraryFilterStatus(availabilityFilter)
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.albums.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -91,6 +104,8 @@ fun AlbumsScreen(
             )
         } else if (uiState.isLoading) {
             LoadingState()
+        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.albums.isEmpty()) {
+            LibraryFilteredEmptyState()
         } else if (uiState.albums.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
@@ -118,6 +133,9 @@ fun AlbumsScreen(
     selectedAlbum?.let { albumName ->
         AlbumArtistContextMenu(
             title = albumName,
+            onKeepOffline = groups.albums[albumName]?.takeIf { it.canKeepOffline }?.let { group ->
+                { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
+            },
             onDismiss = { selectedAlbum = null },
             onPlay = {
                 mediaController?.let { controller ->
@@ -174,6 +192,7 @@ fun AlbumsScreen(
     if (showPageMenu) {
         AlbumArtistContextMenu(
             title = "Albums",
+            showLibraryFilter = true,
             onDismiss = { showPageMenu = false },
             onSearch = {
                 showPageMenu = false
