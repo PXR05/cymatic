@@ -59,24 +59,27 @@ class LibrarySyncJobService : JobService() {
             scheduler.cancel(JOB_ID)
             val network = SyncNetwork.from(SettingsStore.syncNetworkFlow.first())
             val directory = SettingsStore.syncDirectoryFlow.first()
+            val source = RemoteLibraries.currentSource()
+            SyncCredentialStore.migrateLegacy(context, source.id)
             if (
                 network == SyncNetwork.NEVER ||
-                    directory.isBlank() ||
-                    !SyncCredentialStore.hasPassword(context)
+                    !SyncCredentialStore.hasPassword(context, source.id)
             )
                 return
 
             if (!SettingsStore.getSyncContentConfigured()) return
 
             if (
-                context.contentResolver.persistedUriPermissions.none {
+                directory.isNotBlank() && context.contentResolver.persistedUriPermissions.none {
                     it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
                 }
             )
                 return
 
+            val mode = SyncContentMode.from(SettingsStore.syncContentModeFlow.first())
+            if (mode == SyncContentMode.NONE) return
             if (
-                SyncContentMode.from(SettingsStore.syncContentModeFlow.first()) ==
+                mode ==
                     SyncContentMode.SELECTED_PLAYLISTS &&
                     SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty()
             )

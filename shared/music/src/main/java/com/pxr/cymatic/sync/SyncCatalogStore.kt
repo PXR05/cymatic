@@ -1,6 +1,7 @@
 package com.pxr.cymatic.sync
 
 import android.content.Context
+import android.util.AtomicFile
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -8,13 +9,36 @@ import java.io.File
 object SyncCatalogStore {
     private const val FILE_NAME = "audiostream-catalog.json"
 
-    fun clear(context: Context) {
-        val file = File(context.filesDir, FILE_NAME)
-        check(!file.exists() || file.delete()) { "Could not clear the previous playlist list" }
+    private fun file(context: Context, sourceId: String): AtomicFile {
+        require(sourceId.matches(Regex("[a-f0-9]{64}")))
+        val directory = File(context.filesDir, "library-catalogs")
+        check(directory.isDirectory || directory.mkdirs()) { "Could not create library catalog folder" }
+        return AtomicFile(File(directory, "$sourceId.json"))
     }
 
-    fun read(context: Context): RemoteCatalog? = runCatching {
-        val root = JSONObject(File(context.filesDir, FILE_NAME).readText())
+    @Synchronized
+    fun migrateLegacy(context: Context, source: RemoteLibrarySource) {
+        val legacy = File(context.filesDir, FILE_NAME)
+        if (!legacy.isFile) return
+        val target = file(context, source.id)
+        if (!target.baseFile.exists()) {
+            val output = target.startWrite()
+            try {
+                legacy.inputStream().use { it.copyTo(output) }
+                target.finishWrite(output)
+            } catch (error: Throwable) {
+                target.failWrite(output)
+                throw error
+            }
+        }
+        check(legacy.delete()) { "Could not migrate the library catalog" }
+    }
+
+    fun read(context: Context, source: RemoteLibrarySource): RemoteCatalog? = read(context, source.id)
+
+    @Synchronized
+    internal fun read(context: Context, sourceId: String): RemoteCatalog? = runCatching {
+        val root = JSONObject(file(context, sourceId).openRead().bufferedReader().use { it.readText() })
         val tracksJson = root.getJSONArray("tracks")
         val tracks = buildList {
             for (index in 0 until tracksJson.length()) {
@@ -50,7 +74,8 @@ object SyncCatalogStore {
         RemoteCatalog(tracks, playlists, root.optLong("refreshedAt"))
     }.getOrNull()
 
-    fun write(context: Context, catalog: RemoteCatalog) {
+    @Synchronized
+    fun write(context: Context, source: RemoteLibrarySource, catalog: RemoteCatalog) {
         val tracks = JSONArray()
         catalog.tracks.forEach { track ->
             tracks.put(
@@ -74,12 +99,20 @@ object SyncCatalogStore {
                     .put("trackIds", JSONArray(playlist.trackIds))
             )
         }
-        File(context.filesDir, FILE_NAME).writeText(
-            JSONObject()
+        val value = JSONObject()
+                .put("sourceId", source.id)
                 .put("refreshedAt", catalog.refreshedAt)
                 .put("tracks", tracks)
                 .put("playlists", playlists)
                 .toString()
-        )
+        val target = file(context, source.id)
+        val output = target.startWrite()
+        try {
+            output.write(value.toByteArray(Charsets.UTF_8))
+            target.finishWrite(output)
+        } catch (error: Throwable) {
+            target.failWrite(output)
+            throw error
+        }
     }
 }

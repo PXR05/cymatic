@@ -18,18 +18,18 @@ class AudioStreamClient(
     baseUrl: String,
     private val username: String,
     private val password: String,
-) {
+) : RemoteLibraryClient {
     private val baseUrl = normalizeBaseUrl(baseUrl)
     private var sessionId: String? = null
     private val cancelled = AtomicBoolean(false)
     private val activeConnection = AtomicReference<HttpURLConnection?>(null)
 
-    fun cancel() {
+    override fun cancel() {
         cancelled.set(true)
         activeConnection.getAndSet(null)?.disconnect()
     }
 
-    fun getTracks(): List<RemoteTrack> {
+    override fun getTracks(): List<RemoteTrack> {
         ensureAuthenticated()
         val result = mutableListOf<RemoteTrack>()
         var page = 1
@@ -64,7 +64,7 @@ class AudioStreamClient(
         return result
     }
 
-    fun getPlaylists(): List<RemotePlaylist> {
+    override fun getPlaylists(): List<RemotePlaylist> {
         ensureAuthenticated()
         val list = requestJson("playlist/").getJSONArray("playlists")
         val result = mutableListOf<RemotePlaylist>()
@@ -86,7 +86,18 @@ class AudioStreamClient(
         return result
     }
 
-    fun openTrack(trackId: String): HttpURLConnection {
+    override fun openDownload(trackId: String): RemoteLibraryDownload {
+        val connection = openTrack(trackId)
+        return object : RemoteLibraryDownload {
+            override val input get() = connection.inputStream
+            override val contentLength get() = connection.getHeaderField("Content-Length")
+            override val contentEncoding get() = connection.getHeaderField("Content-Encoding")
+            override val contentType get() = connection.getHeaderField("Content-Type")
+            override fun close() = release(connection)
+        }
+    }
+
+    private fun openTrack(trackId: String): HttpURLConnection {
         val connection = authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true)
         if (connection.responseCode != HttpURLConnection.HTTP_OK) {
             val status = connection.responseCode

@@ -69,9 +69,6 @@ jobs:
           echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
 
   build:
-    strategy:
-      matrix:
-        product: [player, launcher]
     needs: resolve-tag
     if: needs.resolve-tag.outputs.should_build == 'true'
     runs-on: ubuntu-latest
@@ -118,13 +115,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build APK
-        run: ./gradlew :app-${{ matrix.product }}:assembleRelease
+        run: ./gradlew :app-player:assembleRelease
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: app-${{ matrix.product }}/build/outputs/apk/release
+          releaseDirectory: app-player/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -133,18 +130,17 @@ jobs:
       - name: Rename signed APK
         run: |
           SIGNED_APK="${{ steps.sign_app.outputs.signedReleaseFile }}"
-          RENAMED_APK="cymatic-${{ matrix.product }}-${{ needs.resolve-tag.outputs.tag }}.apk"
+          RENAMED_APK="cymatic-player-${{ needs.resolve-tag.outputs.tag }}.apk"
           mv "$SIGNED_APK" "$RENAMED_APK"
           echo "RENAMED_APK=$RENAMED_APK" >> $GITHUB_ENV
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk-${{ matrix.product }}
+          name: signed-apk-player
           path: ${{ env.RENAMED_APK }}
 
       - name: Upload release notes
-        if: matrix.product == 'player'
         uses: actions/upload-artifact@v4
         with:
           name: release-notes
@@ -158,8 +154,7 @@ jobs:
       - name: Download signed APK
         uses: actions/download-artifact@v4
         with:
-          pattern: signed-apk-*
-          merge-multiple: true
+          name: signed-apk-player
           path: signed-apk
 
       - name: Download release notes

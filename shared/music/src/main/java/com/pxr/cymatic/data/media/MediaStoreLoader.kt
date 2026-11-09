@@ -37,9 +37,11 @@ suspend fun syncAudioFilesToDb(
         audioScanMutex.withLock {
             val repository = AudioRepository.getInstance(context)
             val dsfDocuments = scanDsfDocuments(context, directories, scanAllMedia)
+            val managedDownloads = scanManagedDownloads(context)
             val mediaIndex =
                 queryMediaStoreIndex(context, directories, scanAllMedia) +
-                    dsfDocuments.mapValues { it.value.index() }
+                    dsfDocuments.mapValues { it.value.index() } +
+                    managedDownloads.mapValues { it.value.index() }
             Log.d(
                 "MediaStoreLoader",
                 "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
@@ -71,10 +73,11 @@ suspend fun syncAudioFilesToDb(
                 val records =
                     queryMediaStoreDetails(
                         context,
-                        (toUpsert - dsfDocuments.keys).toList(),
+                        (toUpsert - dsfDocuments.keys - managedDownloads.keys).toList(),
                         directories,
                         scanAllMedia,
-                    ) + readDsfRecords(context, dsfDocuments.filterKeys { it in toUpsert }.values)
+                    ) + readDsfRecords(context, dsfDocuments.filterKeys { it in toUpsert }.values) +
+                        readManagedDownloadRecords(context, managedDownloads.filterKeys { it in toUpsert }.values)
                 repository.upsertAudio(enrichAudioMetadata(context, records))
             }
             if (refreshMetadata)

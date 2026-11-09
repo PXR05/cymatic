@@ -22,11 +22,12 @@ enum class SyncLayout(val value: String, val label: String) {
 }
 
 enum class SyncContentMode(val value: String, val label: String) {
+    NONE("none", "Nothing"),
     ALL("all", "All music"),
     SELECTED_PLAYLISTS("selected_playlists", "Selected playlists");
 
     companion object {
-        fun from(value: String) = entries.firstOrNull { it.value == value } ?: ALL
+        fun from(value: String) = entries.firstOrNull { it.value == value } ?: NONE
     }
 }
 

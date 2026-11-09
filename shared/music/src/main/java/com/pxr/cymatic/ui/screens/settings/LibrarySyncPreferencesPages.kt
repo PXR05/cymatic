@@ -1,13 +1,10 @@
 package com.pxr.cymatic.ui.screens.settings
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncLayout
 import com.pxr.cymatic.sync.SyncNetwork
@@ -18,77 +15,79 @@ internal fun SyncMusicPage(
     onDismiss: () -> Unit,
     onMode: (SyncContentMode) -> Unit,
     onPlaylists: () -> Unit,
-    onConnect: () -> Unit,
-    onRefresh: () -> Unit,
-    onLayout: (SyncLayout) -> Unit,
+    onDownload: () -> Unit,
+    onSchedule: () -> Unit,
 ) {
-    SyncSettingsPage("Offline music", onDismiss) {
-        Column(Modifier.fillMaxSize()) {
-            SyncSettingsList(
-                buildList {
-                    add(
-                        SyncSetting(
-                            "Keep offline",
-                            state.contentMode.label,
-                            state.canEdit,
-                            SyncContentMode.entries.map { it.label },
-                            onChoose = { value ->
-                                onMode(SyncContentMode.entries.first { it.label == value })
-                            },
-                        )
-                    )
-                    if (!state.connected)
-                        add(
-                            SyncSetting(
-                                "Connect to AudioStream",
-                                "Sign in to load your playlists",
-                                state.canEdit,
-                                onClick = onConnect,
-                            )
-                        )
-                    if (state.contentMode == SyncContentMode.SELECTED_PLAYLISTS) {
-                        add(
-                            SyncSetting(
-                                "Choose playlists",
-                                when {
-                                    state.refreshingCatalog -> "Loading playlists…"
-                                    state.catalog == null -> "Open to load your playlists"
-                                    state.catalog.playlists.isEmpty() ->
-                                        "No playlists found · refresh to retry"
+    SyncSettingsPage("Keep offline", onDismiss) {
+        SyncSettingsList(buildList {
+            add(SyncSetting(
+                "Keep offline", state.contentMode.label, state.canEdit,
+                SyncContentMode.entries.map { it.label },
+                onChoose = { value -> onMode(SyncContentMode.entries.first { it.label == value }) },
+            ))
+            if (state.contentMode == SyncContentMode.SELECTED_PLAYLISTS) {
+                add(SyncSetting(
+                    "Choose playlists",
+                    if (state.refreshingCatalog) "Loading playlists…" else "${state.selection.size} selected",
+                    enabled = state.canEdit,
+                    onClick = onPlaylists,
+                ))
+            }
+            if (state.contentMode != SyncContentMode.NONE) {
+                add(SyncSetting(
+                    "Automatic downloads",
+                    if (state.network == SyncNetwork.NEVER) "Off · download manually"
+                    else "${syncNetworkLabel(state.network)} · ${syncIntervals[state.interval] ?: "Every ${state.interval} hours"}",
+                    onClick = onSchedule,
+                ))
+                add(SyncSetting(
+                    "Download now",
+                    if (state.nextStep == SyncSetupStep.FOLDER) "Restore access to your custom folder"
+                    else if (state.nextStep == SyncSetupStep.MUSIC) "Choose playlists first"
+                    else "Save ${state.musicLabel.lowercase()} for local playback",
+                    enabled = state.canEdit,
+                    onClick = onDownload,
+                ))
+            }
+            add(SyncSetting(
+                "About offline music",
+                "Downloads appear in your local library. Turning this off pauses downloads and keeps existing files.",
+                enabled = false,
+            ))
+        })
+    }
+}
 
-                                    else ->
-                                        "${state.selection.size} of ${state.catalog.playlists.size} selected"
-                                },
-                                enabled = state.connected && !state.saving,
-                                onClick = onPlaylists,
-                            )
-                        )
-                    }
-                    if (state.connected)
-                        add(
-                            SyncSetting(
-                                "Refresh playlists",
-                                "Update the list without downloading music",
-                                enabled = !state.running && !state.saving,
-                                onClick = onRefresh,
-                            )
-                        )
-                    add(
-                        SyncSetting(
-                            "Folder layout",
-                            "${state.layout.label} · ${syncLayoutExample(state.layout)}",
-                            state.canEdit,
-                            SyncLayout.entries.map { it.label },
-                            selectedOption = state.layout.label,
-                            onChoose = { value ->
-                                onLayout(SyncLayout.entries.first { it.label == value })
-                            },
-                        )
-                    )
-                },
-                Modifier.weight(1f),
-            )
-        }
+@Composable
+internal fun SyncAdvancedPage(
+    state: LibrarySyncSettingsState,
+    onDismiss: () -> Unit,
+    onFolder: () -> Unit,
+    onManagedStorage: () -> Unit,
+    onLayout: (SyncLayout) -> Unit,
+    onSchedule: () -> Unit,
+) {
+    SyncSettingsPage("Advanced", onDismiss) {
+        SyncSettingsList(buildList {
+            add(SyncSetting(
+                "Custom download folder",
+                if (state.directory.isBlank()) "Managed by Cymatic"
+                else if (!state.folderAccessible) "Custom folder · access lost"
+                else syncFolderLabel(state.directory),
+                state.canEdit,
+                onClick = onFolder,
+            ))
+            if (state.directory.isNotBlank()) add(SyncSetting(
+                "Use Cymatic storage", "No folder permission needed", state.canEdit, onClick = onManagedStorage,
+            ))
+            add(SyncSetting(
+                "Folder layout", state.layout.label, state.canEdit,
+                SyncLayout.entries.map { it.label },
+                onChoose = { value -> onLayout(SyncLayout.entries.first { it.label == value }) },
+            ))
+            add(SyncSetting("Automatic downloads", syncNetworkLabel(state.network), state.canEdit,
+                onClick = onSchedule))
+        })
     }
 }
 
@@ -100,15 +99,15 @@ internal fun SyncSchedulePage(
     onNetwork: (SyncNetwork) -> Unit,
     onInterval: (Long) -> Unit,
 ) {
-    SyncSettingsPage("Automatic sync", onDismiss) {
+    SyncSettingsPage("Automatic downloads", onDismiss) {
         Column(Modifier.fillMaxSize()) {
             SyncSettingsList(
                 buildList {
                     if (state.nextStep != null)
                         add(
                             SyncSetting(
-                                "Finish setup",
-                                "Set up offline music before enabling automatic sync",
+                                "Choose offline music",
+                                "Select music before enabling automatic downloads",
                                 enabled = state.canEdit && !state.running,
                                 onClick = onSetup,
                             )
@@ -150,35 +149,15 @@ internal fun SyncSchedulePage(
 
 @Composable
 internal fun SyncHelpPage(onDismiss: () -> Unit) {
-    SyncReadingPage("How sync works", onDismiss) {
-        Text("1. Connect")
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Use the AudioStream web address and the username and password. Save & connect loads the playlist list without downloading music."
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("2. Download folder")
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Choose a dedicated folder on this device and allow access. Downloaded music is added to your local library for offline playback."
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("3. Offline music")
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Choose all music or selected playlists. Playlist choices save automatically, Menu or Back returns to settings."
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("Start a sync")
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Sync downloads your choices. Later syncs skip unchanged files. Files previously downloaded by sync can be removed on the next sync when they are no longer selected."
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("Automatic sync")
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Optional. Choose an allowed network and how often to check. Wi-Fi only avoids downloads over mobile data."
-        )
+    SyncReadingPage("Remote library", onDismiss) {
+        Text("Connect your library")
+        Text("Enter your AudioStream server address and login. Connecting loads the song and playlist catalog without downloading audio. Use Library to browse it or refresh it later.")
+        Text("Keep music offline")
+        Text("Optional. Choose all music or selected playlists, then Download now. Cymatic manages storage automatically. Downloaded songs appear in your local library for playback. Streaming is not available yet.")
+        Text("When you first enable offline music, automatic downloads use Wi-Fi with a daily check. Change this in Advanced → Automatic downloads.")
+        Text("Storage and downloads")
+        Text("Advanced contains custom folders, folder layout, and automatic downloads. Existing custom folders stay selected. Cymatic storage is private to this app and is removed if you uninstall it. Changing storage leaves existing files in place and may download another copy.")
+        Text("Turning downloads off")
+        Text("Nothing pauses future downloads and keeps existing files. While downloads are enabled, the next successful download sync can remove files it previously saved when they are no longer selected.")
     }
 }

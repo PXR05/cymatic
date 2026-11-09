@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.sync.AudioStreamClient
+import com.pxr.cymatic.sync.RemoteLibrarySource
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.WheelTextEditor
 
@@ -42,7 +43,10 @@ internal fun SyncConnectionPage(
     var field by remember { mutableStateOf<String?>(null) }
     var showHelp by remember { mutableStateOf(false) }
     val normalized = runCatching { AudioStreamClient.normalizeBaseUrl(url) }.getOrNull()
-    val sameAccount = normalized == state.url && username.trim() == state.username
+    val sameAccount = normalized != null && runCatching {
+        RemoteLibrarySource("audiostream", normalized, username).id ==
+            RemoteLibrarySource("audiostream", state.url, state.username).id
+    }.getOrDefault(false)
     val keepPassword = state.hasPassword && sameAccount
     val valid =
         normalized != null && username.isNotBlank() && (password.isNotEmpty() || keepPassword)

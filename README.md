@@ -26,7 +26,8 @@ and direct USB DAC playback.
   and the same touch can continue into a wheel gesture.
 - **Audio profiles:** remember volume per output device, with separate normal and
   direct USB volume levels, plus equalizer presets per device.
-- **Library sync:** download music from a configured server for local playback.
+- **Remote library:** connect to AudioStream to browse songs and playlists, with optional
+  offline downloads and automatic storage management.
 - **DSD/DSF:** play mono/stereo DSF files through PCM conversion or bit-perfect
   DSD over PCM (DoP) on a compatible USB DAC.
 
@@ -40,6 +41,15 @@ Download `cymatic-player-v<version>.apk` from
 Grant music access, then use **Settings → Storage** to scan your music. You can scan
 all media or choose individual directories. **Settings → Interface**
 contains the wheel, display-padding, scrolling, and standby controls.
+
+Use **Settings → Remote library** to connect an AudioStream account. Connecting and
+refreshing only fetch the catalog. **Keep offline** optionally downloads all music or
+selected playlists into Cymatic's private storage; downloaded songs appear in the local
+library. Automatic downloads default to a daily Wi-Fi check when first enabled.
+Custom folders, file layout, and scheduling are under **Advanced**. Existing custom
+folders are preserved. Turning offline downloads off keeps downloaded files; uninstalling
+the app removes its private downloads. Remote streaming and additional providers are
+planned, but are not available yet.
 
 ## Wheel controls
 
@@ -129,12 +139,13 @@ Shared versions live in `gradle.properties`, dependencies live in
 
 To release, increment `cymaticVersionCode`, update `cymaticVersionName` in
 `gradle.properties`, and push to `main`. The Auto Tag workflow creates the version
-tag automatically, then the Release workflow builds, signs, and publishes both APKs.
+tag automatically, then the Release workflow builds, signs, and publishes the Player APK.
 No manual tag is needed.
 
 ## Companion launcher
 
 The repository also includes Cymatic Launcher, a home-screen app with pinned apps,
-folders, music controls, and wallpaper effects. Its APK is released separately as
-`cymatic-launcher-v<version>.apk`. It shares the Player's music code but keeps its
+folders, music controls, and wallpaper effects. Build its APK locally with
+`./gradlew :app-launcher:assembleRelease`; it is not built or published by CI.
+It shares the Player's music code but keeps its
 own settings and database; both apps can be installed together.

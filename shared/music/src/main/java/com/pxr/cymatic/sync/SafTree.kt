@@ -12,7 +12,7 @@ import java.io.OutputStream
 internal class SafTree(
     private val resolver: ContentResolver,
     treeUri: Uri,
-) {
+) : SyncStorage {
     private val root =
         DocumentsContract.buildDocumentUriUsingTree(
             treeUri,
@@ -20,11 +20,11 @@ internal class SafTree(
         )
     private val childrenByParent = mutableMapOf<Uri, MutableMap<String, Child>>()
 
-    fun exists(relativePath: String): Boolean = find(relativePath) != null
+    override fun exists(relativePath: String): Boolean = find(relativePath) != null
 
-    fun documentUri(relativePath: String): Uri? = find(relativePath)
+    override fun documentUri(relativePath: String): Uri? = find(relativePath)
 
-    fun size(relativePath: String): Long? {
+    override fun size(relativePath: String): Long? {
         val uri = find(relativePath) ?: return null
         val projection = arrayOf(DocumentsContract.Document.COLUMN_SIZE)
         resolver.query(uri, projection, null, null, null)?.use { cursor ->
@@ -39,7 +39,7 @@ internal class SafTree(
             .getOrNull()
     }
 
-    fun absolutePath(relativePath: String): String? = runCatching {
+    override fun absolutePath(relativePath: String): String? = runCatching {
         val documentId = DocumentsContract.getTreeDocumentId(root)
         val parts = documentId.split(':', limit = 2)
         if (parts.size != 2) return@runCatching null
@@ -53,25 +53,25 @@ internal class SafTree(
     }
         .getOrNull()
 
-    fun delete(relativePath: String): Boolean {
+    override fun delete(relativePath: String): Boolean {
         val uri = find(relativePath) ?: return false
         val deleted = DocumentsContract.deleteDocument(resolver, uri)
         if (deleted) forget(uri)
         return deleted
     }
 
-    fun readText(relativePath: String): String? =
+    override fun readText(relativePath: String): String? =
         find(relativePath)?.let { uri ->
             resolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
         }
 
-    fun writeText(relativePath: String, value: String) {
+    override fun writeText(relativePath: String, value: String) {
         write(relativePath, "application/json") { output ->
             output.write(value.toByteArray(Charsets.UTF_8))
         }
     }
 
-    fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
+    override fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
         require(source != destination) { "Source and destination must differ" }
         val uri = find(source) ?: throw FileNotFoundException("Could not find $source")
         val expected = size(source)
@@ -98,7 +98,7 @@ internal class SafTree(
         }
     }
 
-    fun write(relativePath: String, mimeType: String, writer: (OutputStream) -> Unit) {
+    override fun write(relativePath: String, mimeType: String, writer: (OutputStream) -> Unit) {
         val parts = relativePath.split('/').filter(String::isNotBlank)
         require(parts.isNotEmpty()) { "A file name is required" }
         var parent = root

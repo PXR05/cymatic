@@ -46,7 +46,7 @@ fun SettingsScreen(
                         onClick = { navController.navigate(Screen.StorageSettings.route) },
                     ),
                     NavigationItem(
-                        label = "Library sync",
+                        label = "Remote library",
                         onClick = { navController.navigate(Screen.LibrarySyncSettings.route) },
                     ),
                 ) +

@@ -45,7 +45,7 @@ object SettingsStore {
     private const val DEFAULT_SYNC_NETWORK = "never"
     private const val DEFAULT_SYNC_INTERVAL_HOURS = 24L
     private const val DEFAULT_SYNC_LAYOUT = "artist_album_tracks"
-    private const val DEFAULT_SYNC_CONTENT_MODE = "all"
+    private const val DEFAULT_SYNC_CONTENT_MODE = "none"
     private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val FADE_ENABLED_KEY = booleanPreferencesKey("FADE_ENABLED")
     private val WHEEL_SENSITIVITY_KEY = floatPreferencesKey("WHEEL_SENSITIVITY")
@@ -351,8 +351,13 @@ object SettingsStore {
         it[SYNC_USERNAME_KEY] = username.trim()
         it[SYNC_ADAPTER_KEY] = "audiostream"
         if (resetSelection) {
+            it[SYNC_CONTENT_MODE_KEY] = DEFAULT_SYNC_CONTENT_MODE
             it[SYNC_SELECTED_PLAYLISTS_KEY] = emptySet()
             it[SYNC_CONTENT_CONFIGURED_KEY] = false
+            it[SYNC_NETWORK_KEY] = DEFAULT_SYNC_NETWORK
+            it[SYNC_DIRECTORY_KEY] = ""
+            it[SYNC_LAST_TIME_KEY] = 0L
+            it[SYNC_LAST_RESULT_KEY] = "Not synced yet"
         }
     }
     suspend fun setSyncUsername(value: String) = store.edit { it[SYNC_USERNAME_KEY] = value.trim() }
@@ -363,7 +368,7 @@ object SettingsStore {
     suspend fun setSyncDirectory(value: String) = store.edit { it[SYNC_DIRECTORY_KEY] = value }
     suspend fun setSyncContentMode(value: String) = store.edit {
         it[SYNC_CONTENT_MODE_KEY] = value
-        it[SYNC_CONTENT_CONFIGURED_KEY] = true
+        it[SYNC_CONTENT_CONFIGURED_KEY] = it[SYNC_CONTENT_CONFIGURED_KEY] == true || value != "none"
     }
     suspend fun setSyncSelectedPlaylists(value: Set<String>) = store.edit {
         it[SYNC_SELECTED_PLAYLISTS_KEY] = value
@@ -384,13 +389,20 @@ object SettingsStore {
     suspend fun getSyncContentMode(): String = syncContentModeFlow.first()
     suspend fun getSyncContentConfigured(): Boolean = syncContentConfiguredFlow.first()
     suspend fun getSyncSelectedPlaylists(): Set<String> = syncSelectedPlaylistsFlow.first()
-    suspend fun getSyncPlaylistIds(): Map<String, Long> =
-        parseLongMap(store.data.first()[SYNC_PLAYLIST_IDS_KEY])
+    suspend fun migrateSyncPlaylistIds(sourceId: String) = store.edit { prefs ->
+        val legacy = prefs[SYNC_PLAYLIST_IDS_KEY]
+        val key = stringPreferencesKey("SYNC_PLAYLIST_IDS_$sourceId")
+        if (legacy != null && prefs[key] == null) prefs[key] = legacy
+        prefs.remove(SYNC_PLAYLIST_IDS_KEY)
+    }
 
-    suspend fun setSyncPlaylistIds(value: Map<String, Long>) = store.edit { prefs ->
+    suspend fun getSyncPlaylistIds(sourceId: String): Map<String, Long> =
+        parseLongMap(store.data.first()[stringPreferencesKey("SYNC_PLAYLIST_IDS_$sourceId")])
+
+    suspend fun setSyncPlaylistIds(value: Map<String, Long>, sourceId: String) = store.edit { prefs ->
         val json = org.json.JSONObject()
         value.forEach { (remoteId, localId) -> json.put(remoteId, localId) }
-        prefs[SYNC_PLAYLIST_IDS_KEY] = json.toString()
+        prefs[stringPreferencesKey("SYNC_PLAYLIST_IDS_$sourceId")] = json.toString()
     }
 
     suspend fun addScanDirectory(value: String) {

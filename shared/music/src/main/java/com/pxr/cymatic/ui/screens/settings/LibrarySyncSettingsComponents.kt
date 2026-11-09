@@ -49,7 +49,7 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
     var choice by remember { mutableStateOf<String?>(null) }
     NavigationList(
         settings.map { setting ->
-            NavigationItem(setting.title, setting.detail, enabled = setting.enabled) {
+            NavigationItem(setting.title, setting.detail, enabled = setting.enabled, showIndicator = setting.enabled) {
                 if (setting.options.isEmpty()) setting.onClick() else choice = setting.title
             }
         },
@@ -159,7 +159,8 @@ internal fun SyncStatusPage(
         add(
             if (isRunning) {
                 NavigationItem(
-                    label = if (isCancelling) "Stopping…" else "Stop sync",
+                    label = if (isCancelling) "Stopping…"
+                        else if (state.refreshingCatalog) "Stop refresh" else "Stop downloads",
                     subLabel = state.statusLabel,
                     enabled = !isCancelling,
                     showIndicator = true,
@@ -168,10 +169,10 @@ internal fun SyncStatusPage(
                 )
             } else {
                 NavigationItem(
-                    label = "Sync now",
+                    label = "Download now",
                     subLabel =
-                        if (state.canEdit) "Download ${state.musicLabel.lowercase()}"
-                        else "Sync not configured",
+                        if (state.nextStep == null) "Download ${state.musicLabel.lowercase()}"
+                        else "Choose music to keep offline",
                     enabled = state.canEdit,
                     showIndicator = true,
                     key = "sync_action",
@@ -190,7 +191,8 @@ internal fun SyncStatusPage(
             )
         )
 
-        val progressText = when (val progress = state.progress) {
+        val progressText = if (state.refreshingCatalog) "Loading songs and playlists…"
+            else when (val progress = state.progress) {
             is SyncProgress.Downloading -> {
                 val fraction =
                     if (progress.totalBytes > 0) {
@@ -264,7 +266,7 @@ internal fun SyncStatusPage(
         )
     }
 
-    SyncSettingsPage("Sync status", onDismiss) {
+    SyncSettingsPage(if (state.refreshingCatalog) "Library refresh" else "Downloads", onDismiss) {
         NavigationList(
             items = items,
             modifier = Modifier.fillMaxSize(),

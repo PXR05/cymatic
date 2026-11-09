@@ -1,6 +1,7 @@
 package com.pxr.cymatic.ui.screens.settings
 
 import android.provider.DocumentsContract
+import com.pxr.cymatic.sync.CatalogProgress
 import com.pxr.cymatic.sync.RemoteCatalog
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncLayout
@@ -34,12 +35,12 @@ internal data class LibrarySyncSettingsState(
     val network: SyncNetwork = SyncNetwork.NEVER,
     val interval: Long = 24,
     val layout: SyncLayout = SyncLayout.ARTIST_ALBUM_TRACKS,
-    val contentMode: SyncContentMode = SyncContentMode.ALL,
+    val contentMode: SyncContentMode = SyncContentMode.NONE,
     val musicConfigured: Boolean = false,
     val selectedPlaylists: Set<String> = emptySet(),
     val catalog: RemoteCatalog? = null,
     val progress: SyncProgress = SyncProgress.Idle,
-    val refreshingCatalog: Boolean = false,
+    val catalogProgress: CatalogProgress = CatalogProgress.Idle,
     val starting: Boolean = false,
     val message: String? = null,
     val lastTime: Long = 0,
@@ -48,15 +49,21 @@ internal data class LibrarySyncSettingsState(
     val connected: Boolean
         get() = hasPassword && url.isNotBlank() && username.isNotBlank()
 
+    val refreshingCatalog: Boolean
+        get() = catalogProgress is CatalogProgress.Refreshing
+
+    val libraryReady: Boolean
+        get() = connected && catalog != null
+
     val running: Boolean
         get() =
-            starting ||
+            refreshingCatalog || starting ||
                 progress is SyncProgress.Preparing ||
                 progress is SyncProgress.Downloading ||
                 progress is SyncProgress.Cancelling
 
     val canEdit: Boolean
-        get() = !loading && !saving && (!running || refreshingCatalog)
+        get() = !loading && !saving && !running
 
     val selection: Set<String>
         get() =
@@ -70,23 +77,26 @@ internal data class LibrarySyncSettingsState(
         get() =
             when {
                 !connected -> SyncSetupStep.CONNECTION
-                !folderAccessible -> SyncSetupStep.FOLDER
-                !musicConfigured -> SyncSetupStep.MUSIC
+                directory.isNotBlank() && !folderAccessible -> SyncSetupStep.FOLDER
+                contentMode == SyncContentMode.NONE -> SyncSetupStep.MUSIC
                 contentMode == SyncContentMode.SELECTED_PLAYLISTS && selection.isEmpty() ->
                     SyncSetupStep.MUSIC
                 else -> null
             }
 
     val musicLabel: String
-        get() =
-            if (contentMode == SyncContentMode.ALL) "All music"
-            else if (selection.isEmpty()) "Choose playlists" else "${selection.size} playlists"
+        get() = when (contentMode) {
+            SyncContentMode.NONE -> "Off"
+            SyncContentMode.ALL -> "All music"
+            SyncContentMode.SELECTED_PLAYLISTS ->
+                if (selection.isEmpty()) "Choose playlists" else "${selection.size} playlists"
+        }
 
     val statusLabel: String
         get() =
-            when (val current = progress) {
+            if (refreshingCatalog) "Refreshing library…" else when (val current = progress) {
                 is SyncProgress.Preparing ->
-                    if (refreshingCatalog) "Connecting…" else current.message
+                    current.message
                 is SyncProgress.Downloading -> "Downloading ${current.current} of ${current.total}"
                 SyncProgress.Cancelling -> "Stopping…"
                 is SyncProgress.Failed -> "Sync needs attention"
@@ -94,16 +104,18 @@ internal data class LibrarySyncSettingsState(
                 else ->
                     when {
                         starting -> "Starting…"
-                        nextStep != null -> "Setup needed"
+                        !connected -> "Connect a library"
+                        contentMode == SyncContentMode.NONE -> "Offline downloads off"
+                        nextStep != null -> "Choose offline music"
                         else -> lastResult
                     }
             }
 
     val statusSummary: String
         get() =
-            when (val current = progress) {
+            if (refreshingCatalog) "Refreshing library…" else when (val current = progress) {
                 is SyncProgress.Preparing ->
-                    if (refreshingCatalog) "Connecting…" else "Preparing"
+                    "Preparing"
                 is SyncProgress.Downloading ->
                     "Downloading (${current.current}/${current.total})"
                 SyncProgress.Cancelling -> "Stopping…"
@@ -112,7 +124,9 @@ internal data class LibrarySyncSettingsState(
                 else ->
                     when {
                         starting -> "Starting…"
-                        nextStep != null -> "Setup needed"
+                        !connected -> "Connect a library"
+                        contentMode == SyncContentMode.NONE -> "Offline downloads off"
+                        nextStep != null -> "Choose offline music"
                         lastResult.startsWith("Synced") || lastResult.startsWith("Playlist") ->
                             "Synced"
                         lastResult.contains("fail", ignoreCase = true) ||
