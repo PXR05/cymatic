@@ -19,17 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
@@ -47,9 +47,15 @@ fun AudioFileContextMenu(
 ) {
     val title = audioFile.metadata.title ?: "Unknown Title"
     val context = LocalContext.current
-    val canDownload = audioFile.sourceId != null && audioFile.remoteId != null && audioFile.availability != LibraryAvailability.OFFLINE
+    val canDownload =
+        audioFile.sourceId != null && audioFile.remoteId != null && audioFile.availability != LibraryAvailability.OFFLINE
     val keepOffline = {
-        LibraryOfflineManager.keepTrack(context, requireNotNull(audioFile.sourceId), requireNotNull(audioFile.remoteId), title)
+        LibraryOfflineManager.keepTrack(
+            context,
+            requireNotNull(audioFile.sourceId),
+            requireNotNull(audioFile.remoteId),
+            title
+        )
         onDismiss()
     }
 

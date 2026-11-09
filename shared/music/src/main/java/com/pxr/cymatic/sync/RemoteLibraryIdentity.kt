@@ -9,13 +9,14 @@ fun RemoteLibraryItemKey.audioId(): Long {
     return -((ByteBuffer.wrap(digest).long and Long.MAX_VALUE).coerceAtLeast(1))
 }
 
-internal fun remoteMimeType(filename: String): String? = when (filename.substringAfterLast('.').lowercase()) {
-    "mp3" -> "audio/mpeg"
-    "m4a", "mp4" -> "audio/mp4"
-    "flac" -> "audio/flac"
-    "ogg", "opus" -> "audio/ogg"
-    "dsf" -> "audio/dsd"
-    "wav" -> "audio/wav"
-    "aac" -> "audio/aac"
-    else -> null
-}
+internal fun remoteMimeType(filename: String): String? =
+    when (filename.substringAfterLast('.').lowercase()) {
+        "mp3" -> "audio/mpeg"
+        "m4a", "mp4" -> "audio/mp4"
+        "flac" -> "audio/flac"
+        "ogg", "opus" -> "audio/ogg"
+        "dsf" -> "audio/dsd"
+        "wav" -> "audio/wav"
+        "aac" -> "audio/aac"
+        else -> null
+    }

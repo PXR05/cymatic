@@ -15,9 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -95,7 +95,7 @@ fun SwipeCarousel(
                             accumulatedDrag += dragAmount
                             val edgeLimited =
                                 (accumulatedDrag < 0f && !hasNext) ||
-                                    (accumulatedDrag > 0f && !hasPrev)
+                                        (accumulatedDrag > 0f && !hasPrev)
                             val limit = if (edgeLimited) edgeResistance else widthPx
                             val target = accumulatedDrag.coerceIn(-limit, limit)
                             scope.launch { dragX.snapTo(target) }

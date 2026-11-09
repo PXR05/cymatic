@@ -9,13 +9,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.inspector.MetadataRetriever
 import com.pxr.cymatic.audio.usb.UsbExtractorsFactory
-import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Locale
 
 @UnstableApi
 internal suspend fun enrichAudioMetadata(
@@ -80,18 +80,18 @@ internal suspend fun readAudioTechnicalMetadata(
 
 private fun AudioEntity.needsTechnicalMetadata(): Boolean =
     format?.lowercase(Locale.ROOT) in
-        setOf(
-            "audio/alac",
-            "audio/x-alac",
-            "audio/mp4",
-            "audio/x-m4a",
-            "audio/m4a",
-            "audio/mp4a-latm",
-            "audio/mpeg",
-            "audio/mp3",
-            "audio/ogg",
-            "application/ogg",
-            "audio/vorbis",
-            "audio/opus",
-            "audio/x-ogg",
-        ) || bitRate == null || sampleRate == null
+            setOf(
+                "audio/alac",
+                "audio/x-alac",
+                "audio/mp4",
+                "audio/x-m4a",
+                "audio/m4a",
+                "audio/mp4a-latm",
+                "audio/mpeg",
+                "audio/mp3",
+                "audio/ogg",
+                "application/ogg",
+                "audio/vorbis",
+                "audio/opus",
+                "audio/x-ogg",
+            ) || bitRate == null || sampleRate == null

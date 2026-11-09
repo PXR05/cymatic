@@ -49,7 +49,12 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
     var choice by remember { mutableStateOf<String?>(null) }
     NavigationList(
         settings.map { setting ->
-            NavigationItem(setting.title, setting.detail, enabled = setting.enabled, showIndicator = setting.enabled) {
+            NavigationItem(
+                setting.title,
+                setting.detail,
+                enabled = setting.enabled,
+                showIndicator = setting.enabled
+            ) {
                 if (setting.options.isEmpty()) setting.onClick() else choice = setting.title
             }
         },
@@ -109,7 +114,10 @@ internal fun SyncReadingPage(
     } else {
         SyncSettingsPage(title, onDismiss) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content()
@@ -124,7 +132,9 @@ internal fun SyncHint(text: String, modifier: Modifier = Modifier) {
         text,
         color = MaterialTheme.colorScheme.secondary,
         fontSize = 12.sp,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     )
 }
 
@@ -135,8 +145,10 @@ internal fun SyncErrorPage(error: String, onDismiss: () -> Unit) {
             when {
                 error.contains("(401)") || error.contains("(403)") ->
                     "Could not sign in. Check your username and password in Connection."
+
                 error.contains("(404)") ->
                     "AudioStream was not found. Check the server address in Connection."
+
                 else -> error
             }
         Text(explanation)
@@ -160,7 +172,7 @@ internal fun SyncStatusPage(
             if (isRunning) {
                 NavigationItem(
                     label = if (isCancelling) "Stopping…"
-                        else if (state.refreshingCatalog) "Stop refresh" else "Stop downloads",
+                    else if (state.refreshingCatalog) "Stop refresh" else "Stop downloads",
                     subLabel = state.statusLabel,
                     enabled = !isCancelling,
                     showIndicator = true,
@@ -192,7 +204,7 @@ internal fun SyncStatusPage(
         )
 
         val progressText = if (state.refreshingCatalog) "Loading songs and playlists…"
-            else when (val progress = state.progress) {
+        else when (val progress = state.progress) {
             is SyncProgress.Downloading -> {
                 val fraction =
                     if (progress.totalBytes > 0) {
@@ -213,6 +225,7 @@ internal fun SyncStatusPage(
                     }
                 }
             }
+
             is SyncProgress.Preparing -> progress.message
             is SyncProgress.Cancelling -> "Stopping sync and cleaning up temporary files…"
             else -> if (state.lastTime > 0) "Completed" else "No active transfer"
@@ -232,7 +245,7 @@ internal fun SyncStatusPage(
         val lastRunText =
             if (state.lastTime > 0) {
                 DateFormat.getMediumDateFormat(context).format(Date(state.lastTime)) + " " +
-                    DateFormat.getTimeFormat(context).format(Date(state.lastTime))
+                        DateFormat.getTimeFormat(context).format(Date(state.lastTime))
             } else {
                 null
             }

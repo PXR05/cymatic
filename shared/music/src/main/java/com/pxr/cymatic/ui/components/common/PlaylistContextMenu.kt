@@ -19,17 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.Playlist
+import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
@@ -48,7 +48,12 @@ fun PlaylistContextMenu(
     val context = LocalContext.current
     val keepOffline = {
         if (playlist.sourceId != null && playlist.remoteId != null)
-            LibraryOfflineManager.keepPlaylist(context, playlist.sourceId, playlist.remoteId, playlist.name)
+            LibraryOfflineManager.keepPlaylist(
+                context,
+                playlist.sourceId,
+                playlist.remoteId,
+                playlist.name
+            )
         else LibraryOfflineManager.keepPlaylist(context, playlist.id, playlist.name)
         onDismiss()
     }
@@ -130,8 +135,12 @@ fun PlaylistContextMenu(
                 }),
                 if (playlist.availability != LibraryAvailability.OFFLINE)
                     NavigationItem("Keep offline", onClick = keepOffline) else null,
-                if (playlist.sourceId == null) NavigationItem("Rename", onClick = { showRenameDialog = true }) else null,
-                if (playlist.sourceId == null) NavigationItem("Delete", onClick = { showDeleteConfirm = true }) else null
+                if (playlist.sourceId == null) NavigationItem(
+                    "Rename",
+                    onClick = { showRenameDialog = true }) else null,
+                if (playlist.sourceId == null) NavigationItem(
+                    "Delete",
+                    onClick = { showDeleteConfirm = true }) else null
             ),
             onDismiss = onDismiss
         )

@@ -108,10 +108,10 @@ fun rememberPlaybackState(
                 override fun onEvents(player: Player, events: Player.Events) {
                     val refreshQueue =
                         events.contains(Player.EVENT_TIMELINE_CHANGED) ||
-                            events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
-                            events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
-                            events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
-                            events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
+                                events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED) ||
+                                events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                                events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                                events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)
                     updateFromController(mediaController, refreshQueue)
                 }
             }

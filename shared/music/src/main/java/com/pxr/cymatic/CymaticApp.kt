@@ -17,7 +17,13 @@ open class CymaticApp : Application() {
         PlaybackStore.init(this)
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             runCatching { com.pxr.cymatic.sync.RemoteLibraryRepository.restore(this@CymaticApp) }
-                .onFailure { android.util.Log.w("RemoteLibrary", "Could not restore remote libraries", it) }
+                .onFailure {
+                    android.util.Log.w(
+                        "RemoteLibrary",
+                        "Could not restore remote libraries",
+                        it
+                    )
+                }
             LibrarySyncJobService.reschedule(this@CymaticApp)
         }
     }

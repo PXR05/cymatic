@@ -2,27 +2,27 @@ package com.pxr.cymatic.ui.components.list
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
@@ -56,7 +56,7 @@ fun AudioFileList(
 
     LaunchedEffect(scrollTargetId) {
         if (scrollTargetId != null) {
-            val index = audioFiles.indexOfFirst{ it.id == scrollTargetId }
+            val index = audioFiles.indexOfFirst { it.id == scrollTargetId }
             if (index != -1) {
                 listState.scrollToItem(index)
             }
@@ -73,7 +73,7 @@ fun AudioFileList(
         ) { i ->
             val audioFile = audioFiles[i]
             val isCurrent = if (wheel != null) i == selectedIndex
-                else playbackState.currentMediaId == audioFile.id.toString()
+            else playbackState.currentMediaId == audioFile.id.toString()
             if (i == 0 && topOffset > 0.dp) {
                 Box(modifier = Modifier.height(topOffset))
             }
@@ -105,7 +105,10 @@ fun AudioFileItem(
     val metadata = audioFile.metadata
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
     val busy = audioFile.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
-        com.pxr.cymatic.sync.RemoteLibraryItemKey(audioFile.sourceId.orEmpty(), audioFile.remoteId.orEmpty()) in work.tracks
+            com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                audioFile.sourceId.orEmpty(),
+                audioFile.remoteId.orEmpty()
+            ) in work.tracks
 
     @SuppressLint("DefaultLocale")
     fun parseDuration(durationMs: Long?): String {
@@ -121,7 +124,10 @@ fun AudioFileItem(
         subLabel = metadata.artist ?: "Unknown Artist",
         trailing = parseDuration(metadata.duration),
         trailingContent = { color ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 LibraryAvailabilityIcon(audioFile.availability, color, busy = busy)
                 Text(parseDuration(metadata.duration), color = color, fontSize = 12.sp)
             }

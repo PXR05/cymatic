@@ -14,6 +14,7 @@ object UsbPlaybackState {
     val active = mutableActive.asStateFlow()
     private val mutableVolumeActive = MutableStateFlow(false)
     val volumeActive = mutableVolumeActive.asStateFlow()
+
     @Volatile
     internal var routeToUsb = false
         set(value) {

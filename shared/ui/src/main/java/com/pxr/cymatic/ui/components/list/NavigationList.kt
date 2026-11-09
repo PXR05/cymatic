@@ -12,9 +12,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -70,51 +70,55 @@ fun NavigationList(
                 trailing =
                     if (item.enabled && item.showIndicator && item.checked == null) ">" else null,
                 trailingContent =
-                    item.trailingContent ?: if (item.enabled && item.showIndicator && item.checked != null) {
-                        { color ->
-                            Canvas(Modifier.size(20.dp)) {
-                                val pixels = if (item.checked) {
-                                    listOf(
-                                        "00111100",
-                                        "01111110",
-                                        "11111111",
-                                        "11111111",
-                                        "11111111",
-                                        "11111111",
-                                        "01111110",
-                                        "00111100",
-                                    )
-                                } else {
-                                    listOf(
-                                        "00111100",
-                                        "01000010",
-                                        "10000001",
-                                        "10000001",
-                                        "10000001",
-                                        "10000001",
-                                        "01000010",
-                                        "00111100",
-                                    )
-                                }
+                    item.trailingContent
+                        ?: if (item.enabled && item.showIndicator && item.checked != null) {
+                            { color ->
+                                Canvas(Modifier.size(20.dp)) {
+                                    val pixels = if (item.checked) {
+                                        listOf(
+                                            "00111100",
+                                            "01111110",
+                                            "11111111",
+                                            "11111111",
+                                            "11111111",
+                                            "11111111",
+                                            "01111110",
+                                            "00111100",
+                                        )
+                                    } else {
+                                        listOf(
+                                            "00111100",
+                                            "01000010",
+                                            "10000001",
+                                            "10000001",
+                                            "10000001",
+                                            "10000001",
+                                            "01000010",
+                                            "00111100",
+                                        )
+                                    }
 
-                                val pixel = 1.5.dp.toPx().toInt().coerceAtLeast(1).toFloat()
-                                val left = (size.width - 8 * pixel) / 2
-                                val top = (size.height - 8 * pixel) / 2
+                                    val pixel = 1.5.dp.toPx().toInt().coerceAtLeast(1).toFloat()
+                                    val left = (size.width - 8 * pixel) / 2
+                                    val top = (size.height - 8 * pixel) / 2
 
-                                pixels.forEachIndexed { y, row ->
-                                    row.forEachIndexed { x, value ->
-                                        if (value == '1') {
-                                            drawRect(
-                                                color = color,
-                                                topLeft = Offset(left + x * pixel, top + y * pixel),
-                                                size = Size(pixel, pixel),
-                                            )
+                                    pixels.forEachIndexed { y, row ->
+                                        row.forEachIndexed { x, value ->
+                                            if (value == '1') {
+                                                drawRect(
+                                                    color = color,
+                                                    topLeft = Offset(
+                                                        left + x * pixel,
+                                                        top + y * pixel
+                                                    ),
+                                                    size = Size(pixel, pixel),
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                    } else null,
+                        } else null,
                 trailingStyle =
                     TextStyle(
                         color = MaterialTheme.colorScheme.onBackground,
@@ -125,7 +129,8 @@ fun NavigationList(
                 isActive = index == selectedIndex,
                 enabled = item.enabled,
                 modifier =
-                    Modifier.semantics {
+                    Modifier
+                        .semantics {
                             if (item.checked != null) {
                                 role = Role.Checkbox
                                 toggleableState =
@@ -163,7 +168,8 @@ fun NavigationListPreview() {
         separator = {
             Box(
                 modifier =
-                    Modifier.fillMaxWidth()
+                    Modifier
+                        .fillMaxWidth()
                         .height(1.dp)
                         .background(MaterialTheme.colorScheme.onSurface)
             )

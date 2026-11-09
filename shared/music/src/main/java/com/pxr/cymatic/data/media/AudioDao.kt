@@ -14,13 +14,15 @@ interface AudioDao {
 
     @Query("SELECT * FROM audio_files WHERE id = :id")
     suspend fun getAudio(id: Long): AudioEntity?
+
     @Query("SELECT * FROM audio_files ORDER BY uri COLLATE NOCASE ASC")
     suspend fun getAllAudio(): List<AudioEntity>
 
     @Query("SELECT id, date_modified, size FROM audio_files")
     suspend fun getAudioIndex(): List<AudioIndexEntry>
 
-    @Upsert suspend fun upsertAudio(records: List<AudioEntity>)
+    @Upsert
+    suspend fun upsertAudio(records: List<AudioEntity>)
 
     @Query("DELETE FROM audio_files WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: Collection<Long>)

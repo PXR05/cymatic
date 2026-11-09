@@ -13,7 +13,8 @@ enum class DsdUsbMode(val label: String) {
 }
 
 object UsbPlaybackSettings {
-    @Volatile private var currentDsdModes: Map<String, String>? = null
+    @Volatile
+    private var currentDsdModes: Map<String, String>? = null
     private val enabledKey = booleanPreferencesKey("DIRECT_USB_ENABLED")
     val enabledFlow
         get() = SettingsStore.store.data.map { it[enabledKey] ?: false }.distinctUntilChanged()
@@ -28,10 +29,10 @@ object UsbPlaybackSettings {
     fun dsdMode(deviceKey: String): DsdUsbMode =
         DsdUsbMode.entries.firstOrNull {
             it.name ==
-                (currentDsdModes?.get("USB_DSD_MODE_$deviceKey")
-                    ?: SettingsStore.currentPreferences?.get(
-                        stringPreferencesKey("USB_DSD_MODE_$deviceKey")
-                    ))
+                    (currentDsdModes?.get("USB_DSD_MODE_$deviceKey")
+                        ?: SettingsStore.currentPreferences?.get(
+                            stringPreferencesKey("USB_DSD_MODE_$deviceKey")
+                        ))
         } ?: DsdUsbMode.AUTO
 
     val dsdModesFlow

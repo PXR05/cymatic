@@ -23,7 +23,6 @@ import com.pxr.cymatic.audio.usb.UsbConnectionManager
 import com.pxr.cymatic.audio.usb.UsbOutputOwnership
 import com.pxr.cymatic.audio.usb.UsbStreamingProbe
 import com.pxr.cymatic.audio.usb.isUsbAudioDevice
-import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -36,6 +35,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
+import java.time.Instant
 
 internal class UsbAudioDiagnosticsViewModel(application: Application) :
     AndroidViewModel(application) {

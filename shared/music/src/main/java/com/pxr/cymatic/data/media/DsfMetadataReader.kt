@@ -46,7 +46,7 @@ internal fun readDsfMetadata(context: Context, uri: Uri): DsfMetadata? {
             val bytes = (6..9).fold(0) { size, index -> (size shl 7) or prefix[index].toInt() }
             require(
                 bytes in 0..2_097_152 &&
-                    bytes.toLong() + 10 <= header.fileSize - header.metadataOffset
+                        bytes.toLong() + 10 <= header.fileSize - header.metadataOffset
             )
             val tag = prefix + input.readExactly(bytes)
             Id3Decoder().decode(tag, tag.size)
@@ -63,12 +63,15 @@ internal fun readDsfMetadata(context: Context, uri: Uri): DsfMetadata? {
                     when (frame.id) {
                         "TIT2",
                         "TT2" -> title = value
+
                         "TPE1",
                         "TP1" -> artist = value
+
                         "TALB",
                         "TAL" -> album = value
                     }
                 }
+
                 is ApicFrame -> if (picture == null || frame.pictureType == 3) picture = frame
             }
         }

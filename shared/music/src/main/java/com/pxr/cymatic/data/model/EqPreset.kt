@@ -67,7 +67,11 @@ data class EqPreset(
                         bands.add(
                             EqBand(
                                 id = bandObj.optInt(KEY_ID, i),
-                                type = try { FilterType.valueOf(typeStr) } catch (_: Exception) { FilterType.PEAKING },
+                                type = try {
+                                    FilterType.valueOf(typeStr)
+                                } catch (_: Exception) {
+                                    FilterType.PEAKING
+                                },
                                 frequency = bandObj.optDouble(KEY_FREQUENCY, 1000.0).toFloat(),
                                 gain = bandObj.optDouble(KEY_GAIN, 0.0).toFloat(),
                                 q = bandObj.optDouble(KEY_Q, DEFAULT_Q.toDouble()).toFloat(),
@@ -82,7 +86,7 @@ data class EqPreset(
                 null
             }
         }
-        
+
         fun defaultPreset(name: String = "Flat"): EqPreset {
             val bands = (0 until 10).map { i ->
                 EqBand(
@@ -117,6 +121,7 @@ data class EqPreset(
                             val parts = line.split("\\s+".toRegex())
                             preamp = parts.getOrNull(1)?.toFloatOrNull() ?: 0f
                         }
+
                         line.startsWith("Filter", ignoreCase = true) -> {
                             EqBand.fromApoLine(line, bands.size)?.let { bands.add(it) }
                         }

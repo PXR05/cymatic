@@ -2,6 +2,7 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import com.pxr.cymatic.data.store.SettingsStore
+
 internal object RemoteLibraries {
     suspend fun currentSource() = RemoteLibrarySource(
         SettingsStore.getSyncAdapter(), SettingsStore.getSyncUrl(), SettingsStore.getSyncUsername(),
@@ -15,6 +16,7 @@ internal object RemoteLibraries {
                     ?: throw IllegalStateException("Enter your library password first")
                 AudioStreamClient(source.address, source.account, password)
             }
+
             else -> error("This library provider is not supported yet")
         }
     }

@@ -46,8 +46,8 @@ fun OutputInfoDialog(showDialog: Boolean, onDismissRequest: () -> Unit) {
         report.sections.map { page ->
             NavigationItem(page.title, onClick = { selected = page.title })
         } +
-            NavigationItem("Copy report", onClick = copy) +
-            NavigationItem("Return", onClick = onDismissRequest)
+                NavigationItem("Copy report", onClick = copy) +
+                NavigationItem("Return", onClick = onDismissRequest)
     if (LocalWheelNavigation.current != null) {
         WheelSettingsOverlay("Output info", onDismissRequest) {
             if (report.sections.isEmpty())
@@ -69,7 +69,9 @@ fun OutputInfoDialog(showDialog: Boolean, onDismissRequest: () -> Unit) {
                     else NavigationList(menuItems)
                 } else
                     Column(
-                        Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+                        Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp)
                     ) {
                         OutputInformation(OutputInfoReport(listOf(section)))
                     }

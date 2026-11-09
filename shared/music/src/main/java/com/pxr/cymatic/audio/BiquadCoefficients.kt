@@ -5,9 +5,9 @@ import com.pxr.cymatic.data.model.FilterType
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.log10
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.pow
 
 data class BiquadCoefficients(
     val b0: Double,
@@ -20,15 +20,15 @@ data class BiquadCoefficients(
         val w = 2.0 * PI * frequency / sampleRate
         val cosW = cos(w)
         val cos2W = cos(2.0 * w)
-        
+
         val num = b0 * b0 + b1 * b1 + b2 * b2 +
-                  2.0 * (b0 * b1 + b1 * b2) * cosW +
-                  2.0 * b0 * b2 * cos2W
-                  
+                2.0 * (b0 * b1 + b1 * b2) * cosW +
+                2.0 * b0 * b2 * cos2W
+
         val den = 1.0 + a1 * a1 + a2 * a2 +
-                  2.0 * (a1 + a1 * a2) * cosW +
-                  2.0 * a2 * cos2W
-                  
+                2.0 * (a1 + a1 * a2) * cosW +
+                2.0 * a2 * cos2W
+
         val magnitudeSquared = num / den
         return if (magnitudeSquared > 0) 10.0 * log10(magnitudeSquared) else -100.0
     }

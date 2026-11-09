@@ -18,9 +18,9 @@ internal object BackgroundPlaybackGuide {
         try {
             context.startActivity(
                 Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                        Uri.parse("package:${context.packageName}"),
-                    )
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:${context.packageName}"),
+                )
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         } catch (_: Exception) {
@@ -42,7 +42,14 @@ internal object BackgroundPlaybackGuide {
         return when {
             "xiaomi" in manufacturer -> "Xiaomi"
             "samsung" in manufacturer -> "Samsung"
-            manufacturer in setOf("oneplus", "oppo", "realme", "vivo", "iqoo") -> "OnePlus / Oppo / Vivo"
+            manufacturer in setOf(
+                "oneplus",
+                "oppo",
+                "realme",
+                "vivo",
+                "iqoo"
+            ) -> "OnePlus / Oppo / Vivo"
+
             manufacturer in setOf("huawei", "honor") -> "Huawei / Honor"
             else -> "This device"
         }
@@ -58,20 +65,24 @@ internal object BackgroundPlaybackGuide {
                         "In the same app page, enable Autostart.",
                         "Open recents, long-press Cymatic and lock it so the system does not swipe it away.",
                     )
+
                 "samsung" in manufacturer ->
                     listOf(
                         "Settings → Battery → Background usage limits → Never auto sleeping apps → add Cymatic.",
                         "App info → Cymatic → Battery → Unrestricted.",
                     )
+
                 manufacturer in setOf("oneplus", "oppo", "realme", "vivo", "iqoo") ->
                     listOf(
                         "Settings → Apps → Cymatic → Battery usage → Allow background activity.",
                         "Lock Cymatic in the recent-apps list.",
                     )
+
                 manufacturer in setOf("huawei", "honor") ->
                     listOf(
                         "Settings → Battery → App launch → Cymatic → Manage manually, then allow auto-launch, secondary launch and running in background.",
                     )
+
                 else ->
                     listOf(
                         "Allow background activity for Cymatic and set its battery usage to Unrestricted.",
@@ -79,8 +90,9 @@ internal object BackgroundPlaybackGuide {
                     )
             }
         return (
-            "Direct USB stops the moment the OS freezes the app in the background. " +
-                "Whitelisting keeps it scheduled.\n\n" + steps.mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
-        )
+                "Direct USB stops the moment the OS freezes the app in the background. " +
+                        "Whitelisting keeps it scheduled.\n\n" + steps.mapIndexed { i, s -> "${i + 1}. $s" }
+                    .joinToString("\n")
+                )
     }
 }

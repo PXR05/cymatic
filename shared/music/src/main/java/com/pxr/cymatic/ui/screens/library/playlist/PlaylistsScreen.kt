@@ -1,26 +1,25 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
-import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
-import com.pxr.cymatic.data.model.LibraryFilter
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
 import com.pxr.cymatic.ui.components.common.PlaylistsPageContextMenu
@@ -31,6 +30,7 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun PlaylistsScreen(
@@ -48,12 +48,18 @@ fun PlaylistsScreen(
         NavigationItem(
             playlist.name,
             trailingContent = { color ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     com.pxr.cymatic.ui.components.list.LibraryAvailabilityIcon(
                         playlist.availability, color,
                         busy = playlist.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
-                            (playlist.id in work.localPlaylists ||
-                                com.pxr.cymatic.sync.RemoteLibraryItemKey(playlist.sourceId.orEmpty(), playlist.remoteId.orEmpty()) in work.playlists),
+                                (playlist.id in work.localPlaylists ||
+                                        com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                                            playlist.sourceId.orEmpty(),
+                                            playlist.remoteId.orEmpty()
+                                        ) in work.playlists),
                     )
                     Text(">", color = color, fontSize = 20.sp)
                 }

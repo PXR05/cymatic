@@ -68,8 +68,8 @@ fun AddToPlaylistDialog(
             val all = repo.getPlaylists().filter { it.sourceId == null }
             val members =
                 all.filter { playlist ->
-                        repo.getPlaylistAudio(playlist.id).any { it.id == audioId }
-                    }
+                    repo.getPlaylistAudio(playlist.id).any { it.id == audioId }
+                }
                     .map { it.id }
                     .toSet()
             playlists = all
@@ -118,7 +118,8 @@ fun AddToPlaylistDialog(
             } else {
                 Column(
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(24.dp, 16.dp)
                             .border(1.dp, MaterialTheme.colorScheme.secondary)
@@ -160,7 +161,8 @@ private fun PlaylistToggleRow(
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
                 .height(64.dp)
                 .clickable(
                     onClick = onToggle,
@@ -176,7 +178,8 @@ private fun PlaylistToggleRow(
                 if (isMember) MaterialTheme.colorScheme.background
                 else MaterialTheme.colorScheme.onBackground,
             modifier =
-                Modifier.background(
+                Modifier
+                    .background(
                         if (isMember) MaterialTheme.colorScheme.onBackground else Color.Transparent
                     )
                     .padding(horizontal = 28.dp, vertical = 20.dp),
@@ -184,7 +187,10 @@ private fun PlaylistToggleRow(
 
         Box(
             modifier =
-                Modifier.width(1.dp).height(64.dp).background(MaterialTheme.colorScheme.secondary)
+                Modifier
+                    .width(1.dp)
+                    .height(64.dp)
+                    .background(MaterialTheme.colorScheme.secondary)
         )
 
         Spacer(modifier = Modifier.width(16.dp))

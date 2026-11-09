@@ -23,10 +23,10 @@ class PlaylistRepository private constructor(
 ) {
     @Volatile
     private var cachedPlaylists: List<Playlist>? = null
-    
+
     @Volatile
     private var cachedPlaylistAudio = mapOf<Long, List<AudioFile>>()
-    
+
     private val playlistMutex = Mutex()
 
     suspend fun getPlaylists(): List<Playlist> {
@@ -40,8 +40,11 @@ class PlaylistRepository private constructor(
                 val counts = playlistDao.availability().associateBy { it.playlistId }
                 val dbList = playlistDao.getPlaylists().map { entity ->
                     val count = counts[entity.id]
-                    entity.toPlaylist().copy(availability = LibraryAvailability.fromCounts(
-                        count?.offline ?: 0, count?.total ?: 0, entity.sourceId != null))
+                    entity.toPlaylist().copy(
+                        availability = LibraryAvailability.fromCounts(
+                            count?.offline ?: 0, count?.total ?: 0, entity.sourceId != null
+                        )
+                    )
                 }
                 cachedPlaylists = dbList
                 dbList

@@ -22,7 +22,7 @@ internal fun Format.audioTechnicalMetadata(): AudioTechnicalMetadata {
                 ?.takeIf { it.size >= 24 }
                 ?.let {
                     ByteBuffer.wrap(it).order(ByteOrder.BIG_ENDIAN).getInt(16).toLong() and
-                        0xffffffffL
+                            0xffffffffL
                 }
                 ?.takeIf { it > 0 }
         } else null

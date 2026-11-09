@@ -37,7 +37,7 @@ internal fun WheelStorageSettingsScreen(
     val nav = LocalNavController.current
     val scope = rememberCoroutineScope()
     val scanAll by
-        SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
+    SettingsStore.scanAllMediaFlow.collectAsState(initial = SettingsStore.currentScanAllMedia)
     var scanning by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var removeDirectory by remember { mutableStateOf<String?>(null) }

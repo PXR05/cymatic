@@ -229,6 +229,7 @@ fun SearchableScreenHeader(
                                 interactionSource = null
                             )
                         }
+
                         onTitleClick != null -> {
                             Modifier.clickable(
                                 onClick = onTitleClick,
@@ -236,6 +237,7 @@ fun SearchableScreenHeader(
                                 interactionSource = null
                             )
                         }
+
                         onMenuLongClick != null -> {
                             Modifier.combinedClickable(
                                 onClick = onMenuLongClick,
@@ -244,6 +246,7 @@ fun SearchableScreenHeader(
                                 interactionSource = null
                             )
                         }
+
                         else -> Modifier
                     }
                     Text(

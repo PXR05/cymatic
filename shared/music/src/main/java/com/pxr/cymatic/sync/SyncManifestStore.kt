@@ -2,10 +2,10 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import android.util.AtomicFile
-import java.io.File
-import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.security.MessageDigest
 
 internal class SyncManifestStore(context: Context, identity: String) {
     private val file: AtomicFile

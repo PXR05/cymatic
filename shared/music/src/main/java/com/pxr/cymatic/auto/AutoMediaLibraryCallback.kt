@@ -92,6 +92,7 @@ class AutoMediaLibraryCallback(
                 lastBrowsedParentId = parentId
                 buildAllSongs()
             }
+
             parentId == NODE_ALBUMS -> buildAlbumNodes()
             parentId == NODE_ARTISTS -> buildArtistNodes()
             parentId == NODE_PLAYLISTS -> buildPlaylistNodes()
@@ -100,16 +101,19 @@ class AutoMediaLibraryCallback(
                 val albumName = parentId.removePrefix(PREFIX_ALBUM)
                 buildAlbumTracks(albumName)
             }
+
             parentId.startsWith(PREFIX_ARTIST) -> {
                 lastBrowsedParentId = parentId
                 val artistName = parentId.removePrefix(PREFIX_ARTIST)
                 buildArtistTracks(artistName)
             }
+
             parentId.startsWith(PREFIX_PLAYLIST) -> {
                 lastBrowsedParentId = parentId
                 val playlistId = parentId.removePrefix(PREFIX_PLAYLIST).toLongOrNull()
                 if (playlistId != null) buildPlaylistTracks(playlistId) else emptyList()
             }
+
             else -> emptyList()
         }
 
@@ -127,7 +131,15 @@ class AutoMediaLibraryCallback(
         if (trackId != null) {
             val audio = repository.getAudioByIds(listOf(trackId)).firstOrNull()
             if (audio != null) {
-                LibraryResult.ofItem(buildPlayableItem(audio.id, audio.metadata.title, audio.metadata.artist, audio.metadata.artworkUri?.toString(), audio.uri.toString()), null)
+                LibraryResult.ofItem(
+                    buildPlayableItem(
+                        audio.id,
+                        audio.metadata.title,
+                        audio.metadata.artist,
+                        audio.metadata.artworkUri?.toString(),
+                        audio.uri.toString()
+                    ), null
+                )
             } else {
                 LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
             }
@@ -160,7 +172,11 @@ class AutoMediaLibraryCallback(
                 if (fullQueue.isNotEmpty()) {
                     val idx = fullQueue.indexOfFirst { it.mediaId == clickedId }
                     val safeIdx = if (idx >= 0) idx else 0
-                    return@future MediaSession.MediaItemsWithStartPosition(fullQueue.toMutableList(), safeIdx, startPositionMs)
+                    return@future MediaSession.MediaItemsWithStartPosition(
+                        fullQueue.toMutableList(),
+                        safeIdx,
+                        startPositionMs
+                    )
                 }
             }
         }
@@ -174,14 +190,17 @@ class AutoMediaLibraryCallback(
             val albumName = parentId.removePrefix(PREFIX_ALBUM)
             buildAlbumTracks(albumName)
         }
+
         parentId.startsWith(PREFIX_ARTIST) -> {
             val artistName = parentId.removePrefix(PREFIX_ARTIST)
             buildArtistTracks(artistName)
         }
+
         parentId.startsWith(PREFIX_PLAYLIST) -> {
             val playlistId = parentId.removePrefix(PREFIX_PLAYLIST).toLongOrNull()
             if (playlistId != null) buildPlaylistTracks(playlistId) else emptyList()
         }
+
         else -> emptyList()
     }
 

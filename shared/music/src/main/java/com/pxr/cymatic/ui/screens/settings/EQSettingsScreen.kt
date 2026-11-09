@@ -43,9 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.design.R
-import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
 import com.pxr.cymatic.ui.components.primitives.CymaticConfirmDialog
@@ -53,6 +52,7 @@ import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenu
 import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 
 @OptIn(ExperimentalMaterial3Api::class)

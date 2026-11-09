@@ -9,7 +9,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class AudioRepository private constructor(private val audioDao: AudioDao) {
-    @Volatile private var cachedAudio: List<AudioFile>? = null
+    @Volatile
+    private var cachedAudio: List<AudioFile>? = null
     private val cacheMutex = Mutex()
 
     suspend fun getAllAudio(): List<AudioFile> {
@@ -21,8 +22,10 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
                 doubleChecked
             } else {
                 val dbList = audioDao.getAllAudio().let { records ->
-                    val remoteCopies = records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
-                    records.filter { it.sourceId != null || it.uri !in remoteCopies }.map { it.toAudioFile() }
+                    val remoteCopies =
+                        records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
+                    records.filter { it.sourceId != null || it.uri !in remoteCopies }
+                        .map { it.toAudioFile() }
                 }
                 cachedAudio = dbList
                 dbList
@@ -70,7 +73,8 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
     }
 
     companion object {
-        @Volatile private var instance: AudioRepository? = null
+        @Volatile
+        private var instance: AudioRepository? = null
 
         fun getInstance(context: Context): AudioRepository {
             return instance

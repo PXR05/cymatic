@@ -14,15 +14,15 @@ internal object SyncDownloadValidation {
         val type = contentType?.substringBefore(';')?.trim()?.lowercase().orEmpty()
         if (
             type.startsWith("text/") ||
-                type.startsWith("image/") ||
-                type.contains("json") ||
-                type.contains("xml")
+            type.startsWith("image/") ||
+            type.contains("json") ||
+            type.contains("xml")
         ) {
             throw IOException("The server returned $type instead of an audio file")
         }
         if (
             !contentEncoding.isNullOrBlank() &&
-                !contentEncoding.equals("identity", ignoreCase = true)
+            !contentEncoding.equals("identity", ignoreCase = true)
         ) {
             throw IOException("The server returned encoded audio: $contentEncoding")
         }

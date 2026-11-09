@@ -100,7 +100,9 @@ fun CymaticDropdownMenuItem(
         leadingIcon = leadingIcon,
         contentPadding = PaddingValues(horizontal = 16.dp),
         onClick = onClick,
-        modifier = Modifier.height(MenuItemHeight).then(modifier),
+        modifier = Modifier
+            .height(MenuItemHeight)
+            .then(modifier),
     )
 }
 

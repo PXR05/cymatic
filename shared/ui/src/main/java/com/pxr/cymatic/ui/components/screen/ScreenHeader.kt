@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
@@ -80,6 +79,7 @@ fun ScreenHeader(
                     interactionSource = null
                 )
             }
+
             onTitleClick != null -> {
                 Modifier.clickable(
                     onClick = onTitleClick,
@@ -87,6 +87,7 @@ fun ScreenHeader(
                     interactionSource = null
                 )
             }
+
             onMenuLongClick != null -> {
                 Modifier.combinedClickable(
                     onClick = onMenuLongClick,
@@ -95,6 +96,7 @@ fun ScreenHeader(
                     interactionSource = null
                 )
             }
+
             else -> Modifier
         }
         Text(

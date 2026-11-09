@@ -47,14 +47,14 @@ internal object DirectUsbSourcePolicy {
 
     fun canDecode(format: Format): Boolean =
         format.usbPcmLayout() != null ||
-            format.dsfHeader() != null ||
-            format.integerFlacMetadata() != null ||
-            format.integerAlacMetadata() != null ||
-            canDecodeWithPlatform(format)
+                format.dsfHeader() != null ||
+                format.integerFlacMetadata() != null ||
+                format.integerAlacMetadata() != null ||
+                canDecodeWithPlatform(format)
 
     fun canDecodeWithPlatform(format: Format): Boolean =
         format.sampleMimeType in platformMimeTypes &&
-            format.cryptoType == C.CRYPTO_TYPE_NONE &&
-            format.channelCount in 1..2 &&
-            format.sampleRate in 8000..384000
+                format.cryptoType == C.CRYPTO_TYPE_NONE &&
+                format.channelCount in 1..2 &&
+                format.sampleRate in 8000..384000
 }

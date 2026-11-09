@@ -58,16 +58,16 @@ internal data class DsfHeader(
             val rate = data.getInt(56)
             require(
                 rate in
-                    setOf(
-                        2822400,
-                        5644800,
-                        11289600,
-                        22579200,
-                        3072000,
-                        6144000,
-                        12288000,
-                        24576000,
-                    )
+                        setOf(
+                            2822400,
+                            5644800,
+                            11289600,
+                            22579200,
+                            3072000,
+                            6144000,
+                            12288000,
+                            24576000,
+                        )
             ) {
                 "Unsupported DSF sample rate"
             }

@@ -12,9 +12,9 @@ import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.CymaticDatabase
 import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistRepository
-import java.io.IOException
-import java.io.EOFException
 import kotlinx.coroutines.runBlocking
+import java.io.EOFException
+import java.io.IOException
 
 @UnstableApi
 internal class RemoteLibraryDataSource(private val context: Context) : DataSource {
@@ -36,13 +36,21 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
         spec = dataSpec
         try {
             val key = if (dataSpec.uri.scheme == "cymatic") {
-                RemoteLibraryItemKey(requireNotNull(dataSpec.uri.host), dataSpec.uri.pathSegments.single())
+                RemoteLibraryItemKey(
+                    requireNotNull(dataSpec.uri.host),
+                    dataSpec.uri.pathSegments.single()
+                )
             } else null
-            val record = key?.let { runBlocking { CymaticDatabase.getInstance(context).audioDao().getAudio(it.audioId()) } }
+            val record = key?.let {
+                runBlocking {
+                    CymaticDatabase.getInstance(context).audioDao().getAudio(it.audioId())
+                }
+            }
             val saved = record?.offlineUri
             val offline = saved?.takeIf { RemoteLibraryRepository.isReadable(context, it) }
             if (saved != null && offline == null) runBlocking {
-                CymaticDatabase.getInstance(context).audioDao().upsertAudio(listOf(record.copy(offlineUri = null)))
+                CymaticDatabase.getInstance(context).audioDao()
+                    .upsertAudio(listOf(record.copy(offlineUri = null)))
                 AudioRepository.getInstance(context).invalidate()
                 PlaylistRepository.getInstance(context).invalidate()
                 LibraryChanges.notifyChanged()
@@ -57,7 +65,8 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
                 val source = SyncCatalogStore.source(context, key!!.sourceId)
                     ?: throw IOException("This library connection is unavailable. Reconnect in Settings.")
                 val client = streamClient?.takeIf { it.first == source.id }?.second
-                    ?: RemoteLibraries.client(context, source).also { streamClient = source.id to it }
+                    ?: RemoteLibraries.client(context, source)
+                        .also { streamClient = source.id to it }
                 val response = client.openStream(key.remoteId, dataSpec.position, dataSpec.length)
                 remote = response
                 val size = response.contentLength?.toLongOrNull()?.takeIf { it >= 0L }
@@ -65,7 +74,7 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
                         ?.let { (it.toLong() - dataSpec.position).coerceAtLeast(0L) }
                     ?: C.LENGTH_UNSET.toLong()
                 if (dataSpec.length == C.LENGTH_UNSET.toLong()) size
-                    else if (size < 0) dataSpec.length else minOf(size, dataSpec.length)
+                else if (size < 0) dataSpec.length else minOf(size, dataSpec.length)
             }
             started = true
             listeners.forEach { it.onTransferStart(this, dataSpec, network) }
@@ -81,25 +90,48 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
         if (length == 0) return 0
         if (remaining == 0L) return C.RESULT_END_OF_INPUT
         val count = if (remaining < 0) length else minOf(length.toLong(), remaining).toInt()
-        val received = local?.read(buffer, offset, count) ?: remote?.input?.read(buffer, offset, count)
+        val received =
+            local?.read(buffer, offset, count) ?: remote?.input?.read(buffer, offset, count)
             ?: throw IOException("No track is open")
         if (received == C.RESULT_END_OF_INPUT && remaining > 0)
             throw EOFException("The audio stream ended before the expected length")
         if (received > 0) {
             if (remaining >= 0) remaining -= received
-            spec?.let { dataSpec -> listeners.forEach { it.onBytesTransferred(this, dataSpec, network, received) } }
+            spec?.let { dataSpec ->
+                listeners.forEach {
+                    it.onBytesTransferred(
+                        this,
+                        dataSpec,
+                        network,
+                        received
+                    )
+                }
+            }
         }
         return received
     }
 
     override fun getUri(): Uri? = spec?.uri
-    override fun getResponseHeaders(): Map<String, List<String>> = local?.responseHeaders ?: remote?.responseHeaders.orEmpty()
+    override fun getResponseHeaders(): Map<String, List<String>> =
+        local?.responseHeaders ?: remote?.responseHeaders.orEmpty()
 
     override fun close() {
         try {
-            try { local?.close() } finally { remote?.close() }
+            try {
+                local?.close()
+            } finally {
+                remote?.close()
+            }
         } finally {
-            if (started) spec?.let { dataSpec -> listeners.forEach { it.onTransferEnd(this, dataSpec, network) } }
+            if (started) spec?.let { dataSpec ->
+                listeners.forEach {
+                    it.onTransferEnd(
+                        this,
+                        dataSpec,
+                        network
+                    )
+                }
+            }
             local = null
             remote = null
             spec = null
@@ -109,6 +141,7 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
     }
 
     class Factory(private val context: Context) : DataSource.Factory {
-        override fun createDataSource(): DataSource = RemoteLibraryDataSource(context.applicationContext)
+        override fun createDataSource(): DataSource =
+            RemoteLibraryDataSource(context.applicationContext)
     }
 }

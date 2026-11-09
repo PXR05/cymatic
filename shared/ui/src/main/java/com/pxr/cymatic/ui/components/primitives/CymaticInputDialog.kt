@@ -58,7 +58,9 @@ fun CymaticInputDialog(
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                     ),
                 shape = RoundedCornerShape(0.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
             )
         },
         buttons = {

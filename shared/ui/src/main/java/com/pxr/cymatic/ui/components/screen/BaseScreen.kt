@@ -60,7 +60,7 @@ fun BaseScreen(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             contentWindowInsets = if (LocalWheelNavigation.current != null) WindowInsets(0, 0, 0, 0)
-                else ScaffoldDefaults.contentWindowInsets,
+            else ScaffoldDefaults.contentWindowInsets,
             containerColor = if (backdrop != null) Color.Transparent else MaterialTheme.colorScheme.background
         ) { innerPadding ->
             val topPadding = innerPadding.calculateTopPadding()

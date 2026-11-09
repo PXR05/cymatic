@@ -119,7 +119,9 @@ fun PlayerBar(
                 modifier = Modifier
                     .then(
                         if (isDocked) {
-                            Modifier.fillMaxWidth().aspectRatio(1f)
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
                         } else {
                             Modifier.fillMaxHeight()
                         }

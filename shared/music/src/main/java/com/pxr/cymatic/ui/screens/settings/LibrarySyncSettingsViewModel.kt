@@ -9,10 +9,10 @@ import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.sync.AudioStreamClient
 import com.pxr.cymatic.sync.CatalogProgress
 import com.pxr.cymatic.sync.LibraryCatalogManager
-import com.pxr.cymatic.sync.RemoteLibraries
-import com.pxr.cymatic.sync.RemoteLibrarySource
 import com.pxr.cymatic.sync.LibrarySyncJobService
 import com.pxr.cymatic.sync.LibrarySyncManager
+import com.pxr.cymatic.sync.RemoteLibraries
+import com.pxr.cymatic.sync.RemoteLibrarySource
 import com.pxr.cymatic.sync.SyncCatalogStore
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncCredentialStore
@@ -57,7 +57,12 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     url = SettingsStore.getSyncUrl(),
                     username = SettingsStore.getSyncUsername(),
                     hasPassword =
-                        withContext(Dispatchers.IO) { SyncCredentialStore.hasPassword(context, source.id) },
+                        withContext(Dispatchers.IO) {
+                            SyncCredentialStore.hasPassword(
+                                context,
+                                source.id
+                            )
+                        },
                     directory = directory,
                     folderAccessible = hasFolderAccess(directory),
                     network = SyncNetwork.from(SettingsStore.getSyncNetwork()),
@@ -66,7 +71,10 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     contentMode = if (SettingsStore.getSyncContentConfigured())
                         SyncContentMode.from(SettingsStore.getSyncContentMode()) else SyncContentMode.NONE,
                     musicConfigured = SettingsStore.getSyncContentConfigured(),
-                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(context, source.id).isEmpty,
+                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(
+                        context,
+                        source.id
+                    ).isEmpty,
                     selectedPlaylists = SettingsStore.getSyncSelectedPlaylists(),
                     catalog = catalog,
                     progress = LibrarySyncManager.progress.value,
@@ -75,7 +83,10 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             launch {
                 com.pxr.cymatic.data.media.LibraryChanges.version.collect {
                     val pins = withContext(Dispatchers.IO) {
-                        com.pxr.cymatic.sync.OfflineSelectionStore.read(context, RemoteLibraries.currentSource().id)
+                        com.pxr.cymatic.sync.OfflineSelectionStore.read(
+                            context,
+                            RemoteLibraries.currentSource().id
+                        )
                     }
                     mutableState.update { it.copy(hasPinnedMusic = !pins.isEmpty) }
                 }
@@ -103,10 +114,11 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                         it.copy(
                             catalogProgress = progress,
                             catalog = if (completed?.source?.id == source.id &&
-                                completed.catalog.refreshedAt >= (it.catalog?.refreshedAt ?: 0L))
+                                completed.catalog.refreshedAt >= (it.catalog?.refreshedAt ?: 0L)
+                            )
                                 completed.catalog else it.catalog,
                             message = if (progress is CatalogProgress.Failed) progress.message
-                                else if (progress is CatalogProgress.Refreshing) null else it.message,
+                            else if (progress is CatalogProgress.Refreshing) null else it.message,
                         )
                     }
                 }
@@ -114,8 +126,8 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             LibrarySyncManager.progress.collect { progress ->
                 val active =
                     progress is SyncProgress.Preparing ||
-                        progress is SyncProgress.Downloading ||
-                        progress is SyncProgress.Cancelling
+                            progress is SyncProgress.Downloading ||
+                            progress is SyncProgress.Cancelling
                 val requestFinished =
                     requestBaseline != null && progress !== requestBaseline && !active
                 mutableState.update {
@@ -126,7 +138,12 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                 }
                 if (progress is SyncProgress.Complete) {
                     val source = state.value.url to state.value.username
-                    val updated = withContext(Dispatchers.IO) { SyncCatalogStore.read(context, RemoteLibraries.currentSource()) }
+                    val updated = withContext(Dispatchers.IO) {
+                        SyncCatalogStore.read(
+                            context,
+                            RemoteLibraries.currentSource()
+                        )
+                    }
                     mutableState.update {
                         if (source == (it.url to it.username)) it.copy(catalog = updated) else it
                     }
@@ -141,9 +158,9 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
 
     private fun hasFolderAccess(directory: String): Boolean =
         directory.isBlank() ||
-            context.contentResolver.persistedUriPermissions.any {
-                it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
-            }
+                context.contentResolver.persistedUriPermissions.any {
+                    it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
+                }
 
     fun setDirectory(uri: Uri) {
         save {
@@ -172,7 +189,13 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                 "Enter your password for this account"
             }
             if (password.isNotEmpty())
-                withContext(Dispatchers.IO) { SyncCredentialStore.savePassword(context, password, source.id) }
+                withContext(Dispatchers.IO) {
+                    SyncCredentialStore.savePassword(
+                        context,
+                        password,
+                        source.id
+                    )
+                }
             SettingsStore.setSyncConnection(normalized, username, changed)
             if (changed) {
                 LibrarySyncManager.clearStatus()
@@ -193,7 +216,10 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     progress = if (changed) SyncProgress.Idle else it.progress,
                     selectedPlaylists = if (changed) emptySet() else it.selectedPlaylists,
                     musicConfigured = if (changed) false else it.musicConfigured,
-                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(context, source.id).isEmpty,
+                    hasPinnedMusic = !com.pxr.cymatic.sync.OfflineSelectionStore.read(
+                        context,
+                        source.id
+                    ).isEmpty,
                 )
             }
             onSaved()
@@ -205,8 +231,13 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             SyncNetwork.WIFI else state.value.network
         SettingsStore.setSyncContentMode(mode.value)
         SettingsStore.setSyncNetwork(network.value)
-        mutableState.update { it.copy(contentMode = mode,
-            musicConfigured = it.musicConfigured || mode != SyncContentMode.NONE, network = network) }
+        mutableState.update {
+            it.copy(
+                contentMode = mode,
+                musicConfigured = it.musicConfigured || mode != SyncContentMode.NONE,
+                network = network
+            )
+        }
     }
 
     fun setPlaylists(selection: Set<String>) {

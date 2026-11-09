@@ -10,36 +10,51 @@ import com.pxr.cymatic.audio.dsd.DsdOutput
 import com.pxr.cymatic.playback.OutputInfoState
 import com.pxr.cymatic.playback.audioFormatInfo
 import com.pxr.cymatic.usb.UsbPcmStream
-import java.nio.ByteBuffer
-import java.time.Instant
 import org.json.JSONArray
 import org.json.JSONObject
+import java.nio.ByteBuffer
+import java.time.Instant
 
 @UnstableApi
 internal class UsbAudioSink(private val context: Context, private val normal: AudioSink) :
     AudioSink by normal {
-    @Volatile private var direct = false
+    @Volatile
+    private var direct = false
     private var listener: AudioSink.Listener? = null
-    @Volatile private var format: Format? = null
-    @Volatile private var pendingFormat: Format? = null
-    @Volatile private var device: UsbPcmDevice? = null
-    @Volatile private var stream: UsbPcmStream? = null
+    @Volatile
+    private var format: Format? = null
+    @Volatile
+    private var pendingFormat: Format? = null
+    @Volatile
+    private var device: UsbPcmDevice? = null
+    @Volatile
+    private var stream: UsbPcmStream? = null
     private var packer: UsbPcmPacker? = null
     private var trimmer: UsbPcmTrimmer? = null
-    @Volatile private var playing = false
-    @Volatile private var ended = false
-    @Volatile private var baseTimeUs = C.TIME_UNSET
-    @Volatile private var outputStreamOffsetUs = 0L
-    @Volatile private var writtenFrames = 0L
+    @Volatile
+    private var playing = false
+    @Volatile
+    private var ended = false
+    @Volatile
+    private var baseTimeUs = C.TIME_UNSET
+    @Volatile
+    private var outputStreamOffsetUs = 0L
+    @Volatile
+    private var writtenFrames = 0L
     private var completedFrames = 0L
     private var discontinuity = false
     private var advancing = false
     private var volume = 1f
-    @Volatile private var requestedBufferBytes = 0
-    @Volatile private var requestedChannelMap: IntArray? = null
-    @Volatile private var lastFeedBytes = 0
-    @Volatile private var lastFeedTimeUs = C.TIME_UNSET
-    @Volatile private var lastAccessUnitCount = 0
+    @Volatile
+    private var requestedBufferBytes = 0
+    @Volatile
+    private var requestedChannelMap: IntArray? = null
+    @Volatile
+    private var lastFeedBytes = 0
+    @Volatile
+    private var lastFeedTimeUs = C.TIME_UNSET
+    @Volatile
+    private var lastAccessUnitCount = 0
 
     init {
         OutputInfoState.registerSink(this, ::diagnosticSnapshot)
@@ -77,10 +92,10 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             validateDirectFormat(inputFormat, outputChannels)
             if (
                 device != null &&
-                    format?.sampleRate == inputFormat.sampleRate &&
-                    format?.usbPcmLayout() == inputFormat.usbPcmLayout() &&
-                    format?.customData == inputFormat.customData &&
-                    !ended
+                format?.sampleRate == inputFormat.sampleRate &&
+                format?.usbPcmLayout() == inputFormat.usbPcmLayout() &&
+                format?.customData == inputFormat.customData &&
+                !ended
             ) {
                 format = inputFormat
                 OutputInfoState.event("USB sink reused: ${inputFormat.sampleRate} Hz")
@@ -99,7 +114,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         direct = UsbPlaybackState.routeToUsb
         format = inputFormat
         OutputInfoState.event(
-            "Sink configured: ${if(direct) "Direct USB" else "Android AudioTrack"}; ${inputFormat.sampleRate} Hz / ${inputFormat.channelCount} channels"
+            "Sink configured: ${if (direct) "Direct USB" else "Android AudioTrack"}; ${inputFormat.sampleRate} Hz / ${inputFormat.channelCount} channels"
         )
         resetTimeline()
         if (!direct) {
@@ -122,7 +137,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         val channels = IntArray(input.channelCount.coerceIn(0, 2)) { it }
         if (
             input.usbPcmLayout() == null ||
-                (outputChannels != null && !outputChannels.contentEquals(channels))
+            (outputChannels != null && !outputChannels.contentEquals(channels))
         ) {
             throw AudioSink.ConfigurationException(
                 "Direct USB requires precision-preserving mono/stereo integer PCM",

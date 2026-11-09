@@ -1,22 +1,25 @@
 package com.pxr.cymatic.sync
 
 import android.content.Context
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 sealed interface CatalogProgress {
     data object Idle : CatalogProgress
     data object Refreshing : CatalogProgress
-    data class Complete(val source: RemoteLibrarySource, val catalog: RemoteCatalog) : CatalogProgress
+    data class Complete(val source: RemoteLibrarySource, val catalog: RemoteCatalog) :
+        CatalogProgress
+
     data class Failed(val message: String) : CatalogProgress
     data object Cancelled : CatalogProgress
 }
+
 object LibraryCatalogManager {
     private val running = AtomicBoolean(false)
     private val cancelled = AtomicBoolean(false)
@@ -37,14 +40,15 @@ object LibraryCatalogManager {
                 SyncCatalogStore.migrateLegacy(application, source)
                 val connection = RemoteLibraries.client(application, source)
                 client.set(connection)
-                val catalog = RemoteLibraries.catalogRepository(application).refresh(source, connection) {
-                    if (cancelled.get()) throw SyncCancelledException()
-                }
+                val catalog =
+                    RemoteLibraries.catalogRepository(application).refresh(source, connection) {
+                        if (cancelled.get()) throw SyncCancelledException()
+                    }
                 RemoteLibraryRepository.publish(application, source, catalog)
                 mutableProgress.value = CatalogProgress.Complete(source, catalog)
             } catch (error: Exception) {
                 mutableProgress.value = if (cancelled.get()) CatalogProgress.Cancelled
-                    else CatalogProgress.Failed(error.message ?: "Could not refresh library")
+                else CatalogProgress.Failed(error.message ?: "Could not refresh library")
             } finally {
                 client.set(null)
                 running.set(false)

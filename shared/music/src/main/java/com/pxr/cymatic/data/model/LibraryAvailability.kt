@@ -6,11 +6,12 @@ enum class LibraryAvailability(val label: String) {
     STREAM("Stream only");
 
     companion object {
-        fun fromCounts(offline: Int, total: Int, remote: Boolean = true): LibraryAvailability = when {
-            total == 0 -> if (remote) STREAM else OFFLINE
-            offline >= total -> OFFLINE
-            offline > 0 -> PARTIAL
-            else -> STREAM
-        }
+        fun fromCounts(offline: Int, total: Int, remote: Boolean = true): LibraryAvailability =
+            when {
+                total == 0 -> if (remote) STREAM else OFFLINE
+                offline >= total -> OFFLINE
+                offline > 0 -> PARTIAL
+                else -> STREAM
+            }
     }
 }

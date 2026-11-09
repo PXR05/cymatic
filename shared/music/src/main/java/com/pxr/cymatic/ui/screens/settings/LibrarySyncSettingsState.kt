@@ -59,9 +59,9 @@ internal data class LibrarySyncSettingsState(
     val running: Boolean
         get() =
             refreshingCatalog || starting ||
-                progress is SyncProgress.Preparing ||
-                progress is SyncProgress.Downloading ||
-                progress is SyncProgress.Cancelling
+                    progress is SyncProgress.Preparing ||
+                    progress is SyncProgress.Downloading ||
+                    progress is SyncProgress.Cancelling
 
     val canEdit: Boolean
         get() = !loading && !saving && !running
@@ -82,6 +82,7 @@ internal data class LibrarySyncSettingsState(
                 contentMode == SyncContentMode.NONE && !hasPinnedMusic -> SyncSetupStep.MUSIC
                 contentMode == SyncContentMode.SELECTED_PLAYLISTS && selection.isEmpty() && !hasPinnedMusic ->
                     SyncSetupStep.MUSIC
+
                 else -> null
             }
 
@@ -99,6 +100,7 @@ internal data class LibrarySyncSettingsState(
             if (refreshingCatalog) "Refreshing library…" else when (val current = progress) {
                 is SyncProgress.Preparing ->
                     current.message
+
                 is SyncProgress.Downloading -> "Downloading ${current.current} of ${current.total}"
                 SyncProgress.Cancelling -> "Stopping…"
                 is SyncProgress.Failed -> "Sync needs attention"
@@ -118,8 +120,10 @@ internal data class LibrarySyncSettingsState(
             if (refreshingCatalog) "Refreshing library…" else when (val current = progress) {
                 is SyncProgress.Preparing ->
                     "Preparing"
+
                 is SyncProgress.Downloading ->
                     "Downloading (${current.current}/${current.total})"
+
                 SyncProgress.Cancelling -> "Stopping…"
                 is SyncProgress.Failed -> "Needs attention"
                 SyncProgress.Cancelled -> "Stopped"
@@ -131,9 +135,11 @@ internal data class LibrarySyncSettingsState(
                         nextStep != null -> "Choose offline music"
                         lastResult.startsWith("Synced") || lastResult.startsWith("Playlist") ->
                             "Synced"
+
                         lastResult.contains("fail", ignoreCase = true) ||
-                            lastResult.contains("incomplete", ignoreCase = true) ->
+                                lastResult.contains("incomplete", ignoreCase = true) ->
                             "Needs attention"
+
                         lastResult.contains("stopped", ignoreCase = true) -> "Stopped"
                         lastTime > 0 -> "Synced"
                         else -> "Idle"

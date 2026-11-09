@@ -1,12 +1,12 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.albumDisplayName
 import com.pxr.cymatic.ui.screens.library.filterByArtist
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +31,11 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
+            kotlinx.coroutines.flow.merge(
+                SettingsStore.lastScanTimeMsFlow,
+                com.pxr.cymatic.data.media.LibraryChanges.version,
+                LibraryFilterStore.changes
+            ).collect {
                 currentArtist?.let(::load)
             }
         }
@@ -57,7 +61,11 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    private fun buildState(songs: List<AudioFile>, artistName: String, isLoading: Boolean): ArtistAlbumsState {
+    private fun buildState(
+        songs: List<AudioFile>,
+        artistName: String,
+        isLoading: Boolean
+    ): ArtistAlbumsState {
         val artistSongs = filterByArtist(LibraryFilterStore.audio(songs), artistName)
         val albums = artistSongs
             .groupingBy(::albumDisplayName)

@@ -82,7 +82,9 @@ internal fun SyncPlaylistsPage(
                     if (state.saving) "Saving…" else "${selection.size} selected · $tracks tracks",
                     fontSize = 12.sp,
                     modifier =
-                        Modifier.weight(1f).padding(start = 16.dp, top = 14.dp, bottom = 14.dp),
+                        Modifier
+                            .weight(1f)
+                            .padding(start = 16.dp, top = 14.dp, bottom = 14.dp),
                 )
                 PlaylistAction("All", enabled && playlists.isNotEmpty()) { onChange(ids) }
                 PlaylistAction("None", enabled && selection.isNotEmpty()) { onChange(emptySet()) }
@@ -128,6 +130,8 @@ private fun PlaylistAction(label: String, enabled: Boolean, onClick: () -> Unit)
         color =
             if (enabled) MaterialTheme.colorScheme.onBackground
             else MaterialTheme.colorScheme.secondary,
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick).padding(14.dp),
+        modifier = Modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(14.dp),
     )
 }

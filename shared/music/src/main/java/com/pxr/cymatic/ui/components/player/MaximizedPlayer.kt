@@ -216,210 +216,225 @@ fun MaximizedPlayer(
                                     }
                                 }
                             )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                        ) {
+                            Text(
+                                text = title,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 20.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Text(
+                                text = artist,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            ProgressBar(
+                                currentPosition = playbackState.currentPositionMs,
+                                durationMs = playbackState.durationMs ?: 0L,
+                                onSeek = { mediaController.seekTo(it) },
+                                showNumber = true
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Controls(
+                                isPlaying = playbackState.isPlaying,
+                                isShuffling = playbackState.isShuffling,
+                                repeatMode = playbackState.repeatMode,
+                                onClick = mapOf(
+                                    "shuffle" to {
+                                        mediaController.shuffleModeEnabled =
+                                            !playbackState.isShuffling
+                                    },
+                                    "previous" to { mediaController.seekToPrevious() },
+                                    "play_pause" to {
+                                        if (playbackState.isPlaying) mediaController.pause()
+                                        else mediaController.play()
+                                    },
+                                    "next" to { mediaController.seekToNext() },
+                                    "repeat" to {
+                                        val newMode = when (playbackState.repeatMode) {
+                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                            else -> Player.REPEAT_MODE_OFF
+                                        }
+                                        mediaController.repeatMode = newMode
+                                    }
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp)
+                            ) {
+                                Text(
+                                    text = "${playbackState.totalTracks} TRACKS IN QUEUE",
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 2.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                1 -> {
+                    val queueListState = rememberLazyListState()
+                    val nestedScrollConnection = remember(queueListState, pagerState, scope) {
+                        object : NestedScrollConnection {
+                            override fun onPreScroll(
+                                available: Offset,
+                                source: NestedScrollSource
+                            ): Offset {
+                                if (available.y > 0f) {
+                                    val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
+                                            queueListState.firstVisibleItemScrollOffset == 0
+                                    if (isAtTop) {
+                                        val consumed = pagerState.dispatchRawDelta(-available.y)
+                                        return Offset(0f, -consumed)
+                                    }
+                                }
+                                return Offset.Zero
+                            }
+
+                            override suspend fun onPreFling(available: Velocity): Velocity {
+                                if (available.y > 0f) {
+                                    val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
+                                            queueListState.firstVisibleItemScrollOffset == 0
+                                    if (isAtTop) {
+                                        scope.launch {
+                                            pagerState.animateScrollToPage(0)
+                                        }
+                                        return available
+                                    }
+                                }
+                                return Velocity.Zero
+                            }
+                        }
                     }
 
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
+                            .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection)
+                            .background(Color.Transparent)
+                            .safeDrawingPadding()
                     ) {
-                        Text(
-                            text = title,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 20.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = artist,
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 13.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        ProgressBar(
-                            currentPosition = playbackState.currentPositionMs,
-                            durationMs = playbackState.durationMs ?: 0L,
-                            onSeek = { mediaController.seekTo(it) },
-                            showNumber = true
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Controls(
-                            isPlaying = playbackState.isPlaying,
-                            isShuffling = playbackState.isShuffling,
-                            repeatMode = playbackState.repeatMode,
-                            onClick = mapOf(
-                                "shuffle" to {
-                                    mediaController.shuffleModeEnabled = !playbackState.isShuffling
-                                },
-                                "previous" to { mediaController.seekToPrevious() },
-                                "play_pause" to {
-                                    if (playbackState.isPlaying) mediaController.pause()
-                                    else mediaController.play()
-                                },
-                                "next" to { mediaController.seekToNext() },
-                                "repeat" to {
-                                    val newMode = when (playbackState.repeatMode) {
-                                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                        else -> Player.REPEAT_MODE_OFF
-                                    }
-                                    mediaController.repeatMode = newMode
-                                }
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp)
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures { _, dragAmount ->
+                                        if (dragAmount > 12f) {
+                                            scope.launch { pagerState.animateScrollToPage(0) }
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
                         ) {
                             Text(
-                                text = "${playbackState.totalTracks} TRACKS IN QUEUE",
+                                text = "QUEUE · ${playbackState.totalTracks}",
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontSize = 11.sp,
                                 letterSpacing = 2.sp
                             )
                         }
-                    }
-                }
-            }
 
-            1 -> {
-                val queueListState = rememberLazyListState()
-                val nestedScrollConnection = remember(queueListState, pagerState, scope) {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                            if (available.y > 0f) {
-                                val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
-                                    queueListState.firstVisibleItemScrollOffset == 0
-                                if (isAtTop) {
-                                    val consumed = pagerState.dispatchRawDelta(-available.y)
-                                    return Offset(0f, -consumed)
-                                }
-                            }
-                            return Offset.Zero
-                        }
+                        val haptic = LocalHapticFeedback.current
 
-                        override suspend fun onPreFling(available: Velocity): Velocity {
-                            if (available.y > 0f) {
-                                val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
-                                    queueListState.firstVisibleItemScrollOffset == 0
-                                if (isAtTop) {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(0)
-                                    }
-                                    return available
-                                }
-                            }
-                            return Velocity.Zero
-                        }
-                    }
-                }
+                        LazyColumn(
+                            state = queueListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(
+                                count = playbackState.queue.items.size,
+                                key = { playbackState.queue.items[it].mediaItemIndex }) { index ->
+                                val (item, mediaItemIndex) = playbackState.queue.items[index]
+                                val itemTitle =
+                                    item.mediaMetadata.title?.toString() ?: "Unknown Title"
+                                val itemArtist = item.mediaMetadata.artist?.toString() ?: ""
+                                val isCurrent = index == playbackState.queue.currentIndex
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(nestedScrollConnection)
-                        .background(Color.Transparent)
-                        .safeDrawingPadding()
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .pointerInput(Unit) {
-                                detectVerticalDragGestures { _, dragAmount ->
-                                    if (dragAmount > 12f) {
-                                        scope.launch { pagerState.animateScrollToPage(0) }
-                                    }
-                                }
-                            }
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "QUEUE · ${playbackState.totalTracks}",
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 11.sp,
-                            letterSpacing = 2.sp
-                        )
-                    }
-
-                    val haptic = LocalHapticFeedback.current
-
-                    LazyColumn(
-                        state = queueListState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(count = playbackState.queue.items.size, key = { playbackState.queue.items[it].mediaItemIndex }) { index ->
-                            val (item, mediaItemIndex) = playbackState.queue.items[index]
-                            val itemTitle = item.mediaMetadata.title?.toString() ?: "Unknown Title"
-                            val itemArtist = item.mediaMetadata.artist?.toString() ?: ""
-                            val isCurrent = index == playbackState.queue.currentIndex
-
-                            val itemShape = RoundedCornerShape(12.dp)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(itemShape)
-                                    .background(
-                                        if (isCurrent) {
-                                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
-                                        } else {
-                                            Color.Transparent
-                                        }
-                                    )
-                                    .combinedClickable(
-                                        onClick = { mediaController.seekTo(mediaItemIndex, 0L) },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            selectedQueueIndex = mediaItemIndex
-                                        },
-                                        indication = null,
-                                        interactionSource = null
-                                    )
-                                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                            ) {
-                                Text(
-                                    text = (index + 1).toString().padStart(2, '0'),
-                                    color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.width(28.dp)
-                                )
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
+                                val itemShape = RoundedCornerShape(12.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(itemShape)
+                                        .background(
+                                            if (isCurrent) {
+                                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
+                                            } else {
+                                                Color.Transparent
+                                            }
+                                        )
+                                        .combinedClickable(
+                                            onClick = {
+                                                mediaController.seekTo(
+                                                    mediaItemIndex,
+                                                    0L
+                                                )
+                                            },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                selectedQueueIndex = mediaItemIndex
+                                            },
+                                            indication = null,
+                                            interactionSource = null
+                                        )
+                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                ) {
                                     Text(
-                                        text = itemTitle,
-                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-                                        fontSize = 14.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        text = (index + 1).toString().padStart(2, '0'),
+                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.width(28.dp)
                                     )
-                                    if (itemArtist.isNotBlank()) {
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = itemArtist,
-                                            color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary,
-                                            fontSize = 11.sp,
+                                            text = itemTitle,
+                                            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                                            fontSize = 14.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        if (itemArtist.isNotBlank()) {
+                                            Text(
+                                                text = itemArtist,
+                                                color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(
+                                                    alpha = 0.7f
+                                                ) else MaterialTheme.colorScheme.secondary,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -428,7 +443,6 @@ fun MaximizedPlayer(
                 }
             }
         }
-    }
 
         selectedQueueIndex?.let { selectedIdx ->
             if (selectedIdx in 0 until mediaController.mediaItemCount) {
@@ -458,7 +472,10 @@ fun MaximizedPlayer(
                     },
                     onMoveToBottom = {
                         if (selectedIdx < mediaController.mediaItemCount - 1) {
-                            mediaController.moveMediaItem(selectedIdx, mediaController.mediaItemCount - 1)
+                            mediaController.moveMediaItem(
+                                selectedIdx,
+                                mediaController.mediaItemCount - 1
+                            )
                         }
                     },
                     onRemove = {

@@ -24,15 +24,24 @@ import com.pxr.cymatic.sync.LibraryOfflineManager
 fun OfflineQueueNotice() {
     val notice by LibraryOfflineManager.notice.collectAsState()
     notice?.takeIf { it.failed }?.let { current ->
-        val color = if (current.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+        val color =
+            if (current.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
         Row(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .semantics { liveRegion = LiveRegionMode.Polite }
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(current.message, color = color, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                current.message,
+                color = color,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

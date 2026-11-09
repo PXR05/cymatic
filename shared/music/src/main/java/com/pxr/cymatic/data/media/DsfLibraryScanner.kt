@@ -8,11 +8,11 @@ import android.provider.MediaStore
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.audio.dsd.DSD_MIME_TYPE
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.Locale
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 
 internal data class DsfDocument(
     val id: Long,
@@ -59,7 +59,9 @@ internal suspend fun scanDsfDocuments(
                                 if (it == "external_primary") "primary" else it
                             }
                         mediaIds[
-                            "${volume?.lowercase(Locale.ROOT)}:${cursor.getString(4).orEmpty()}$name"] =
+                            "${volume?.lowercase(Locale.ROOT)}:${
+                                cursor.getString(4).orEmpty()
+                            }$name"] =
                             id
                         if (scanAllMedia)
                             results[id] =
@@ -116,8 +118,8 @@ internal suspend fun scanDsfDocuments(
                                 val id =
                                     mediaIds[
                                         childId.substringBefore(':').lowercase(Locale.ROOT) +
-                                            ":" +
-                                            childId.substringAfter(':')]
+                                                ":" +
+                                                childId.substringAfter(':')]
                                         ?: -((ByteBuffer.wrap(digest).long and Long.MAX_VALUE)
                                             .coerceAtLeast(1))
                                 results[id] =

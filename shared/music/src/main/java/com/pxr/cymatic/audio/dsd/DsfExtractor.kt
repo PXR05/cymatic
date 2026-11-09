@@ -26,9 +26,14 @@ internal class DsfExtractor : Extractor {
         val signature = ByteArray(12)
         return try {
             input.peekFully(signature, 0, signature.size, true) &&
-                signature.take(4) == listOf(68.toByte(), 83.toByte(), 68.toByte(), 32.toByte()) &&
-                signature[4] == 28.toByte() &&
-                signature.drop(5).all { it == 0.toByte() }
+                    signature.take(4) == listOf(
+                68.toByte(),
+                83.toByte(),
+                68.toByte(),
+                32.toByte()
+            ) &&
+                    signature[4] == 28.toByte() &&
+                    signature.drop(5).all { it == 0.toByte() }
         } catch (_: EOFException) {
             false
         } finally {

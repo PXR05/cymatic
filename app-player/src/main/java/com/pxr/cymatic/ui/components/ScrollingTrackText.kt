@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlin.math.roundToInt
 
 @Composable
 fun ScrollingTrackText(
@@ -54,9 +54,13 @@ fun ScrollingTrackText(
             color = color,
         )
     BoxWithConstraints(
-        Modifier.fillMaxWidth().height(height).clipToBounds().clearAndSetSemantics {
-            this.text = AnnotatedString(text)
-        }
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clipToBounds()
+            .clearAndSetSemantics {
+                this.text = AnnotatedString(text)
+            }
     ) {
         val widthPx = constraints.maxWidth.coerceAtLeast(1)
         val layout =
@@ -95,7 +99,9 @@ fun ScrollingTrackText(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            Canvas(Modifier.fillMaxWidth().height(height)) {
+            Canvas(Modifier
+                .fillMaxWidth()
+                .height(height)) {
                 val position = offset.value.coerceIn(0f, distance)
                 clipRect {
                     drawText(layout, topLeft = Offset(-position, 0f))

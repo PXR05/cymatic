@@ -9,9 +9,9 @@ import com.pxr.cymatic.audio.dsd.dsdOutputFormat
 import com.pxr.cymatic.audio.dsd.dsfHeader
 import com.pxr.cymatic.data.store.DsdUsbMode
 import com.pxr.cymatic.data.store.UsbPlaybackSettings
-import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 internal fun UsbDevice.dsdSettingsKey(): String =
     "$vendorId:$productId:${runCatching { serialNumber }.getOrNull().orEmpty()}"
@@ -20,9 +20,12 @@ internal fun UsbDevice.dsdSettingsKey(): String =
 internal object UsbDsdSupport {
     private data class Capability(val rates: Set<Int>)
 
-    @Volatile private var capability: Capability? = null
-    @Volatile private var selectedMode: DsdUsbMode? = null
-    @Volatile private var knownInterface = false
+    @Volatile
+    private var capability: Capability? = null
+    @Volatile
+    private var selectedMode: DsdUsbMode? = null
+    @Volatile
+    private var knownInterface = false
     private val failedRates = ConcurrentHashMap.newKeySet<Int>()
 
     fun refresh(context: Context, device: UsbDevice) {
@@ -45,11 +48,11 @@ internal object UsbDsdSupport {
             val eligible =
                 parsed.formats.filter {
                     it.configuration == configuration &&
-                        it.pcm &&
-                        it.channels in 1..2 &&
-                        it.containerBytes in 3..4 &&
-                        it.validBits >= 24 &&
-                        it.controlInterface != null
+                            it.pcm &&
+                            it.channels in 1..2 &&
+                            it.containerBytes in 3..4 &&
+                            it.validBits >= 24 &&
+                            it.controlInterface != null
                 }
             val clocks = mutableMapOf<UsbClockSource, List<Triple<Long, Long, Long>>>()
             val rates =
@@ -61,19 +64,19 @@ internal object UsbDsdSupport {
                                 val clock =
                                     parsed.clocks.singleOrNull {
                                         it.configuration == configuration &&
-                                            it.id == format.clockSourceId &&
-                                            it.controlInterface == format.controlInterface
+                                                it.id == format.clockSourceId &&
+                                                it.controlInterface == format.controlInterface
                                     }
                                 clock != null &&
-                                    runCatching {
+                                        runCatching {
                                             clocks
                                                 .getOrPut(clock) { readRanges(connection, clock) }
                                                 .any { (low, high, step) ->
                                                     rate.toLong() in low..high &&
-                                                        (step == 0L || (rate - low) % step == 0L)
+                                                            (step == 0L || (rate - low) % step == 0L)
                                                 }
                                         }
-                                        .getOrDefault(true)
+                                            .getOrDefault(true)
                             }
                         }
                     }
@@ -99,9 +102,9 @@ internal object UsbDsdSupport {
         val carrierRate = info.sampleRate / 16
         val dop =
             UsbPlaybackState.routeToUsb &&
-                available != null &&
-                carrierRate in available.rates &&
-                carrierRate !in failedRates
+                    available != null &&
+                    carrierRate in available.rates &&
+                    carrierRate !in failedRates
         return format.dsdOutputFormat(dop)
     }
 

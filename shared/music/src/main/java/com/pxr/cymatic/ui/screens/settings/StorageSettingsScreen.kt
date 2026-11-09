@@ -30,8 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.components.storage.DirectoryActions
@@ -65,9 +65,11 @@ fun StorageSettingsScreen(
 
     if (LocalWheelNavigation.current != null) {
         WheelStorageSettingsScreen(directories, hasPermission, onGrantPermission = {
-            permissionLauncher.launch(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Manifest.permission.READ_MEDIA_AUDIO
-            } else Manifest.permission.READ_EXTERNAL_STORAGE)
+            permissionLauncher.launch(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_AUDIO
+                } else Manifest.permission.READ_EXTERNAL_STORAGE
+            )
         }, modifier = modifier)
         return
     }

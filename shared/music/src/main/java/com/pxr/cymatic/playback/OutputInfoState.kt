@@ -6,11 +6,11 @@ import androidx.media3.common.Format
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.audio.dsd.DsdOutput
 import com.pxr.cymatic.audio.usb.usbPcmLayout
-import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicReference
 
 data class OutputInfoField(val name: String, val value: String)
 
@@ -57,7 +57,8 @@ internal object OutputInfoState {
         while (events.size > 40) events.removeFirst()
     }
 
-    @Synchronized fun eventSnapshot(): List<String> = events.toList()
+    @Synchronized
+    fun eventSnapshot(): List<String> = events.toList()
 
     @Synchronized
     fun clear() {
@@ -102,6 +103,7 @@ internal fun pcmEncodingName(encoding: Int): String =
         C.ENCODING_PCM_FLOAT -> "Float32 PCM"
         C.ENCODING_INVALID,
         Format.NO_VALUE -> "Not specified / encoded audio"
+
         else -> "Encoding $encoding"
     }
 
@@ -117,10 +119,12 @@ internal fun outputInfoSection(title: String, values: JSONObject): OutputInfoSec
                         flatten(if (path.isEmpty()) it else "$path / $it", value.opt(it))
                     }
             }
+
             is JSONArray ->
                 if (value.length() == 0) fields += OutputInfoField(path, "None")
                 else
                     (0 until value.length()).forEach { flatten("$path [${it + 1}]", value.opt(it)) }
+
             else ->
                 fields +=
                     OutputInfoField(

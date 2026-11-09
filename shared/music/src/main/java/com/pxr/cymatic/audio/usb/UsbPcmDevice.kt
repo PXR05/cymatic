@@ -9,10 +9,10 @@ import android.hardware.usb.UsbManager
 import com.pxr.cymatic.usb.UsbIsochronousConnection
 import com.pxr.cymatic.usb.UsbPcmStream
 import com.pxr.cymatic.usb.UsbTransferResult
-import java.io.Closeable
-import java.time.Instant
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.Closeable
+import java.time.Instant
 
 internal class UsbPcmDevice private constructor(private val connection: UsbDeviceConnection) :
     Closeable {
@@ -44,9 +44,11 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
     val asynchronous: Boolean
         get() = feedbackEndpoint != 0
 
-    @Volatile private var probeCancelled = false
+    @Volatile
+    private var probeCancelled = false
 
-    @Volatile private var continuous: UsbPcmStream? = null
+    @Volatile
+    private var continuous: UsbPcmStream? = null
     private var volume: UsbHardwareVolume? = null
     private var closed = false
     val report = JSONObject()
@@ -104,20 +106,20 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
             parsed.formats
                 .filter {
                     it.configuration == configurationId &&
-                        it.protocol in listOf(0, 0x20) &&
-                        it.pcm &&
-                        it.channels == sourceLayout.channels &&
-                        it.containerBytes in 2..4 &&
-                        it.validBits in sourceLayout.validBits..it.containerBytes * 8 &&
-                        it.channelMask in listOf(0L, sourceLayout.channelMask) &&
-                        it.controlInterface != null &&
-                        (it.protocol == 0 || it.clockSourceId != null) &&
-                        (it.protocol != 0 || it.advertisesRate(frequency))
+                            it.protocol in listOf(0, 0x20) &&
+                            it.pcm &&
+                            it.channels == sourceLayout.channels &&
+                            it.containerBytes in 2..4 &&
+                            it.validBits in sourceLayout.validBits..it.containerBytes * 8 &&
+                            it.channelMask in listOf(0L, sourceLayout.channelMask) &&
+                            it.controlInterface != null &&
+                            (it.protocol == 0 || it.clockSourceId != null) &&
+                            (it.protocol != 0 || it.advertisesRate(frequency))
                 }
                 .sortedBy {
                     if (
                         it.containerBytes == sourceLayout.containerBytes &&
-                            it.validBits == sourceLayout.validBits
+                        it.validBits == sourceLayout.validBits
                     )
                         0
                     else 1 + (it.validBits - sourceLayout.validBits) * 4 + it.containerBytes
@@ -127,7 +129,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
                 val usbInterface =
                     interfaces.singleOrNull {
                         it.id == value.interfaceNumber &&
-                            it.alternateSetting == value.alternateSetting
+                                it.alternateSetting == value.alternateSetting
                     } ?: return@firstNotNullOfOrNull null
                 val endpoints =
                     UsbStreamingEndpoints.resolve(usbInterface, speed, descriptors, configurationId)
@@ -135,13 +137,13 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
                 val serviceTicks = 1 shl (endpoints.output.interval - 1)
                 if (
                     serviceTicks > ticks ||
-                        ((frequency.toLong() * serviceTicks + ticks - 1) / ticks) *
-                            sourceLayout.channels *
-                            value.containerBytes > endpoints.packetCapacity ||
-                        (value.protocol == 0 &&
+                    ((frequency.toLong() * serviceTicks + ticks - 1) / ticks) *
+                    sourceLayout.channels *
+                    value.containerBytes > endpoints.packetCapacity ||
+                    (value.protocol == 0 &&
                             !endpoints.samplingFrequencyControl &&
                             (value.continuousRates != null ||
-                                value.sampleRates.distinct() != listOf(frequency)))
+                                    value.sampleRates.distinct() != listOf(frequency)))
                 ) {
                     null
                 } else Triple(value, usbInterface, endpoints)
@@ -158,16 +160,16 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
         val audioControl =
             interfaces.singleOrNull {
                 it.id == format.controlInterface &&
-                    it.alternateSetting == 0 &&
-                    it.interfaceClass == UsbConstants.USB_CLASS_AUDIO &&
-                    it.interfaceSubclass == 1
+                        it.alternateSetting == 0 &&
+                        it.interfaceClass == UsbConstants.USB_CLASS_AUDIO &&
+                        it.interfaceSubclass == 1
             } ?: error("AudioControl interface is unresolved")
         val source =
             if (format.protocol == 0x20)
                 parsed.clocks.single {
                     it.configuration == configurationId &&
-                        it.id == format.clockSourceId &&
-                        it.controlInterface == format.controlInterface
+                            it.id == format.clockSourceId &&
+                            it.controlInterface == format.controlInterface
                 }
             else null
         capacity = endpoints.packetCapacity
@@ -284,19 +286,19 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
     fun continuousStream(): UsbPcmStream =
         continuous
             ?: UsbPcmStream(
-                    connection.fileDescriptor,
-                    endpoint,
-                    capacity,
-                    interval,
-                    rate,
-                    frameBytes,
-                    feedbackEndpoint,
-                    feedbackCapacity,
-                    feedbackInterval,
-                    feedbackRefreshMs,
-                    primingFrames,
-                    dopChannels,
-                )
+                connection.fileDescriptor,
+                endpoint,
+                capacity,
+                interval,
+                rate,
+                frameBytes,
+                feedbackEndpoint,
+                feedbackCapacity,
+                feedbackInterval,
+                feedbackRefreshMs,
+                primingFrames,
+                dopChannels,
+            )
                 .also { continuous = it }
 
     override fun close() {
@@ -310,7 +312,9 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
         continuous?.stop()
         val stopped =
             !streamClaimed ||
-                (idle != null && runCatching { connection.setInterface(idle) }.getOrDefault(false))
+                    (idle != null && runCatching { connection.setInterface(idle) }.getOrDefault(
+                        false
+                    ))
         if (!stopped) cleanup.put("Could not stop streaming interface")
         if (stopped) volume?.restore()?.forEach(cleanup::put)
         else if (volume != null)

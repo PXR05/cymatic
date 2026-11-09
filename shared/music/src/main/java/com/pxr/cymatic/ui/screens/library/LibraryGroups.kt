@@ -3,8 +3,8 @@ package com.pxr.cymatic.ui.screens.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -28,7 +28,8 @@ internal data class LibraryGroup(val songs: List<AudioFile>) {
         songs.count { it.availability == LibraryAvailability.OFFLINE }, songs.size,
         remote = songs.any { it.sourceId != null },
     )
-    val canKeepOffline = songs.any { it.sourceId != null && it.remoteId != null && it.availability != LibraryAvailability.OFFLINE }
+    val canKeepOffline =
+        songs.any { it.sourceId != null && it.remoteId != null && it.availability != LibraryAvailability.OFFLINE }
 }
 
 internal class LibraryGroups(songs: List<AudioFile>) {
@@ -52,10 +53,16 @@ internal fun rememberLibraryGroups(): LibraryGroups {
 @Composable
 internal fun LibraryGroupIndicator(group: LibraryGroup?, color: Color) {
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         group?.let {
             val busy = it.availability != LibraryAvailability.OFFLINE && it.songs.any { song ->
-                com.pxr.cymatic.sync.RemoteLibraryItemKey(song.sourceId.orEmpty(), song.remoteId.orEmpty()) in work.tracks
+                com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                    song.sourceId.orEmpty(),
+                    song.remoteId.orEmpty()
+                ) in work.tracks
             }
             LibraryAvailabilityIcon(it.availability, color, busy = busy)
         }

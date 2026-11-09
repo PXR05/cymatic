@@ -24,7 +24,8 @@ import com.pxr.cymatic.design.R
 internal fun WheelPlaybackBar(title: String?, isPlaying: Boolean, onNowPlaying: () -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     Row(
-        Modifier.fillMaxWidth()
+        Modifier
+            .fillMaxWidth()
             .height(44.dp)
             .clickable(onClick = onNowPlaying)
             .padding(horizontal = 24.dp),

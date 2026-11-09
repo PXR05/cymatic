@@ -63,7 +63,7 @@ class LibrarySyncJobService : JobService() {
             SyncCredentialStore.migrateLegacy(context, source.id)
             if (
                 network == SyncNetwork.NEVER ||
-                    !SyncCredentialStore.hasPassword(context, source.id)
+                !SyncCredentialStore.hasPassword(context, source.id)
             )
                 return
 
@@ -81,8 +81,8 @@ class LibrarySyncJobService : JobService() {
             if (mode == SyncContentMode.NONE && pins.isEmpty) return
             if (
                 mode ==
-                    SyncContentMode.SELECTED_PLAYLISTS &&
-                    SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty() && pins.isEmpty
+                SyncContentMode.SELECTED_PLAYLISTS &&
+                SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty() && pins.isEmpty
             )
                 return
 
@@ -92,9 +92,9 @@ class LibrarySyncJobService : JobService() {
                 )
             val info =
                 JobInfo.Builder(
-                        JOB_ID,
-                        ComponentName(context, LibrarySyncJobService::class.java),
-                    )
+                    JOB_ID,
+                    ComponentName(context, LibrarySyncJobService::class.java),
+                )
                     .setRequiredNetworkType(
                         if (network == SyncNetwork.WIFI) JobInfo.NETWORK_TYPE_UNMETERED
                         else JobInfo.NETWORK_TYPE_ANY

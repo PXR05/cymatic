@@ -20,11 +20,21 @@ object CymaticMotion {
     fun <T> exit(): TweenSpec<T> = tween(160, easing = FastOutLinearInEasing)
 
     fun pageEnter(distancePx: Int = 0): EnterTransition =
-        fadeIn(tween(PageEnterMillis, delayMillis = PageExitMillis, easing = LinearOutSlowInEasing)) +
-            slideInHorizontally(
-                initialOffsetX = { distancePx },
-                animationSpec = tween(PageEnterMillis, delayMillis = PageExitMillis, easing = LinearOutSlowInEasing),
+        fadeIn(
+            tween(
+                PageEnterMillis,
+                delayMillis = PageExitMillis,
+                easing = LinearOutSlowInEasing
             )
+        ) +
+                slideInHorizontally(
+                    initialOffsetX = { distancePx },
+                    animationSpec = tween(
+                        PageEnterMillis,
+                        delayMillis = PageExitMillis,
+                        easing = LinearOutSlowInEasing
+                    ),
+                )
 
     fun pageExit(): ExitTransition =
         fadeOut(tween(PageExitMillis, easing = FastOutLinearInEasing))

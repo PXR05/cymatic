@@ -26,10 +26,10 @@ import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalNavController
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
-import kotlinx.coroutines.launch
 
 internal const val INTERFACE_SETTINGS_ROUTE = "interface_settings"
 
@@ -56,9 +56,9 @@ internal fun InterfaceSettingsScreen() {
     val scope = rememberCoroutineScope()
     val settings = LocalInterfaceSettings.current
     val sensitivity by
-        SettingsStore.wheelSensitivityFlow.collectAsState(
-            initial = SettingsStore.currentWheelSensitivity
-        )
+    SettingsStore.wheelSensitivityFlow.collectAsState(
+        initial = SettingsStore.currentWheelSensitivity
+    )
     var number by remember { mutableStateOf<InterfaceNumberEdit?>(null) }
     var showTextScrolling by remember { mutableStateOf(false) }
     var showScreenAwake by remember { mutableStateOf(false) }

@@ -45,7 +45,7 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
     val model: UsbAudioDiagnosticsViewModel = viewModel()
     val state by model.state.collectAsState()
     val enabled by
-        UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
+    UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
     val active by UsbPlaybackState.active.collectAsState()
     val playbackStatus by UsbPlaybackState.status.collectAsState()
     val sessions by UsbPlaybackState.sessionReports.collectAsState()
@@ -126,7 +126,7 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                     ) {
                         details =
                             "Background playback · ${BackgroundPlaybackGuide.manufacturerLabel()}" to
-                                BackgroundPlaybackGuide.stepsText()
+                                    BackgroundPlaybackGuide.stepsText()
                     }
                 )
                 if (report?.devices.isNullOrEmpty()) {
@@ -155,12 +155,12 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                             if (device.permission) {
                                 details =
                                     device.label to
-                                        usbSettingsReport(
-                                            device,
-                                            state,
-                                            playbackStatus,
-                                            sessions,
-                                        )
+                                            usbSettingsReport(
+                                                device,
+                                                state,
+                                                playbackStatus,
+                                                sessions,
+                                            )
                             } else model.inspectDevice(device.device)
                         }
                     )
@@ -184,7 +184,7 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
                             state.probeReports
                                 .filter {
                                     it.optInt("vendorId") == device.device.vendorId &&
-                                        it.optInt("productId") == device.device.productId
+                                            it.optInt("productId") == device.device.productId
                                 }
                                 .takeLast(2)
                         val checkLabel =
@@ -279,7 +279,10 @@ fun UsbSettingsScreen(modifier: Modifier = Modifier) {
             BackHandler { details = null }
             BaseScreen(title, { details = null }) {
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp)
                 ) {
                     content()
                 }

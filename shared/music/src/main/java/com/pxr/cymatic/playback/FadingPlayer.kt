@@ -10,8 +10,6 @@ import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.UsbVolumeState
 import com.pxr.cymatic.data.store.SettingsStore
-import java.util.concurrent.CopyOnWriteArraySet
-import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,6 +17,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.random.Random
 
 @UnstableApi
 class FadingPlayer(
@@ -66,12 +66,12 @@ class FadingPlayer(
         scope.launch(Dispatchers.Main) {
             var lastRemote = false
             combine(
-                    UsbPlaybackState.volumeActive,
-                    UsbVolumeState.requestedPercent,
-                    UsbVolumeState.level,
-                ) { remote, requested, level ->
-                    Triple(remote, requested, requested == 0 || level.muted)
-                }
+                UsbPlaybackState.volumeActive,
+                UsbVolumeState.requestedPercent,
+                UsbVolumeState.level,
+            ) { remote, requested, level ->
+                Triple(remote, requested, requested == 0 || level.muted)
+            }
                 .collect { (remote, volume, muted) ->
                     if (remote != lastRemote) {
                         lastRemote = remote
@@ -110,7 +110,7 @@ class FadingPlayer(
     override fun isCommandAvailable(command: Int): Boolean {
         if (
             UsbPlaybackState.volumeActive.value &&
-                (command == Player.COMMAND_GET_DEVICE_VOLUME ||
+            (command == Player.COMMAND_GET_DEVICE_VOLUME ||
                     command == Player.COMMAND_SET_DEVICE_VOLUME ||
                     command == Player.COMMAND_SET_DEVICE_VOLUME_WITH_FLAGS ||
                     command == Player.COMMAND_ADJUST_DEVICE_VOLUME ||

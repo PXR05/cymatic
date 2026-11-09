@@ -25,11 +25,11 @@ import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.playback.formatSampleRate
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 fun SongInfoDialog(
@@ -68,7 +68,9 @@ fun SongInfoDialog(
             if (audioFile != null) {
                 Column(
                     modifier =
-                        Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+                        Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     SongInformation(audioFile)
@@ -132,7 +134,9 @@ private fun InfoItem(
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             letterSpacing = letterSpacing,
-            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
         )
     }
 }

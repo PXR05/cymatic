@@ -45,7 +45,7 @@ internal fun SyncConnectionPage(
     val normalized = runCatching { AudioStreamClient.normalizeBaseUrl(url) }.getOrNull()
     val sameAccount = normalized != null && runCatching {
         RemoteLibrarySource("audiostream", normalized, username).id ==
-            RemoteLibrarySource("audiostream", state.url, state.username).id
+                RemoteLibrarySource("audiostream", state.url, state.username).id
     }.getOrDefault(false)
     val keepPassword = state.hasPassword && sameAccount
     val valid =
@@ -53,7 +53,8 @@ internal fun SyncConnectionPage(
     val enabled = !state.saving && !state.running
     SyncSettingsPage("AudioStream", onDismiss) {
         Column(
-            Modifier.fillMaxSize()
+            Modifier
+                .fillMaxSize()
                 .then(if (LocalWheelNavigation.current == null) Modifier.imePadding() else Modifier)
         ) {
             if (LocalWheelNavigation.current != null) {
@@ -108,7 +109,8 @@ internal fun SyncConnectionPage(
                 )
             } else {
                 Column(
-                    Modifier.weight(1f)
+                    Modifier
+                        .weight(1f)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 24.dp)
                 ) {
@@ -136,7 +138,8 @@ internal fun SyncConnectionPage(
                         Text(
                             "Check saved connection",
                             modifier =
-                                Modifier.fillMaxWidth()
+                                Modifier
+                                    .fillMaxWidth()
                                     .clickable(enabled = enabled, onClick = onCheck)
                                     .padding(vertical = 16.dp),
                         )
@@ -144,7 +147,8 @@ internal fun SyncConnectionPage(
                 Text(
                     if (state.saving) "Saving…" else "Save & connect",
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .clickable(enabled = enabled && valid) {
                                 onSave(url, username, password)
                             }
@@ -202,6 +206,8 @@ private fun SyncConnectionField(
                 unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
             ),
         shape = RoundedCornerShape(0.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
     )
 }

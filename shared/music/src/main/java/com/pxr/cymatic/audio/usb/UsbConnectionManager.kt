@@ -42,16 +42,16 @@ internal class UsbConnectionManager(
                     permissionAction -> {
                         if (
                             device == null ||
-                                device.deviceId != requestedDevice ||
-                                requestedDevice == null
+                            device.deviceId != requestedDevice ||
+                            requestedDevice == null
                         )
                             return
                         val granted =
                             manager.hasPermission(device) &&
-                                intent.getBooleanExtra(
-                                    UsbManager.EXTRA_PERMISSION_GRANTED,
-                                    false,
-                                )
+                                    intent.getBooleanExtra(
+                                        UsbManager.EXTRA_PERMISSION_GRANTED,
+                                        false,
+                                    )
                         clearRequest()
                         if (!granted) deniedDevice = device.deviceId
                         refresh()

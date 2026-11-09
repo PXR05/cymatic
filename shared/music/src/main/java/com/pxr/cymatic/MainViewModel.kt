@@ -28,8 +28,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else Manifest.permission.READ_EXTERNAL_STORAGE
         if (
             initialScanStarted ||
-                ContextCompat.checkSelfPermission(context, permission) !=
-                    PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, permission) !=
+            PackageManager.PERMISSION_GRANTED
         )
             return
         initialScanStarted = true

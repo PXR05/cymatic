@@ -126,6 +126,7 @@ internal class WheelPlayerState(
             when (entry.destination.route) {
                 Screen.Playlists.route,
                 Screen.PlaylistSongs.route -> Screen.Playlists.route
+
                 else -> MUSIC_BROWSER_ROUTE
             }
     }
@@ -133,7 +134,7 @@ internal class WheelPlayerState(
     fun mainMenu() {
         if (
             nav.currentDestination?.route != Screen.Home.route &&
-                !nav.popBackStack(Screen.Home.route, false, saveState = true)
+            !nav.popBackStack(Screen.Home.route, false, saveState = true)
         ) {
             nav.navigate(Screen.Home.route) {
                 popUpTo(nav.graph.id) { saveState = true }
@@ -149,6 +150,7 @@ internal class WheelPlayerState(
             wheel.overlay != null -> wheel.overlay?.onDismiss?.invoke()
             panel == WheelPanel.QUICK_SETTINGS || panel == WheelPanel.TRACK_ACTIONS ->
                 panel = previousPanel
+
             isNowPlaying -> panel = WheelPanel.BROWSER
             nav.currentDestination?.route == Screen.Home.route -> Unit
             nav.previousBackStackEntry == null -> mainMenu()
@@ -275,7 +277,8 @@ internal fun rememberWheelPlayerState(
             runCatching { nav.navigatorProvider.getNavigator<ComposeNavigator>("composable") }
                 .getOrNull() ?: return@LaunchedEffect
         if (state.needsBackStackRestore) {
-            val saved = SettingsStore.currentWheelPageState ?: SettingsStore.wheelPageStateFlow.first()
+            val saved =
+                SettingsStore.currentWheelPageState ?: SettingsStore.wheelPageStateFlow.first()
             if (saved != null) {
                 val currentRoutes =
                     navigator.backStack.value.mapNotNull { it.resolvedRoute() }
@@ -291,28 +294,28 @@ internal fun rememberWheelPlayerState(
             state.needsBackStackRestore = false
         }
         combine(
-                snapshotFlow {
-                    listOf(
-                        state.panel.name,
-                        state.previousPanel.name,
-                        state.browserRoute,
-                        state.browserRoot,
-                    )
-                },
-                navigator.backStack,
-            ) { stateFields, backStackEntries ->
-                val routes =
-                    backStackEntries.mapNotNull { it.resolvedRoute() }.ifEmpty {
-                        listOf(Screen.Home.route)
-                    }
-                WheelPageState(
-                    panel = stateFields[0],
-                    previousPanel = stateFields[1],
-                    browserRoute = stateFields[2],
-                    browserRoot = stateFields[3],
-                    backStack = routes,
+            snapshotFlow {
+                listOf(
+                    state.panel.name,
+                    state.previousPanel.name,
+                    state.browserRoute,
+                    state.browserRoot,
                 )
-            }
+            },
+            navigator.backStack,
+        ) { stateFields, backStackEntries ->
+            val routes =
+                backStackEntries.mapNotNull { it.resolvedRoute() }.ifEmpty {
+                    listOf(Screen.Home.route)
+                }
+            WheelPageState(
+                panel = stateFields[0],
+                previousPanel = stateFields[1],
+                browserRoute = stateFields[2],
+                browserRoot = stateFields[3],
+                backStack = routes,
+            )
+        }
             .distinctUntilChanged()
             .collectLatest { pageState -> SettingsStore.setWheelPageState(pageState) }
     }
@@ -337,6 +340,7 @@ private fun NavBackStackEntry.musicBrowserRoute(): String? {
             } else {
                 null
             }
+
         Screen.Albums.route -> Screen.Albums.route
         Screen.AlbumSongs.route -> album?.let { Screen.AlbumSongs.createRoute(it, scrollId) }
         Screen.Playlists.route -> Screen.Playlists.route
@@ -344,6 +348,7 @@ private fun NavBackStackEntry.musicBrowserRoute(): String? {
             arguments?.getString("playlistId")?.toLongOrNull()?.let {
                 Screen.PlaylistSongs.createRoute(it, scrollId)
             }
+
         else -> null
     }
 }

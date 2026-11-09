@@ -1,8 +1,6 @@
 package com.pxr.cymatic.audio.usb
 
 import android.hardware.usb.UsbDeviceConnection
-import java.io.Closeable
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -10,6 +8,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.Closeable
+import kotlin.math.roundToInt
 
 internal class UsbHardwareVolume(
     private val connection: UsbDeviceConnection,

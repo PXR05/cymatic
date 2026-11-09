@@ -29,17 +29,20 @@ internal class WheelPlayerControls(
             } else {
                 state.back()
             }
+
             WheelButton.NEXT -> if (state.controlsPlayback) {
                 controller?.seekToNext()
             } else {
                 selectItem()
             }
+
             WheelButton.SELECT -> when {
                 state.wheel.overlay != null -> selectItem()
                 state.isNowPlaying -> state.browse()
                 state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
                 else -> selectItem()
             }
+
             WheelButton.PLAY -> if (state.controlsPlayback) togglePlay() else state.nowPlaying()
         }
     }
@@ -58,14 +61,21 @@ internal class WheelPlayerControls(
                     }
                 }
             }
+
             WheelButton.SELECT -> if (state.controlsPlayback) {
                 state.trackActions()
             } else {
                 state.wheel.actions?.onContext?.invoke()
             }
+
             WheelButton.PREVIOUS, WheelButton.NEXT -> if (state.controlsPlayback) {
-                state.seekBy(controller, durationMs, if (button == WheelButton.NEXT) 3000L else -3000L)
+                state.seekBy(
+                    controller,
+                    durationMs,
+                    if (button == WheelButton.NEXT) 3000L else -3000L
+                )
             }
+
             WheelButton.PLAY -> {
                 controller?.stop()
                 state.showBrowser()

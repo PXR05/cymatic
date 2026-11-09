@@ -125,7 +125,8 @@ fun VersionSettingsScreen(
         scope.launch {
             val result = fetchLatestRelease(releaseProduct.assetPrefix)
             isChecking = false
-            if (result != null) latestRelease = result else errorMessage = "Unable to check for updates."
+            if (result != null) latestRelease = result else errorMessage =
+                "Unable to check for updates."
         }
     }
 
@@ -143,16 +144,38 @@ fun VersionSettingsScreen(
     ) {
         if (LocalWheelNavigation.current != null) {
             NavigationList(buildList {
-                add(NavigationItem("Current version", "${currentVersion.name} (${currentVersion.code})", enabled = false))
-                add(NavigationItem("Check updates", if (isChecking) "Checking" else null, enabled = !isChecking, onClick = ::checkUpdates))
+                add(
+                    NavigationItem(
+                        "Current version",
+                        "${currentVersion.name} (${currentVersion.code})",
+                        enabled = false
+                    )
+                )
+                add(
+                    NavigationItem(
+                        "Check updates",
+                        if (isChecking) "Checking" else null,
+                        enabled = !isChecking,
+                        onClick = ::checkUpdates
+                    )
+                )
                 latestRelease?.let { release ->
                     add(NavigationItem("Latest version", release.versionName, enabled = false))
                     add(NavigationItem("GitHub") { openUrl(context, release.versionUrl) })
                     add(NavigationItem("Changelog") { showChangelog = true })
-                    add(NavigationItem("Download", if (release.apkUrl == null) "No APK available" else downloadStatus,
-                        enabled = release.apkUrl != null && downloadId == null) { download(release) })
+                    add(
+                        NavigationItem(
+                            "Download",
+                            if (release.apkUrl == null) "No APK available" else downloadStatus,
+                            enabled = release.apkUrl != null && downloadId == null
+                        ) { download(release) })
                 }
-                if (downloadedApkUri != null) add(NavigationItem("Install update") { installApk(context, downloadedApkUri) })
+                if (downloadedApkUri != null) add(NavigationItem("Install update") {
+                    installApk(
+                        context,
+                        downloadedApkUri
+                    )
+                })
                 errorMessage?.let { add(NavigationItem("Update status", it, enabled = false)) }
             })
         } else {
@@ -287,54 +310,56 @@ fun VersionSettingsScreen(
     }
     if (LocalWheelNavigation.current != null && showChangelog) {
         WheelReadingPage("Changelog", { showChangelog = false }) {
-            Text(latestRelease?.changelog?.replace("\r\n", "\n")?.replace(Regex("\n{3,}"), "\n\n")
+            Text(
+                latestRelease?.changelog?.replace("\r\n", "\n")?.replace(Regex("\n{3,}"), "\n\n")
                 ?.ifBlank { "No changelog provided." } ?: "No changelog provided.")
         }
     }
 }
 
-private suspend fun fetchLatestRelease(assetPrefix: String): ReleaseInfo? = withContext(Dispatchers.IO) {
-    val url = URL("https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/releases/latest")
-    val connection = url.openConnection() as HttpURLConnection
-    try {
-        connection.setRequestProperty("Accept", "application/vnd.github+json")
-        connection.connectTimeout = 10000
-        connection.readTimeout = 10000
-        connection.inputStream.bufferedReader().use { reader ->
-            val response = reader.readText()
-            val json = JSONObject(response)
-            val tagName = json.optString("tag_name", "")
-            val htmlUrl = json.optString("html_url", "")
-            val body = json.optString("body", "")
-            val assets = json.optJSONArray("assets")
-            var apkUrl: String? = null
-            if (assets != null) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.optString("name")
-                    if (isProductApk(name, assetPrefix)) {
-                        apkUrl = asset.optString("browser_download_url")
-                        break
+private suspend fun fetchLatestRelease(assetPrefix: String): ReleaseInfo? =
+    withContext(Dispatchers.IO) {
+        val url = URL("https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/releases/latest")
+        val connection = url.openConnection() as HttpURLConnection
+        try {
+            connection.setRequestProperty("Accept", "application/vnd.github+json")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.inputStream.bufferedReader().use { reader ->
+                val response = reader.readText()
+                val json = JSONObject(response)
+                val tagName = json.optString("tag_name", "")
+                val htmlUrl = json.optString("html_url", "")
+                val body = json.optString("body", "")
+                val assets = json.optJSONArray("assets")
+                var apkUrl: String? = null
+                if (assets != null) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(i)
+                        val name = asset.optString("name")
+                        if (isProductApk(name, assetPrefix)) {
+                            apkUrl = asset.optString("browser_download_url")
+                            break
+                        }
                     }
                 }
+                if (tagName.isNotBlank()) {
+                    ReleaseInfo(
+                        versionName = tagName.trimStart('v', 'V'),
+                        versionUrl = htmlUrl,
+                        changelog = body,
+                        apkUrl = apkUrl
+                    )
+                } else {
+                    null
+                }
             }
-            if (tagName.isNotBlank()) {
-                ReleaseInfo(
-                    versionName = tagName.trimStart('v', 'V'),
-                    versionUrl = htmlUrl,
-                    changelog = body,
-                    apkUrl = apkUrl
-                )
-            } else {
-                null
-            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection.disconnect()
         }
-    } catch (_: Exception) {
-        null
-    } finally {
-        connection.disconnect()
     }
-}
 
 private fun isVersionNewer(latest: String, current: String): Boolean {
     val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }

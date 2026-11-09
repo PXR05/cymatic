@@ -29,11 +29,14 @@ data class EqUiState(
 
 class EqViewModel : ViewModel() {
 
-    private val initialDeviceSelectedName = SettingsStore.currentEqDevicePresets[SettingsStore.currentActiveAudioDevice]
-    private val initialSelectedName = initialDeviceSelectedName ?: SettingsStore.currentEqSelectedPreset
-    private val initialActive = SettingsStore.currentEqPresets.firstOrNull { it.name == initialSelectedName }
-        ?: SettingsStore.currentEqPresets.firstOrNull()
-        ?: EqPreset.defaultPreset()
+    private val initialDeviceSelectedName =
+        SettingsStore.currentEqDevicePresets[SettingsStore.currentActiveAudioDevice]
+    private val initialSelectedName =
+        initialDeviceSelectedName ?: SettingsStore.currentEqSelectedPreset
+    private val initialActive =
+        SettingsStore.currentEqPresets.firstOrNull { it.name == initialSelectedName }
+            ?: SettingsStore.currentEqPresets.firstOrNull()
+            ?: EqPreset.defaultPreset()
 
     val uiState: StateFlow<EqUiState> = combine(
         SettingsStore.eqGlobalEnabledFlow,
@@ -184,7 +187,8 @@ class EqViewModel : ViewModel() {
         val current = (_livePreset.value ?: uiState.value.activePreset)
         if (current.bands.size >= MAX_BANDS) return
         val newId = (current.bands.maxOfOrNull { it.id } ?: -1) + 1
-        val newBand = EqBand(id = newId, type = FilterType.PEAKING, frequency = 1000f, gain = 0f, q = 1f)
+        val newBand =
+            EqBand(id = newId, type = FilterType.PEAKING, frequency = 1000f, gain = 0f, q = 1f)
         val updated = current.copy(bands = current.bands + newBand)
         _livePreset.value = updated
         schedulePersist(updated)

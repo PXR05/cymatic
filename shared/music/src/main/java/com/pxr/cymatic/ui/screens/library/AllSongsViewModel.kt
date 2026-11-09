@@ -26,7 +26,9 @@ data class AllSongsState(
 class AllSongsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>?>(repository.getCachedAudio()?.let(LibraryFilterStore::audio))
+    private val _rawAudioFiles = MutableStateFlow<List<AudioFile>?>(
+        repository.getCachedAudio()?.let(LibraryFilterStore::audio)
+    )
     private val _isLoading = MutableStateFlow(repository.getCachedAudio() == null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
@@ -80,7 +82,11 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(SettingsStore.lastScanTimeMsFlow, com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
+            kotlinx.coroutines.flow.merge(
+                SettingsStore.lastScanTimeMsFlow,
+                com.pxr.cymatic.data.media.LibraryChanges.version,
+                LibraryFilterStore.changes
+            ).collect {
                 loadAudioFiles()
             }
         }

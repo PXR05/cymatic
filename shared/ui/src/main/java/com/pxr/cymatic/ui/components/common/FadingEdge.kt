@@ -31,7 +31,8 @@ fun Modifier.verticalFadingEdge(
 
             if (height > 0f && (topPx > 0f || bottomPx > 0f)) {
                 val topStop = if (topPx > 0f) (topPx / height).coerceIn(0f, 1f) else 0f
-                val bottomStop = if (bottomPx > 0f) ((height - bottomPx) / height).coerceIn(0f, 1f) else 1f
+                val bottomStop =
+                    if (bottomPx > 0f) ((height - bottomPx) / height).coerceIn(0f, 1f) else 1f
 
                 val brush = Brush.verticalGradient(
                     0f to (if (topPx > 0f) Color.Transparent else Color.Black),

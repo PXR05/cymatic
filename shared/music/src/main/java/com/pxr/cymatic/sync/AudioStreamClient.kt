@@ -1,12 +1,12 @@
 package com.pxr.cymatic.sync
 
 import android.util.Log
+import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import org.json.JSONObject
 
 internal class AudioStreamRequestException(
     val status: Int,
@@ -44,7 +44,8 @@ class AudioStreamClient(
                 result +=
                     RemoteTrack(
                         id = item.getString("id"),
-                        durationMs = metadata?.optDouble("duration")?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 1000).toLong() },
+                        durationMs = metadata?.optDouble("duration")
+                            ?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 1000).toLong() },
                         bitRate = metadata?.optLong("bitrate", -1L)?.takeIf { it > 0L },
                         sampleRate = metadata?.optLong("sampleRate", -1L)?.takeIf { it > 0L },
                         filename = item.getString("filename"),
@@ -113,10 +114,14 @@ class AudioStreamClient(
 
     override fun openStream(trackId: String, position: Long, length: Long): RemoteLibraryDownload {
         val range = StreamRange.header(position, length)
-        val connection = authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true, range = range)
+        val connection =
+            authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true, range = range)
         try {
             val partial = connection.responseCode == HttpURLConnection.HTTP_PARTIAL
-            if (partial) StreamRange.validateContentRange(connection.getHeaderField("Content-Range"), position)
+            if (partial) StreamRange.validateContentRange(
+                connection.getHeaderField("Content-Range"),
+                position
+            )
             else require(connection.responseCode == HttpURLConnection.HTTP_OK) { "The server did not return audio" }
             val input = connection.inputStream.buffered()
             if (!partial && position > 0) StreamRange.skipFully(input, position)
@@ -131,7 +136,11 @@ class AudioStreamClient(
                 override val contentEncoding get() = connection.getHeaderField("Content-Encoding")
                 override val contentType get() = connection.getHeaderField("Content-Type")
                 override fun close() {
-                    try { input.close() } finally { release(connection) }
+                    try {
+                        input.close()
+                    } finally {
+                        release(connection)
+                    }
                 }
             }
         } catch (error: Throwable) {
@@ -154,7 +163,11 @@ class AudioStreamClient(
         return connection
     }
 
-    private fun authenticatedGet(path: String, binary: Boolean = false, range: String? = null): HttpURLConnection {
+    private fun authenticatedGet(
+        path: String,
+        binary: Boolean = false,
+        range: String? = null
+    ): HttpURLConnection {
         repeat(2) { attempt ->
             ensureAuthenticated()
             checkNotCancelled()
@@ -260,7 +273,13 @@ class AudioStreamClient(
         throw AudioStreamRequestException(
             status,
             retryAfter,
-            "AudioStream request failed ($status)${if (message.isBlank()) "" else ": ${message.take(500)}"}",
+            "AudioStream request failed ($status)${
+                if (message.isBlank()) "" else ": ${
+                    message.take(
+                        500
+                    )
+                }"
+            }",
         )
     }
 

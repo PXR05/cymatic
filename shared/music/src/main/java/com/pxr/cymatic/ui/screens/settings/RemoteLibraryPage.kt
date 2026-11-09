@@ -13,21 +13,23 @@ internal fun SyncRemoteLibraryPage(
 ) {
     val nav = LocalNavController.current
     SyncSettingsPage("Library", onDismiss) {
-        SyncSettingsList(listOf(
-            SyncSetting("Songs", "${state.catalog?.tracks?.size ?: 0}", onClick = {
-                onDismiss()
-                nav.navigate(Screen.AllSongs.createRoute())
-            }),
-            SyncSetting("Playlists", "${state.catalog?.playlists?.size ?: 0}", onClick = {
-                onDismiss()
-                nav.navigate(Screen.Playlists.route)
-            }),
-            SyncSetting(
-                if (state.refreshingCatalog) "Stop refresh" else "Refresh library",
-                if (state.refreshingCatalog) "Loading songs and playlists…" else "Update the library without downloading audio",
-                enabled = state.canEdit || state.refreshingCatalog,
-                onClick = if (state.refreshingCatalog) onCancel else onRefresh,
-            ),
-        ))
+        SyncSettingsList(
+            listOf(
+                SyncSetting("Songs", "${state.catalog?.tracks?.size ?: 0}", onClick = {
+                    onDismiss()
+                    nav.navigate(Screen.AllSongs.createRoute())
+                }),
+                SyncSetting("Playlists", "${state.catalog?.playlists?.size ?: 0}", onClick = {
+                    onDismiss()
+                    nav.navigate(Screen.Playlists.route)
+                }),
+                SyncSetting(
+                    if (state.refreshingCatalog) "Stop refresh" else "Refresh library",
+                    if (state.refreshingCatalog) "Loading songs and playlists…" else "Update the library without downloading audio",
+                    enabled = state.canEdit || state.refreshingCatalog,
+                    onClick = if (state.refreshingCatalog) onCancel else onRefresh,
+                ),
+            )
+        )
     }
 }

@@ -125,7 +125,8 @@ fun CymaticDialog(
         ) {
             Box(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier
+                        .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.45f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -136,7 +137,8 @@ fun CymaticDialog(
             ) {
                 Column(
                     modifier =
-                        Modifier.animateEnterExit(
+                        Modifier
+                            .animateEnterExit(
                                 enter =
                                     scaleIn(
                                         initialScale = 0.90f,
@@ -145,7 +147,7 @@ fun CymaticDialog(
                                     ) + fadeIn(animationSpec = tween(180)),
                                 exit =
                                     scaleOut(targetScale = 0.92f, animationSpec = tween(140)) +
-                                        fadeOut(animationSpec = tween(140)),
+                                            fadeOut(animationSpec = tween(140)),
                             )
                             .width(dialogWidthDp)
                             .heightIn(max = dialogHeightDp)
@@ -178,7 +180,9 @@ fun CymaticDialog(
                     content()
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         buttons()
@@ -210,12 +214,19 @@ private fun WheelDialogPage(
         }
         Column(Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxWidth().weight(1f).clipToBounds().padding(vertical = 12.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clipToBounds()
+                    .padding(vertical = 12.dp),
                 content = content,
             )
             CompositionLocalProvider(LocalWheelDialogActions provides dialogActions) {
                 Row(
-                    Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 16.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     content = buttons,

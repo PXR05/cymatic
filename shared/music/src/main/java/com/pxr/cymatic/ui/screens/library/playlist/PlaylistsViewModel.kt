@@ -1,6 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +27,9 @@ data class PlaylistsState(
 class PlaylistsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = PlaylistRepository.getInstance(application)
 
-    private val _playlists = MutableStateFlow<List<Playlist>?>(repository.getCachedPlaylists()?.let(LibraryFilterStore::playlists))
+    private val _playlists = MutableStateFlow<List<Playlist>?>(
+        repository.getCachedPlaylists()?.let(LibraryFilterStore::playlists)
+    )
     private val _isLoading = MutableStateFlow(repository.getCachedPlaylists() == null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
@@ -75,7 +77,10 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect { loadPlaylists() }
+            kotlinx.coroutines.flow.merge(
+                com.pxr.cymatic.data.media.LibraryChanges.version,
+                LibraryFilterStore.changes
+            ).collect { loadPlaylists() }
         }
     }
 
@@ -128,7 +133,10 @@ class PlaylistsViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun getPlaylistSongs(playlistId: Long, onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit) {
+    fun getPlaylistSongs(
+        playlistId: Long,
+        onResult: (List<com.pxr.cymatic.data.model.AudioFile>) -> Unit
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val songs = LibraryFilterStore.audio(repository.getPlaylistAudio(playlistId))
             withContext(Dispatchers.Main) {

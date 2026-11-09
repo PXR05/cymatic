@@ -110,7 +110,7 @@ class MainActivity : MusicActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (
             event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-                event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
         ) {
             return super.dispatchKeyEvent(event)
         }

@@ -20,40 +20,50 @@ internal fun SyncMusicPage(
 ) {
     SyncSettingsPage("Keep offline", onDismiss) {
         SyncSettingsList(buildList {
-            add(SyncSetting(
-                "Keep offline", state.contentMode.label, state.canEdit,
-                SyncContentMode.entries.map { it.label },
-                onChoose = { value -> onMode(SyncContentMode.entries.first { it.label == value }) },
-            ))
+            add(
+                SyncSetting(
+                    "Keep offline", state.contentMode.label, state.canEdit,
+                    SyncContentMode.entries.map { it.label },
+                    onChoose = { value -> onMode(SyncContentMode.entries.first { it.label == value }) },
+                )
+            )
             if (state.contentMode == SyncContentMode.SELECTED_PLAYLISTS) {
-                add(SyncSetting(
-                    "Choose playlists",
-                    if (state.refreshingCatalog) "Loading playlists…" else "${state.selection.size} selected",
-                    enabled = state.canEdit,
-                    onClick = onPlaylists,
-                ))
+                add(
+                    SyncSetting(
+                        "Choose playlists",
+                        if (state.refreshingCatalog) "Loading playlists…" else "${state.selection.size} selected",
+                        enabled = state.canEdit,
+                        onClick = onPlaylists,
+                    )
+                )
             }
             if (state.contentMode != SyncContentMode.NONE || state.hasPinnedMusic) {
-                add(SyncSetting(
-                    "Automatic downloads",
-                    if (state.network == SyncNetwork.NEVER) "Off · download manually"
-                    else "${syncNetworkLabel(state.network)} · ${syncIntervals[state.interval] ?: "Every ${state.interval} hours"}",
-                    onClick = onSchedule,
-                ))
-                add(SyncSetting(
-                    "Download now",
-                    if (state.nextStep == SyncSetupStep.FOLDER) "Restore access to your custom folder"
-                    else if (state.nextStep == SyncSetupStep.MUSIC) "Choose playlists first"
-                    else "Save ${state.musicLabel.lowercase()} for local playback",
-                    enabled = state.canEdit,
-                    onClick = onDownload,
-                ))
+                add(
+                    SyncSetting(
+                        "Automatic downloads",
+                        if (state.network == SyncNetwork.NEVER) "Off · download manually"
+                        else "${syncNetworkLabel(state.network)} · ${syncIntervals[state.interval] ?: "Every ${state.interval} hours"}",
+                        onClick = onSchedule,
+                    )
+                )
+                add(
+                    SyncSetting(
+                        "Download now",
+                        if (state.nextStep == SyncSetupStep.FOLDER) "Restore access to your custom folder"
+                        else if (state.nextStep == SyncSetupStep.MUSIC) "Choose playlists first"
+                        else "Save ${state.musicLabel.lowercase()} for local playback",
+                        enabled = state.canEdit,
+                        onClick = onDownload,
+                    )
+                )
             }
-            add(SyncSetting(
-                "About offline music",
-                "Long press a song or playlist in the library and choose Keep offline. Playback uses the downloaded copy whenever it is available.",
-                enabled = false,
-            ))
+            add(
+                SyncSetting(
+                    "About offline music",
+                    "Long press a song or playlist in the library and choose Keep offline. Playback uses the downloaded copy whenever it is available.",
+                    enabled = false,
+                )
+            )
         })
     }
 }
@@ -69,24 +79,37 @@ internal fun SyncAdvancedPage(
 ) {
     SyncSettingsPage("Advanced", onDismiss) {
         SyncSettingsList(buildList {
-            add(SyncSetting(
-                "Custom download folder",
-                if (state.directory.isBlank()) "Managed by Cymatic"
-                else if (!state.folderAccessible) "Custom folder · access lost"
-                else syncFolderLabel(state.directory),
-                state.canEdit,
-                onClick = onFolder,
-            ))
-            if (state.directory.isNotBlank()) add(SyncSetting(
-                "Use Cymatic storage", "No folder permission needed", state.canEdit, onClick = onManagedStorage,
-            ))
-            add(SyncSetting(
-                "Folder layout", state.layout.label, state.canEdit,
-                SyncLayout.entries.map { it.label },
-                onChoose = { value -> onLayout(SyncLayout.entries.first { it.label == value }) },
-            ))
-            add(SyncSetting("Automatic downloads", syncNetworkLabel(state.network), state.canEdit,
-                onClick = onSchedule))
+            add(
+                SyncSetting(
+                    "Custom download folder",
+                    if (state.directory.isBlank()) "Managed by Cymatic"
+                    else if (!state.folderAccessible) "Custom folder · access lost"
+                    else syncFolderLabel(state.directory),
+                    state.canEdit,
+                    onClick = onFolder,
+                )
+            )
+            if (state.directory.isNotBlank()) add(
+                SyncSetting(
+                    "Use Cymatic storage",
+                    "No folder permission needed",
+                    state.canEdit,
+                    onClick = onManagedStorage,
+                )
+            )
+            add(
+                SyncSetting(
+                    "Folder layout", state.layout.label, state.canEdit,
+                    SyncLayout.entries.map { it.label },
+                    onChoose = { value -> onLayout(SyncLayout.entries.first { it.label == value }) },
+                )
+            )
+            add(
+                SyncSetting(
+                    "Automatic downloads", syncNetworkLabel(state.network), state.canEdit,
+                    onClick = onSchedule
+                )
+            )
         })
     }
 }

@@ -52,11 +52,11 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     val resumeOnBt by
-        SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
-            initial = SettingsStore.currentResumeOnBluetoothReconnect
-        )
+    SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
+        initial = SettingsStore.currentResumeOnBluetoothReconnect
+    )
     val fadeEnabled by
-        SettingsStore.fadeEnabledFlow.collectAsState(initial = SettingsStore.currentFadeEnabled)
+    SettingsStore.fadeEnabledFlow.collectAsState(initial = SettingsStore.currentFadeEnabled)
 
     val audioManager =
         remember(context) {
@@ -91,9 +91,9 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
 
     fun openOutputSwitcherFallback() {
         listOf(
-                Settings.Panel.ACTION_VOLUME,
-                Settings.ACTION_SOUND_SETTINGS,
-            )
+            Settings.Panel.ACTION_VOLUME,
+            Settings.ACTION_SOUND_SETTINGS,
+        )
             .forEach {
                 try {
                     val intent = Intent(it)
@@ -172,7 +172,10 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     ) {
         Column(
             modifier =
-                Modifier.verticalScroll(rememberScrollState()).fillMaxSize().padding(24.dp, 16.dp)
+                Modifier
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+                    .padding(24.dp, 16.dp)
         ) {
             Text(
                 text = "Audio Output",
@@ -242,7 +245,9 @@ private fun SettingsToggleRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -266,7 +271,8 @@ private fun SettingsToggleRow(
                 if (checked) MaterialTheme.colorScheme.background
                 else MaterialTheme.colorScheme.onBackground,
             modifier =
-                Modifier.background(
+                Modifier
+                    .background(
                         if (checked) MaterialTheme.colorScheme.onBackground else Color.Transparent
                     )
                     .border(1.dp, MaterialTheme.colorScheme.onBackground)
@@ -288,7 +294,9 @@ private fun SettingsActionRow(
     onActionClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -310,7 +318,8 @@ private fun SettingsActionRow(
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onBackground,
             modifier =
-                Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground)
+                Modifier
+                    .border(1.dp, MaterialTheme.colorScheme.onBackground)
                     .clickable(
                         onClick = onActionClick,
                         indication = null,

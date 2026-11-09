@@ -1,14 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
-import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
-import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
-import com.pxr.cymatic.data.model.LibraryFilter
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
-import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
-import com.pxr.cymatic.ui.screens.library.LibraryGroups
-import com.pxr.cymatic.ui.screens.library.LibraryGroupIndicator
-import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
-import com.pxr.cymatic.sync.LibraryOfflineManager
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,8 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.sync.LibraryOfflineManager
+import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.hasStoragePermission
@@ -33,6 +29,10 @@ import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.LibraryGroupIndicator
+import com.pxr.cymatic.ui.screens.library.LibraryGroups
+import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
 
 @Composable
 fun ArtistAlbumsScreen(
@@ -44,10 +44,11 @@ fun ArtistAlbumsScreen(
     val navController = LocalNavController.current
     val state by viewModel.uiState.collectAsState()
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        hasPermission = granted
-        if (granted) viewModel.load(artistName)
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            hasPermission = granted
+            if (granted) viewModel.load(artistName)
+        }
 
     LaunchedEffect(artistName) { viewModel.load(artistName) }
 
@@ -78,18 +79,22 @@ fun ArtistAlbumsScreen(
                     )
                 }
             )
+
             state.errorMessage != null -> ErrorState(
                 message = state.errorMessage ?: "Unknown error",
                 onRetry = { viewModel.load(artistName) },
             )
+
             state.isLoading -> LoadingState()
             availabilityFilter != LibraryFilter.ALL && state.totalTracks == 0 ->
                 LibraryFilteredEmptyState()
+
             state.totalTracks == 0 -> EmptyState(
                 title = "No Music Found",
                 message = "Cymatic did not find any music for '$artistName'.",
                 iconText = "( ! )",
             )
+
             else -> NavigationList(
                 items = listOf(
                     NavigationItem(
@@ -102,11 +107,21 @@ fun ArtistAlbumsScreen(
                 ) + state.albums.map { album ->
                     NavigationItem(
                         label = album.name,
-                        trailingContent = { color -> LibraryGroupIndicator(albums[album.name], color) },
+                        trailingContent = { color ->
+                            LibraryGroupIndicator(
+                                albums[album.name],
+                                color
+                            )
+                        },
                         onLongClick = { selectedAlbum = album.name },
                         subLabel = "${album.trackCount} ${trackLabel(album.trackCount)}",
                         onClick = {
-                            navController.navigate(Screen.ArtistAlbumSongs.createRoute(artistName, album.name))
+                            navController.navigate(
+                                Screen.ArtistAlbumSongs.createRoute(
+                                    artistName,
+                                    album.name
+                                )
+                            )
                         },
                     )
                 },

@@ -11,7 +11,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -44,9 +43,9 @@ fun EqBodePlot(
     val dbRange = maxDb - minDb
 
     val xTicks = listOf(
-        20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 
-        100.0, 150.0, 200.0, 300.0, 400.0, 500.0, 600.0, 800.0, 
-        1000.0, 1500.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0, 8000.0, 
+        20.0, 30.0, 40.0, 50.0, 60.0, 80.0,
+        100.0, 150.0, 200.0, 300.0, 400.0, 500.0, 600.0, 800.0,
+        1000.0, 1500.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0, 8000.0,
         10000.0, 15000.0, 20000.0
     )
 
@@ -114,7 +113,7 @@ fun EqBodePlot(
         for (tick in xTicks) {
             val isLabeled = labeledXTicks.containsKey(tick)
             val x = xForFreq(tick)
-            
+
             drawLine(
                 color = secondaryColor.copy(alpha = if (isLabeled) 0.5f else 0.2f),
                 start = Offset(x, 0f),
@@ -130,14 +129,14 @@ fun EqBodePlot(
                         color = secondaryColor, fontSize = 10.sp
                     )
                 )
-                
+
                 val textWidth = textLayoutResult.size.width
                 val startX = when {
                     x - textWidth / 2f < 0f -> 4f
                     x + textWidth / 2f > width -> width - textWidth - 4f
                     else -> x - textWidth / 2f
                 }
-                
+
                 drawText(
                     textLayoutResult = textLayoutResult,
                     topLeft = Offset(startX, height - textLayoutResult.size.height - 4f)
@@ -151,10 +150,14 @@ fun EqBodePlot(
             val isZero = tick == 0.0
 
             drawLine(
-                color = if (isZero) onBackgroundColor.copy(alpha = 0.5f) else secondaryColor.copy(alpha = if (isLabeled) 0.5f else 0.2f),
+                color = if (isZero) onBackgroundColor.copy(alpha = 0.5f) else secondaryColor.copy(
+                    alpha = if (isLabeled) 0.5f else 0.2f
+                ),
                 start = Offset(0f, y),
                 end = Offset(width, y),
-                strokeWidth = if (isZero) with(density) { 1.dp.toPx() } else if (isLabeled) with(density) { 1.dp.toPx() } else with(density) { 0.5.dp.toPx() }
+                strokeWidth = if (isZero) with(density) { 1.dp.toPx() } else if (isLabeled) with(
+                    density
+                ) { 1.dp.toPx() } else with(density) { 0.5.dp.toPx() }
             )
 
             if (isLabeled && tick != -20.0) {

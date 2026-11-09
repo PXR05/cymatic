@@ -57,7 +57,10 @@ data class RemoteCatalog(
 
 const val UNFILED_PLAYLIST_ID = "__cymatic_not_in_playlists__"
 
-fun catalogPlaylists(tracks: List<RemoteTrack>, playlists: List<RemotePlaylist>): List<RemotePlaylist> {
+fun catalogPlaylists(
+    tracks: List<RemoteTrack>,
+    playlists: List<RemotePlaylist>
+): List<RemotePlaylist> {
     val assigned = playlists.flatMapTo(mutableSetOf()) { it.trackIds }
     val unfiled = tracks.map { it.id }.filterNot(assigned::contains)
     return if (unfiled.isEmpty()) playlists else playlists + RemotePlaylist(
@@ -83,13 +86,21 @@ object SyncPathPlanner {
         val numberedName = listOfNotNull(number, title).joinToString(". ") + "." + extension
         return when (layout) {
             SyncLayout.FLAT -> listOf(SyncTarget("$artist - $title.$extension", track))
-            SyncLayout.ARTIST_ALBUM_TRACKS -> listOf(SyncTarget("$artist/$album/$numberedName", track))
+            SyncLayout.ARTIST_ALBUM_TRACKS -> listOf(
+                SyncTarget(
+                    "$artist/$album/$numberedName",
+                    track
+                )
+            )
+
             SyncLayout.ALBUM_TRACKS -> listOf(SyncTarget("$album/$numberedName", track))
             SyncLayout.PLAYLIST_TRACKS -> {
-                val placements = playlists.ifEmpty { listOf(PlaylistPlacement("Not in a playlist", 0)) }
+                val placements =
+                    playlists.ifEmpty { listOf(PlaylistPlacement("Not in a playlist", 0)) }
                 placements.map { placement ->
                     val playlist = placement.name.safeSegment("Unnamed playlist")
-                    val prefix = if (placement.position >= 0) (placement.position + 1).toString().padStart(2, '0') else null
+                    val prefix = if (placement.position >= 0) (placement.position + 1).toString()
+                        .padStart(2, '0') else null
                     val name = listOfNotNull(prefix, title).joinToString(". ") + "." + extension
                     SyncTarget("$playlist/$name", track)
                 }

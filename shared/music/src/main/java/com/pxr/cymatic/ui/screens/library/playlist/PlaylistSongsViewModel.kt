@@ -1,6 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.AudioFile
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +45,10 @@ class PlaylistSongsViewModel(
             _isLoading.value = false
         }
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(com.pxr.cymatic.data.media.LibraryChanges.version, LibraryFilterStore.changes).collect {
+            kotlinx.coroutines.flow.merge(
+                com.pxr.cymatic.data.media.LibraryChanges.version,
+                LibraryFilterStore.changes
+            ).collect {
                 if (playlistId != -1L) loadPlaylist(playlistId)
             }
         }
@@ -59,7 +62,8 @@ class PlaylistSongsViewModel(
             _errorMessage.value = null
             try {
                 _playlist.value = repository.getPlaylist(playlistId)
-                _audioFiles.value = LibraryFilterStore.audio(repository.getPlaylistAudio(playlistId))
+                _audioFiles.value =
+                    LibraryFilterStore.audio(repository.getPlaylistAudio(playlistId))
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load playlist songs"
             } finally {

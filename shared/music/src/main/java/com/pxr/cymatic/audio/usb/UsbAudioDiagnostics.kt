@@ -13,13 +13,13 @@ import android.media.AudioMixerAttributes
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaLibraryInfo
-import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
 
 internal class UsbAudioDiagnostics(private val context: Context) {
     private val usbManager = context.getSystemService(UsbManager::class.java)

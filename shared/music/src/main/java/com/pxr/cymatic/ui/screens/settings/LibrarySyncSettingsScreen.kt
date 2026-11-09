@@ -11,9 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncProgress
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 
@@ -32,9 +32,10 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
     var shownError by remember { mutableStateOf<String?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
     val error = state.message ?: (state.progress as? SyncProgress.Failed)?.message
-    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
-        it?.let(model::setDirectory)
-    }
+    val folderPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
+            it?.let(model::setDirectory)
+        }
     LaunchedEffect(refreshAfterSave, state.saving) {
         if (refreshAfterSave && !state.saving) {
             refreshAfterSave = false
@@ -50,10 +51,12 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
     fun chooseFolder() {
         folderPicker.launch(state.directory.takeIf { it.isNotBlank() }?.let(Uri::parse))
     }
+
     fun openMusic() {
         page = SyncPage.MUSIC
         if (state.catalog == null) model.refreshLibrary()
     }
+
     fun download() {
         when (state.nextStep) {
             SyncSetupStep.CONNECTION -> showConnection = true
@@ -68,35 +71,51 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
             buildList {
                 if (state.loading) add(SyncSetting("Loading…", enabled = false))
                 else {
-                    add(SyncSetting(
-                        if (state.connected) "Connection" else "Connect to AudioStream",
-                        if (state.connected) "${state.username} · ${syncHostLabel(state.url)}"
-                        else "Sign in to load your library",
-                        enabled = state.canEdit,
-                        onClick = { showConnection = true },
-                    ))
+                    add(
+                        SyncSetting(
+                            if (state.connected) "Connection" else "Connect to AudioStream",
+                            if (state.connected) "${state.username} · ${syncHostLabel(state.url)}"
+                            else "Sign in to load your library",
+                            enabled = state.canEdit,
+                            onClick = { showConnection = true },
+                        )
+                    )
                     if (state.connected) {
-                        add(SyncSetting(
-                            "Library",
-                            if (state.refreshingCatalog) "Refreshing…"
-                            else state.catalog?.let { "${it.tracks.size} songs · ${it.playlists.size} playlists" }
-                                ?: "Load songs and playlists",
-                            enabled = !state.saving,
-                            onClick = {
-                                page = SyncPage.LIBRARY
-                                if (state.catalog == null) model.refreshLibrary()
-                            },
-                        ))
-                        add(SyncSetting("Keep offline", state.musicLabel, state.canEdit, onClick = ::openMusic))
+                        add(
+                            SyncSetting(
+                                "Library",
+                                if (state.refreshingCatalog) "Refreshing…"
+                                else state.catalog?.let { "${it.tracks.size} songs · ${it.playlists.size} playlists" }
+                                    ?: "Load songs and playlists",
+                                enabled = !state.saving,
+                                onClick = {
+                                    page = SyncPage.LIBRARY
+                                    if (state.catalog == null) model.refreshLibrary()
+                                },
+                            )
+                        )
+                        add(
+                            SyncSetting(
+                                "Keep offline",
+                                state.musicLabel,
+                                state.canEdit,
+                                onClick = ::openMusic
+                            )
+                        )
                         if (state.running || state.contentMode != SyncContentMode.NONE || state.lastTime > 0) {
-                            add(SyncSetting(
-                                if (state.running) "Progress" else "Downloads",
-                                state.statusSummary,
-                                onClick = { page = SyncPage.STATUS },
-                            ))
+                            add(
+                                SyncSetting(
+                                    if (state.running) "Progress" else "Downloads",
+                                    state.statusSummary,
+                                    onClick = { page = SyncPage.STATUS },
+                                )
+                            )
                         }
-                        add(SyncSetting("Advanced", "Storage and automatic downloads", state.canEdit,
-                            onClick = { page = SyncPage.ADVANCED }))
+                        add(
+                            SyncSetting(
+                                "Advanced", "Storage and automatic downloads", state.canEdit,
+                                onClick = { page = SyncPage.ADVANCED })
+                        )
                     }
                     add(SyncSetting("Help", onClick = { page = SyncPage.HELP }))
                 }
@@ -104,7 +123,13 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
         )
     }
     when (page) {
-        SyncPage.LIBRARY -> SyncRemoteLibraryPage(state, { page = null }, model::refreshLibrary, model::cancel)
+        SyncPage.LIBRARY -> SyncRemoteLibraryPage(
+            state,
+            { page = null },
+            model::refreshLibrary,
+            model::cancel
+        )
+
         SyncPage.MUSIC -> SyncMusicPage(
             state, { page = null },
             onMode = { mode ->
@@ -122,16 +147,20 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
                 page = SyncPage.SCHEDULE
             },
         )
+
         SyncPage.ADVANCED -> SyncAdvancedPage(
             state, { page = null }, ::chooseFolder, model::useManagedStorage,
-            model::setLayout, {
+            model::setLayout,
+            {
                 scheduleReturnPage = SyncPage.ADVANCED
                 page = SyncPage.SCHEDULE
             },
         )
+
         SyncPage.SCHEDULE -> SyncSchedulePage(
             state, { page = scheduleReturnPage }, ::download, model::setNetwork, model::setInterval,
         )
+
         SyncPage.STATUS -> SyncStatusPage(state, { page = null }, ::download, model::cancel)
         SyncPage.HELP -> SyncHelpPage { page = null }
         null -> Unit

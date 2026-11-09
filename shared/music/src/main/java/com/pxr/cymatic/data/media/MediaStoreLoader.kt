@@ -40,7 +40,7 @@ suspend fun syncAudioFilesToDb(
             val dsfDocuments = scanDsfDocuments(context, directories, scanAllMedia)
             val mediaIndex =
                 queryMediaStoreIndex(context, directories, scanAllMedia) +
-                    dsfDocuments.mapValues { it.value.index() }
+                        dsfDocuments.mapValues { it.value.index() }
             Log.d(
                 "MediaStoreLoader",
                 "Found ${mediaIndex.size} audio entries in MediaStore for directories=$directories scanAllMedia=$scanAllMedia",
@@ -48,9 +48,11 @@ suspend fun syncAudioFilesToDb(
             val dbIndex = repository.getAudioIndex()
             val refreshMetadata =
                 SettingsStore.store.data.first()[metadataReaderVersion] !=
-                    CURRENT_METADATA_READER_VERSION
+                        CURRENT_METADATA_READER_VERSION
 
-            val toDelete = dbIndex.keys - mediaIndex.keys - CymaticDatabase.getInstance(context).audioDao().getRemoteIds().toSet()
+            val toDelete =
+                dbIndex.keys - mediaIndex.keys - CymaticDatabase.getInstance(context).audioDao()
+                    .getRemoteIds().toSet()
             Log.d(
                 "MediaStoreLoader",
                 "Deleting ${toDelete.size} entries from DB that no longer exist in MediaStore",
@@ -62,9 +64,9 @@ suspend fun syncAudioFilesToDb(
                     .filter { (id, mediaEntry) ->
                         val dbEntry = dbIndex[id]
                         refreshMetadata ||
-                            dbEntry == null ||
-                            dbEntry.dateModified != mediaEntry.dateModified ||
-                            dbEntry.size != mediaEntry.size
+                                dbEntry == null ||
+                                dbEntry.dateModified != mediaEntry.dateModified ||
+                                dbEntry.size != mediaEntry.size
                     }
                     .keys
 

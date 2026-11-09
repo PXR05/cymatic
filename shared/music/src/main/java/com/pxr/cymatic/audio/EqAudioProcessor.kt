@@ -8,12 +8,12 @@ import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.data.model.FilterType
 import com.pxr.cymatic.playback.pcmEncodingName
+import org.json.JSONArray
+import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.pow
-import org.json.JSONArray
-import org.json.JSONObject
 
 @UnstableApi
 class EqAudioProcessor : AudioProcessor {
@@ -26,7 +26,8 @@ class EqAudioProcessor : AudioProcessor {
     )
 
     private val pendingUpdate = AtomicReference<FilterState?>(null)
-    @Volatile private var appliedState = FilterState(emptyList(), 1f)
+    @Volatile
+    private var appliedState = FilterState(emptyList(), 1f)
 
     private var activeCoeffs: List<BiquadCoefficients> = emptyList()
     private var activeCoeffsFlat = FloatArray(0)
@@ -38,9 +39,11 @@ class EqAudioProcessor : AudioProcessor {
     private var y1 = FloatArray(0)
     private var y2 = FloatArray(0)
 
-    @Volatile private var inputFormat: AudioFormat = AudioFormat.NOT_SET
+    @Volatile
+    private var inputFormat: AudioFormat = AudioFormat.NOT_SET
     private var outputFormat: AudioFormat = AudioFormat.NOT_SET
-    @Volatile private var isActive = false
+    @Volatile
+    private var isActive = false
 
     private var outputBuffer: ByteBuffer = AudioProcessor.EMPTY_BUFFER
     private var inputEnded = false
@@ -49,9 +52,9 @@ class EqAudioProcessor : AudioProcessor {
         val sampleRateSafe = if (sampleRate > 0) sampleRate else 44100
         val activeBands = bands.filter { band ->
             band.enabled &&
-                !((band.type == FilterType.PEAKING ||
-                    band.type == FilterType.LOW_SHELF ||
-                    band.type == FilterType.HIGH_SHELF) && band.gain == 0.0f)
+                    !((band.type == FilterType.PEAKING ||
+                            band.type == FilterType.LOW_SHELF ||
+                            band.type == FilterType.HIGH_SHELF) && band.gain == 0.0f)
         }
         val coeffs = activeBands.map { BiquadCoefficients.from(it, sampleRateSafe) }
         val preampLinear = 10.0.pow(preampDb / 20.0).toFloat()
@@ -65,7 +68,7 @@ class EqAudioProcessor : AudioProcessor {
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
         return if (
             inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT ||
-                inputAudioFormat.encoding == C.ENCODING_PCM_16BIT
+            inputAudioFormat.encoding == C.ENCODING_PCM_16BIT
         ) {
             inputFormat = inputAudioFormat
             outputFormat = inputAudioFormat

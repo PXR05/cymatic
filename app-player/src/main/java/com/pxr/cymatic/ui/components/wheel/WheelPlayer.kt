@@ -42,9 +42,9 @@ fun WheelPlayer(
     val controller = LocalMediaController.current
     val playback = rememberPlaybackState(controller)
     val settings by
-        SettingsStore.interfaceSettingsFlow.collectAsState(
-            initial = SettingsStore.currentInterfaceSettings
-        )
+    SettingsStore.interfaceSettingsFlow.collectAsState(
+        initial = SettingsStore.currentInterfaceSettings
+    )
     WheelScreenAwake(settings.screenAwakeMode, playback.isPlaying)
     val battery = rememberBatteryState()
     val wheel = remember { WheelNavigation() }
@@ -75,7 +75,9 @@ fun WheelPlayer(
                     playback = playback,
                     volume = volume.volume,
                     maxVolume = volume.maxVolume,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                 )
                 if (!state.controlsPlayback) {
                     WheelPlaybackBar(
@@ -115,6 +117,7 @@ private fun PlayerScreen(
                     onSeekStart = { state.beginSeek(controller) },
                     onSeekEnd = { state.endSeek(controller) },
                 )
+
             WheelPanel.QUICK_SETTINGS,
             WheelPanel.TRACK_ACTIONS -> {
                 WheelPlayerMenu(state, playback, controller)
@@ -150,14 +153,16 @@ private fun WheelOverlays(wheel: WheelNavigation) {
 @Composable
 private fun BrowserInputBarrier() {
     Box(
-        Modifier.fillMaxSize().pointerInput(Unit) {
-            awaitEachGesture {
-                awaitFirstDown().consume()
-                do {
-                    val event = awaitPointerEvent()
-                    event.changes.forEach { it.consume() }
-                } while (event.changes.any { it.pressed })
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown().consume()
+                    do {
+                        val event = awaitPointerEvent()
+                        event.changes.forEach { it.consume() }
+                    } while (event.changes.any { it.pressed })
+                }
             }
-        }
     )
 }

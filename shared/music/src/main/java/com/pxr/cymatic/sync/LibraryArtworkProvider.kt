@@ -9,10 +9,6 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.util.AtomicFile
 import com.pxr.cymatic.data.media.CymaticDatabase
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,14 +17,30 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 class LibraryArtworkProvider : ContentProvider() {
     override fun onCreate() = true
     override fun getType(uri: Uri) = "image/*"
-    override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? = null
+    override fun query(
+        uri: Uri,
+        projection: Array<out String>?,
+        selection: String?,
+        selectionArgs: Array<out String>?,
+        sortOrder: String?
+    ): Cursor? = null
+
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
-    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
+    override fun update(
+        uri: Uri,
+        values: ContentValues?,
+        selection: String?,
+        selectionArgs: Array<out String>?
+    ) = 0
 
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
         if (mode != "r") throw FileNotFoundException("Artwork is read only")
@@ -64,7 +76,8 @@ class LibraryArtworkProvider : ContentProvider() {
 
         fun uri(context: Context, key: RemoteLibraryItemKey, version: Long): Uri = Uri.Builder()
             .scheme("content").authority("${context.packageName}.library-artwork")
-            .appendPath(key.sourceId).appendPath(key.remoteId).appendQueryParameter("v", version.toString()).build()
+            .appendPath(key.sourceId).appendPath(key.remoteId)
+            .appendQueryParameter("v", version.toString()).build()
 
         private suspend fun load(context: Context, key: RemoteLibraryItemKey): File =
             locks.getOrPut(key.audioId()) { Mutex() }.withLock {
@@ -91,21 +104,22 @@ class LibraryArtworkProvider : ContentProvider() {
                     else {
                         val source = SyncCatalogStore.source(context, key.sourceId)
                             ?: throw FileNotFoundException("Library connection unavailable")
-                        RemoteLibraries.client(context, source).openArtwork(key.remoteId).use { response ->
-                            val type = response.contentType.orEmpty().substringBefore(';')
-                            if (!type.startsWith("image/")) throw IOException("The server did not return cover art")
-                            val input = response.input
-                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                            var total = 0L
-                            while (true) {
-                                val count = input.read(buffer)
-                                if (count < 0) break
-                                total += count
-                                if (total > 16L * 1024 * 1024) throw IOException("Cover image is too large")
-                                output.write(buffer, 0, count)
+                        RemoteLibraries.client(context, source).openArtwork(key.remoteId)
+                            .use { response ->
+                                val type = response.contentType.orEmpty().substringBefore(';')
+                                if (!type.startsWith("image/")) throw IOException("The server did not return cover art")
+                                val input = response.input
+                                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                                var total = 0L
+                                while (true) {
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    total += count
+                                    if (total > 16L * 1024 * 1024) throw IOException("Cover image is too large")
+                                    output.write(buffer, 0, count)
+                                }
+                                if (total == 0L) throw IOException("Cover image is empty")
                             }
-                            if (total == 0L) throw IOException("Cover image is empty")
-                        }
                     }
                     atomic.finishWrite(output)
                 } catch (error: Throwable) {

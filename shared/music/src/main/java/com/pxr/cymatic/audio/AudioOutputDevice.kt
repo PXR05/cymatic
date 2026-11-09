@@ -90,6 +90,6 @@ private fun AudioDeviceInfo.toOutputDevice(): AudioOutputDevice {
         type = display.first,
         volumeKey =
             "${display.first.lowercase()}:$keyLabel" +
-                if (display.first == "BT" && address.isNotBlank()) ":$address" else "",
+                    if (display.first == "BT" && address.isNotBlank()) ":$address" else "",
     )
 }

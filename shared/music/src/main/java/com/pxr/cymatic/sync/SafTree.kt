@@ -71,7 +71,12 @@ internal class SafTree(
         }
     }
 
-    override fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
+    override fun copy(
+        source: String,
+        destination: String,
+        mimeType: String,
+        checkCancelled: () -> Unit
+    ) {
         require(source != destination) { "Source and destination must differ" }
         val uri = find(source) ?: throw FileNotFoundException("Could not find $source")
         val expected = size(source)
@@ -108,6 +113,7 @@ internal class SafTree(
                 when {
                     existing == null ->
                         createChild(parent, segment, DocumentsContract.Document.MIME_TYPE_DIR)
+
                     existing.mimeType == DocumentsContract.Document.MIME_TYPE_DIR -> existing.uri
                     else -> throw IllegalStateException("$segment exists and is not a directory")
                 }
@@ -157,7 +163,7 @@ internal class SafTree(
                         )
                         ?.use { cursor ->
                             return cursor.moveToFirst() &&
-                                cursor.getInt(0) and
+                                    cursor.getInt(0) and
                                     DocumentsContract.Document.FLAG_SUPPORTS_RENAME != 0
                         }
                     return false
@@ -175,19 +181,19 @@ internal class SafTree(
                         }
                     } catch (error: Throwable) {
                         runCatching {
-                                val restored =
-                                    DocumentsContract.renameDocument(
-                                        resolver,
-                                        renamed,
-                                        originalName,
+                            val restored =
+                                DocumentsContract.renameDocument(
+                                    resolver,
+                                    renamed,
+                                    originalName,
+                                )
+                                    ?: throw IOException(
+                                        "Could not restore the filename $originalName"
                                     )
-                                        ?: throw IOException(
-                                            "Could not restore the filename $originalName"
-                                        )
-                                childrenByParent
-                                    .getOrPut(directory) { mutableMapOf() }[originalName] =
-                                    Child(restored, mimeType)
-                            }
+                            childrenByParent
+                                .getOrPut(directory) { mutableMapOf() }[originalName] =
+                                Child(restored, mimeType)
+                        }
                             .onFailure(error::addSuppressed)
                         throw error
                     }

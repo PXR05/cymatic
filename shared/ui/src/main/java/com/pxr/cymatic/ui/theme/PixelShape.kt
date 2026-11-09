@@ -27,7 +27,8 @@ class PixelCornerShape(
         layoutDirection: LayoutDirection,
         density: Density
     ): Outline {
-        val rPx = with(density) { cornerRadius.toPx() }.coerceAtMost(minOf(size.width, size.height) / 2f)
+        val rPx =
+            with(density) { cornerRadius.toPx() }.coerceAtMost(minOf(size.width, size.height) / 2f)
         val pPx = with(density) { pixelSize.toPx() }.coerceAtLeast(1f)
 
         if (rPx <= 0f) {

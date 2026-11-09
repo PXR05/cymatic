@@ -53,9 +53,12 @@ internal fun WheelNowPlaying(
         playback.metadata ?: LocalMediaController.current?.currentMediaItem?.toAudioMetadata()
     val toggleCover by rememberUpdatedState(onToggleCover)
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).pointerInput(Unit) {
-            detectTapGestures(onDoubleTap = { toggleCover() })
-        }
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { toggleCover() })
+            }
     ) {
         WheelScreenHeader {
             Icon(
@@ -67,7 +70,8 @@ internal fun WheelNowPlaying(
             )
         }
         BoxWithConstraints(
-            Modifier.weight(1f)
+            Modifier
+                .weight(1f)
                 .fillMaxWidth()
                 .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 20.dp)
         ) {
@@ -106,7 +110,9 @@ internal fun WheelNowPlaying(
                     }
                 }
                 Column(
-                    Modifier.weight(1f).fillMaxWidth(),
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     verticalArrangement =
                         Arrangement.spacedBy(
                             gap / 2,
@@ -115,11 +121,15 @@ internal fun WheelNowPlaying(
                 ) {
                     if (coverVisible) {
                         BoxWithConstraints(
-                            Modifier.weight(1f).fillMaxWidth().padding(vertical = gap * 2),
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(vertical = gap * 2),
                             contentAlignment = Alignment.CenterStart,
                         ) {
                             Box(
-                                Modifier.size(minOf(maxWidth, maxHeight))
+                                Modifier
+                                    .size(minOf(maxWidth, maxHeight))
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center,
@@ -161,7 +171,15 @@ internal fun WheelNowPlaying(
                     )
                 }
                 Spacer(Modifier.height(gap / 2))
-                WheelPlaybackMeters(playback, volume, maxVolume, gap, onSeek, onSeekStart, onSeekEnd)
+                WheelPlaybackMeters(
+                    playback,
+                    volume,
+                    maxVolume,
+                    gap,
+                    onSeek,
+                    onSeekStart,
+                    onSeekEnd
+                )
             }
         }
     }
@@ -176,7 +194,8 @@ private fun FormatBadge(text: String) {
         maxLines = 1,
         color = MaterialTheme.colorScheme.background,
         modifier =
-            Modifier.background(MaterialTheme.colorScheme.onBackground)
+            Modifier
+                .background(MaterialTheme.colorScheme.onBackground)
                 .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }

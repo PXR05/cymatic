@@ -64,10 +64,12 @@ fun EqBandDialog(
                             val coerced = floatVal.coerceIn(20f, 20000f)
                             onBandChange(band.copy(frequency = coerced))
                         }
+
                         "gain" -> {
                             val coerced = floatVal.coerceIn(-12f, 12f)
                             onBandChange(band.copy(gain = coerced))
                         }
+
                         "q" -> {
                             val coerced = floatVal.coerceIn(0.1f, 2f)
                             onBandChange(band.copy(q = coerced))

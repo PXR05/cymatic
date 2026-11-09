@@ -104,7 +104,8 @@ abstract class MusicActivity : ComponentActivity() {
         }
     }
 
-    @Composable protected abstract fun AppContent()
+    @Composable
+    protected abstract fun AppContent()
 
     override fun onResume() {
         super.onResume()
@@ -124,7 +125,7 @@ abstract class MusicActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (
             UsbPlaybackState.volumeActive.value &&
-                (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                     event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
         ) {
             if (event.action == KeyEvent.ACTION_DOWN) {

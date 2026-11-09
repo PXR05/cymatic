@@ -1,9 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
-import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
-import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
-import com.pxr.cymatic.data.model.LibraryFilter
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -13,14 +9,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.sync.LibraryOfflineManager
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.model.LibraryAvailability
+import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
+import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
@@ -29,6 +28,7 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun PlaylistSongsScreen(
@@ -150,8 +150,17 @@ fun PlaylistSongsScreen(
             onKeepOffline = if (playlist?.availability != LibraryAvailability.OFFLINE && audioFiles.isNotEmpty()) ({
                 val source = playlist?.sourceId
                 val remoteId = playlist?.remoteId
-                if (source != null && remoteId != null) LibraryOfflineManager.keepPlaylist(context, source, remoteId, playlist?.name ?: "Playlist")
-                else LibraryOfflineManager.keepPlaylist(context, playlistId, playlist?.name ?: "Playlist")
+                if (source != null && remoteId != null) LibraryOfflineManager.keepPlaylist(
+                    context,
+                    source,
+                    remoteId,
+                    playlist?.name ?: "Playlist"
+                )
+                else LibraryOfflineManager.keepPlaylist(
+                    context,
+                    playlistId,
+                    playlist?.name ?: "Playlist"
+                )
             }) else null,
             title = playlist?.name ?: "Playlist",
             onDismiss = { showHeaderMenu = false },

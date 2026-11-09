@@ -11,17 +11,25 @@ object SyncCatalogStore {
     private val sources = mutableMapOf<String, RemoteLibrarySource>()
 
     @Synchronized
-    internal fun needsMetadataRefresh(context: Context, source: RemoteLibrarySource): Boolean = runCatching {
-        val root = JSONObject(file(context, source.id).openRead().bufferedReader().use { it.readText() })
-        root.optInt("metadataVersion", 1) < 2
-    }.getOrDefault(false)
+    internal fun needsMetadataRefresh(context: Context, source: RemoteLibrarySource): Boolean =
+        runCatching {
+            val root = JSONObject(
+                file(context, source.id).openRead().bufferedReader().use { it.readText() })
+            root.optInt("metadataVersion", 1) < 2
+        }.getOrDefault(false)
 
     @Synchronized
-    fun source(context: Context, sourceId: String): RemoteLibrarySource? = sources[sourceId] ?: runCatching {
-        val root = JSONObject(file(context, sourceId).openRead().bufferedReader().use { it.readText() })
-        RemoteLibrarySource(root.getString("provider"), root.getString("address"), root.getString("account"))
-            .takeIf { it.id == sourceId }
-    }.getOrNull()?.also { sources[sourceId] = it }
+    fun source(context: Context, sourceId: String): RemoteLibrarySource? =
+        sources[sourceId] ?: runCatching {
+            val root = JSONObject(
+                file(context, sourceId).openRead().bufferedReader().use { it.readText() })
+            RemoteLibrarySource(
+                root.getString("provider"),
+                root.getString("address"),
+                root.getString("account")
+            )
+                .takeIf { it.id == sourceId }
+        }.getOrNull()?.also { sources[sourceId] = it }
 
     private fun file(context: Context, sourceId: String): AtomicFile {
         require(sourceId.matches(Regex("[a-f0-9]{64}")))
@@ -48,11 +56,13 @@ object SyncCatalogStore {
         check(legacy.delete()) { "Could not migrate the library catalog" }
     }
 
-    fun read(context: Context, source: RemoteLibrarySource): RemoteCatalog? = read(context, source.id)
+    fun read(context: Context, source: RemoteLibrarySource): RemoteCatalog? =
+        read(context, source.id)
 
     @Synchronized
     internal fun read(context: Context, sourceId: String): RemoteCatalog? = runCatching {
-        val root = JSONObject(file(context, sourceId).openRead().bufferedReader().use { it.readText() })
+        val root =
+            JSONObject(file(context, sourceId).openRead().bufferedReader().use { it.readText() })
         val tracksJson = root.getJSONArray("tracks")
         val tracks = buildList {
             for (index in 0 until tracksJson.length()) {
@@ -92,7 +102,12 @@ object SyncCatalogStore {
     }.getOrNull()
 
     @Synchronized
-    fun write(context: Context, source: RemoteLibrarySource, catalog: RemoteCatalog, metadataVersion: Int = 2) {
+    fun write(
+        context: Context,
+        source: RemoteLibrarySource,
+        catalog: RemoteCatalog,
+        metadataVersion: Int = 2
+    ) {
         val tracks = JSONArray()
         catalog.tracks.forEach { track ->
             tracks.put(
@@ -120,15 +135,15 @@ object SyncCatalogStore {
             )
         }
         val value = JSONObject()
-                .put("metadataVersion", metadataVersion)
-                .put("provider", source.provider)
-                .put("address", source.address)
-                .put("account", source.account)
-                .put("sourceId", source.id)
-                .put("refreshedAt", catalog.refreshedAt)
-                .put("tracks", tracks)
-                .put("playlists", playlists)
-                .toString()
+            .put("metadataVersion", metadataVersion)
+            .put("provider", source.provider)
+            .put("address", source.address)
+            .put("account", source.account)
+            .put("sourceId", source.id)
+            .put("refreshedAt", catalog.refreshedAt)
+            .put("tracks", tracks)
+            .put("playlists", playlists)
+            .toString()
         val target = file(context, source.id)
         val output = target.startWrite()
         try {

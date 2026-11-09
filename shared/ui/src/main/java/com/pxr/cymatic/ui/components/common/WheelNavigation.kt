@@ -111,8 +111,10 @@ fun rememberWheelSelection(
                             when {
                                 canWrap && steps > 0 && current == last ->
                                     (steps - 1).coerceIn(0, last)
+
                                 canWrap && steps < 0 && current == 0 ->
                                     (last + steps + 1).coerceIn(0, last)
+
                                 else -> (current + steps).coerceIn(0, last)
                             }
                         val next = available?.get(nextPosition) ?: nextPosition
@@ -124,14 +126,14 @@ fun rememberWheelSelection(
                 onSelect = {
                     if (
                         count > 0 &&
-                            (availableIndices == null || selection in availableIndices.orEmpty())
+                        (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         select(selection.coerceIn(0, count - 1))
                 },
                 onContext = {
                     if (
                         count > 0 &&
-                            (availableIndices == null || selection in availableIndices.orEmpty())
+                        (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         context(selection.coerceIn(0, count - 1))
                 },

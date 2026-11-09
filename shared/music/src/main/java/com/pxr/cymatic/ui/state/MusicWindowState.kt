@@ -2,7 +2,10 @@ package com.pxr.cymatic.ui.state
 
 import android.content.res.Configuration
 import android.view.Window
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -10,7 +13,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.locals.LocalMediaController
 
-data class MusicWindowState(val hasPlayback: Boolean, val isDocked: Boolean, val isExpanded: Boolean)
+data class MusicWindowState(
+    val hasPlayback: Boolean,
+    val isDocked: Boolean,
+    val isExpanded: Boolean
+)
 
 @Composable
 fun rememberMusicWindowState(window: Window): MusicWindowState {

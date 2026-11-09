@@ -47,19 +47,21 @@ fun CymaticSlider(
                 val down = awaitFirstDown()
                 val width = barWidthPx.toFloat().coerceAtLeast(1f)
                 val startX = down.position.x.coerceIn(0f, width)
-                
+
                 val fraction = startX / width
-                val targetValue = valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
-                
+                val targetValue =
+                    valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
+
                 isDragging = true
                 dragPositionPx = startX.toInt()
                 changeValue(targetValue)
-                
+
                 drag(down.id) { change ->
                     val x = change.position.x.coerceIn(0f, width)
                     val currentFraction = x / width
-                    val currentValue = valueRange.start + currentFraction * (valueRange.endInclusive - valueRange.start)
-                    
+                    val currentValue =
+                        valueRange.start + currentFraction * (valueRange.endInclusive - valueRange.start)
+
                     dragPositionPx = x.toInt()
                     changeValue(currentValue)
                     change.consume()
@@ -76,17 +78,17 @@ fun CymaticSlider(
                     Color(it.red, it.green, it.blue, 0.5f)
                 })
         )
-        
+
         if (barWidthPx > 0) {
             val fraction = if (isDragging) {
                 dragPositionPx.toFloat() / barWidthPx.toFloat()
             } else {
                 (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
             }
-            
+
             val safeFraction = fraction.coerceIn(0f, 1f)
             val progressWidth = barWidthDp * safeFraction
-            
+
             Box(
                 modifier = Modifier
                     .fillMaxHeight()

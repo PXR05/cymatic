@@ -16,22 +16,26 @@ internal class OfflineWorkTracker {
     private val mutableState = MutableStateFlow(OfflineWorkItems())
     val state = mutableState.asStateFlow()
 
-    @Synchronized fun enqueue(sourceId: String, items: OfflineWorkItems): Long {
+    @Synchronized
+    fun enqueue(sourceId: String, items: OfflineWorkItems): Long {
         val id = ++nextId
         requests[id] = sourceId to items
         publish()
         return id
     }
 
-    @Synchronized fun snapshot(sourceId: String): Set<Long> =
+    @Synchronized
+    fun snapshot(sourceId: String): Set<Long> =
         requests.filterValues { it.first == sourceId }.keys.toSet()
 
-    @Synchronized fun finish(ids: Set<Long>) {
+    @Synchronized
+    fun finish(ids: Set<Long>) {
         ids.forEach(requests::remove)
         publish()
     }
 
-    @Synchronized fun setActive(items: OfflineWorkItems) {
+    @Synchronized
+    fun setActive(items: OfflineWorkItems) {
         active = items
         publish()
     }

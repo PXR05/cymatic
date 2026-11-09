@@ -50,13 +50,13 @@ fun SettingsScreen(
                         onClick = { navController.navigate(Screen.LibrarySyncSettings.route) },
                     ),
                 ) +
-                    additionalItems +
-                    listOf(
-                        NavigationItem(
-                            label = "Version",
-                            onClick = { navController.navigate(Screen.VersionSettings.route) },
+                        additionalItems +
+                        listOf(
+                            NavigationItem(
+                                label = "Version",
+                                onClick = { navController.navigate(Screen.VersionSettings.route) },
+                            )
                         )
-                    )
         )
     }
 }

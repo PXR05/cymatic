@@ -3,10 +3,10 @@ package com.pxr.cymatic.audio
 import android.media.AudioManager
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.data.store.DeviceVolumeSettings
-import kotlin.math.roundToInt
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlin.math.roundToInt
 
 /** Runs in the playback service, including when the screen is asleep or the UI is closed. */
 internal class DeviceVolumeMemory(private val audio: AudioManager) {

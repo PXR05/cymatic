@@ -30,7 +30,8 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
     if (LocalWheelNavigation.current != null) {
         WheelContextMenu("Show music", items, onDismiss)
     } else {
-        CymaticDialog("Show music", onDismiss,
+        CymaticDialog(
+            "Show music", onDismiss,
             content = { NavigationList(items) },
             buttons = { CymaticDialogButton("Close", onDismiss) })
     }
@@ -39,8 +40,13 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
 @Composable
 fun LibraryFilterStatus(filter: LibraryFilter) {
     if (filter == LibraryFilter.ALL) return
-    Text("${filter.label} · Show all", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier.fillMaxWidth().clickable { LibraryFilterStore.select(LibraryFilter.ALL) }
+    Text(
+        "${filter.label} · Show all",
+        fontSize = 11.sp,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { LibraryFilterStore.select(LibraryFilter.ALL) }
             .padding(horizontal = 24.dp, vertical = 6.dp))
 }
 

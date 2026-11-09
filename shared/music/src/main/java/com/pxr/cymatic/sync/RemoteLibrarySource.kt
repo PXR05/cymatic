@@ -5,12 +5,14 @@ import java.io.InputStream
 import java.net.URI
 import java.security.MessageDigest
 import java.util.Locale
+
 data class RemoteLibrarySource(val provider: String, val address: String, val account: String) {
     val id: String by lazy {
         val uri = URI(address.trim()).normalize()
         val scheme = uri.scheme?.lowercase(Locale.ROOT)
         val port = if ((scheme == "https" && uri.port == 443) ||
-            (scheme == "http" && uri.port == 80)) -1 else uri.port
+            (scheme == "http" && uri.port == 80)
+        ) -1 else uri.port
         val endpoint = URI(
             scheme, null, uri.host?.lowercase(Locale.ROOT),
             port, uri.path.orEmpty().trimEnd('/'), null, null,
@@ -22,6 +24,7 @@ data class RemoteLibrarySource(val provider: String, val address: String, val ac
 
     fun itemKey(remoteId: String) = RemoteLibraryItemKey(id, remoteId)
 }
+
 data class RemoteLibraryItemKey(val sourceId: String, val remoteId: String)
 
 interface RemoteLibraryClient {
@@ -30,10 +33,13 @@ interface RemoteLibraryClient {
     fun openDownload(trackId: String): RemoteLibraryDownload
     fun openArtwork(trackId: String): RemoteLibraryDownload =
         throw UnsupportedOperationException("Artwork is not supported by this source")
+
     fun openStream(trackId: String, position: Long, length: Long): RemoteLibraryDownload =
         throw UnsupportedOperationException("Streaming is not supported by this source")
+
     fun cancel()
 }
+
 interface RemoteLibraryDownload : Closeable {
     val responseHeaders: Map<String, List<String>> get() = emptyMap()
     val input: InputStream
@@ -46,6 +52,7 @@ interface RemoteCatalogCache {
     fun read(source: RemoteLibrarySource): RemoteCatalog?
     fun write(source: RemoteLibrarySource, catalog: RemoteCatalog)
 }
+
 class LibraryCatalogRepository(
     private val cache: RemoteCatalogCache,
     private val now: () -> Long = System::currentTimeMillis,

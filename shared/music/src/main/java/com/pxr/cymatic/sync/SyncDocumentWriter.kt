@@ -52,7 +52,7 @@ internal class SyncDocumentWriter<D>(private val documents: SyncWritableDocument
             val existing = documents.find(name)
             if (
                 documents.supportsRename(temporary) &&
-                    (existing == null || documents.supportsRename(existing))
+                (existing == null || documents.supportsRename(existing))
             ) {
                 var backup: D? = null
                 try {

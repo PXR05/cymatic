@@ -18,6 +18,7 @@ internal interface SyncStorage {
     fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit)
     fun write(relativePath: String, mimeType: String, writer: (OutputStream) -> Unit)
 }
+
 internal class ManagedSyncStorage(root: File) : SyncStorage {
     private val root = root.canonicalFile
 
@@ -33,14 +34,24 @@ internal class ManagedSyncStorage(root: File) : SyncStorage {
     override fun exists(relativePath: String) = file(relativePath).isFile
     override fun documentUri(relativePath: String): Uri? =
         file(relativePath).takeIf { it.isFile }?.let(Uri::fromFile)
-    override fun size(relativePath: String): Long? = file(relativePath).takeIf { it.isFile }?.length()
+
+    override fun size(relativePath: String): Long? =
+        file(relativePath).takeIf { it.isFile }?.length()
+
     override fun absolutePath(relativePath: String): String? = null
     override fun delete(relativePath: String) = file(relativePath).delete()
-    override fun readText(relativePath: String) = file(relativePath).takeIf { it.isFile }?.readText()
+    override fun readText(relativePath: String) =
+        file(relativePath).takeIf { it.isFile }?.readText()
+
     override fun writeText(relativePath: String, value: String) =
         write(relativePath, "application/json") { it.write(value.toByteArray(Charsets.UTF_8)) }
 
-    override fun copy(source: String, destination: String, mimeType: String, checkCancelled: () -> Unit) {
+    override fun copy(
+        source: String,
+        destination: String,
+        mimeType: String,
+        checkCancelled: () -> Unit
+    ) {
         require(source != destination) { "Source and destination must differ" }
         file(source).inputStream().buffered().use { input ->
             write(destination, mimeType) { output ->
@@ -65,8 +76,10 @@ internal class ManagedSyncStorage(root: File) : SyncStorage {
                 writer(output)
                 output.fd.sync()
             }
-            Files.move(temporary.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING)
+            Files.move(
+                temporary.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            )
         } finally {
             temporary.delete()
         }

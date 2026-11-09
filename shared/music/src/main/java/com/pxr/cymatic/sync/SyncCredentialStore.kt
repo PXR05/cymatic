@@ -37,7 +37,10 @@ object SyncCredentialStore {
         }
         val encrypted = cipher.doFinal(password.toByteArray(Charsets.UTF_8))
         val value = Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP)
-        check(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(key, value).commit()) {
+        check(
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(key, value)
+                .commit()
+        ) {
             "Could not save library credentials"
         }
     }
@@ -55,7 +58,8 @@ object SyncCredentialStore {
         cipher.doFinal(encrypted).toString(Charsets.UTF_8)
     }.getOrNull()
 
-    fun hasPassword(context: Context, sourceId: String? = null): Boolean = getPassword(context, sourceId) != null
+    fun hasPassword(context: Context, sourceId: String? = null): Boolean =
+        getPassword(context, sourceId) != null
 
     private fun getOrCreateKey(): SecretKey {
         val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

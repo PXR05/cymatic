@@ -38,7 +38,8 @@ internal fun WheelPlaybackMeters(
     val usbVolume by UsbVolumeState.level.collectAsState()
     val requestedVolume by UsbVolumeState.requestedPercent.collectAsState()
     val duration = (playback.durationMs ?: 0L).coerceAtLeast(0L)
-    val position = playback.currentPositionMs.coerceAtLeast(0L).let { if (duration > 0) it.coerceAtMost(duration) else it }
+    val position = playback.currentPositionMs.coerceAtLeast(0L)
+        .let { if (duration > 0) it.coerceAtMost(duration) else it }
     val volumeLimit = maxVolume.coerceAtLeast(1)
     Column(
         Modifier.fillMaxWidth(),
@@ -67,6 +68,7 @@ internal fun WheelPlaybackMeters(
                         usbVolume.muted -> "MUTE"
                         usbVolume.decibels != null ->
                             String.format(Locale.ROOT, "%.0f dB", usbVolume.decibels)
+
                         else -> "$requestedVolume%"
                     }
                 else "${volume * 100 / volumeLimit}%",
