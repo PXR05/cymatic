@@ -9,23 +9,28 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncProgress
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.locals.LocalNavController
 
-private enum class SyncPage { LIBRARY, MUSIC, ADVANCED, SCHEDULE, STATUS, HELP }
+private enum class SyncPage { LIBRARY, BULK_DOWNLOADS, ADVANCED, SCHEDULE, STATUS, HELP }
 
 @Composable
 fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
     val model: LibrarySyncSettingsViewModel = viewModel()
     val state by model.state.collectAsState()
     val nav = LocalNavController.current
-    var page by remember { mutableStateOf<SyncPage?>(null) }
-    var scheduleReturnPage by remember { mutableStateOf(SyncPage.ADVANCED) }
+    var page by rememberSaveable { mutableStateOf<SyncPage?>(null) }
+    var bulkReturnPage by rememberSaveable { mutableStateOf(SyncPage.ADVANCED) }
+    var scheduleReturnPage by rememberSaveable { mutableStateOf(SyncPage.ADVANCED) }
     var showConnection by remember { mutableStateOf(false) }
     var showPlaylists by remember { mutableStateOf(false) }
     var refreshAfterSave by remember { mutableStateOf(false) }
@@ -52,8 +57,9 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
         folderPicker.launch(state.directory.takeIf { it.isNotBlank() }?.let(Uri::parse))
     }
 
-    fun openMusic() {
-        page = SyncPage.MUSIC
+    fun openBulkDownloads() {
+        if (page != SyncPage.BULK_DOWNLOADS) bulkReturnPage = page ?: SyncPage.ADVANCED
+        page = SyncPage.BULK_DOWNLOADS
         if (state.catalog == null) model.refreshLibrary()
     }
 
@@ -61,7 +67,9 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
         when (state.nextStep) {
             SyncSetupStep.CONNECTION -> showConnection = true
             SyncSetupStep.FOLDER -> chooseFolder()
-            SyncSetupStep.MUSIC -> openMusic()
+            SyncSetupStep.MUSIC -> if (state.contentMode == SyncContentMode.NONE) {
+                nav.navigate(Screen.AllSongs.createRoute())
+            } else openBulkDownloads()
             null -> model.startSync()
         }
     }
@@ -96,24 +104,14 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
                         )
                         add(
                             SyncSetting(
-                                "Keep offline",
-                                state.musicLabel,
-                                state.canEdit,
-                                onClick = ::openMusic
+                                "Downloads",
+                                state.statusSummary,
+                                onClick = { page = SyncPage.STATUS },
                             )
                         )
-                        if (state.running || state.contentMode != SyncContentMode.NONE || state.lastTime > 0) {
-                            add(
-                                SyncSetting(
-                                    if (state.running) "Progress" else "Downloads",
-                                    state.statusSummary,
-                                    onClick = { page = SyncPage.STATUS },
-                                )
-                            )
-                        }
                         add(
                             SyncSetting(
-                                "Advanced", "Storage and automatic downloads", state.canEdit,
+                                "Advanced", "Storage, bulk downloads and scheduling", state.canEdit,
                                 onClick = { page = SyncPage.ADVANCED })
                         )
                     }
@@ -130,8 +128,8 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
             model::cancel
         )
 
-        SyncPage.MUSIC -> SyncMusicPage(
-            state, { page = null },
+        SyncPage.BULK_DOWNLOADS -> SyncBulkDownloadsPage(
+            state, { page = bulkReturnPage },
             onMode = { mode ->
                 model.setContentMode(mode)
                 if (mode == SyncContentMode.SELECTED_PLAYLISTS && state.catalog == null)
@@ -143,7 +141,7 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
             },
             onDownload = ::download,
             onSchedule = {
-                scheduleReturnPage = SyncPage.MUSIC
+                scheduleReturnPage = SyncPage.BULK_DOWNLOADS
                 page = SyncPage.SCHEDULE
             },
         )
@@ -151,6 +149,7 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
         SyncPage.ADVANCED -> SyncAdvancedPage(
             state, { page = null }, ::chooseFolder, model::useManagedStorage,
             model::setLayout,
+            ::openBulkDownloads,
             {
                 scheduleReturnPage = SyncPage.ADVANCED
                 page = SyncPage.SCHEDULE
@@ -161,7 +160,13 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
             state, { page = scheduleReturnPage }, ::download, model::setNetwork, model::setInterval,
         )
 
-        SyncPage.STATUS -> SyncStatusPage(state, { page = null }, ::download, model::cancel)
+        SyncPage.STATUS -> SyncStatusPage(
+            state, { page = null }, ::download, model::cancel,
+            onOfflineLibrary = {
+                LibraryFilterStore.select(LibraryFilter.OFFLINE)
+                nav.navigate(Screen.AllSongs.createRoute())
+            },
+        )
         SyncPage.HELP -> SyncHelpPage { page = null }
         null -> Unit
     }

@@ -42,6 +42,7 @@ import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.launch
 
@@ -145,6 +146,7 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
             NavigationList(
                 listOf(
                     NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
+                    NavigationItem("USB audio") { navController.navigate(Screen.UsbSettings.route) },
                     NavigationItem(
                         "Auto-resume",
                         if (resumeOnBt) "On" else "Off",
@@ -190,6 +192,15 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
                 subtitle = "Output Type: ${activeDevice.type}",
                 actionLabel = "CHANGE",
                 onActionClick = { openOutputSwitcher() },
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            SettingsActionRow(
+                title = "USB audio",
+                subtitle = "Direct USB playback and device settings",
+                actionLabel = "OPEN",
+                onActionClick = { navController.navigate(Screen.UsbSettings.route) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))

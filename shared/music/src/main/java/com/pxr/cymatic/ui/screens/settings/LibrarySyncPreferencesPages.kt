@@ -3,6 +3,12 @@ package com.pxr.cymatic.ui.screens.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.sync.SyncContentMode
@@ -10,7 +16,7 @@ import com.pxr.cymatic.sync.SyncLayout
 import com.pxr.cymatic.sync.SyncNetwork
 
 @Composable
-internal fun SyncMusicPage(
+internal fun SyncBulkDownloadsPage(
     state: LibrarySyncSettingsState,
     onDismiss: () -> Unit,
     onMode: (SyncContentMode) -> Unit,
@@ -18,11 +24,11 @@ internal fun SyncMusicPage(
     onDownload: () -> Unit,
     onSchedule: () -> Unit,
 ) {
-    SyncSettingsPage("Keep offline", onDismiss) {
+    SyncSettingsPage("Bulk downloads", onDismiss) {
         SyncSettingsList(buildList {
             add(
                 SyncSetting(
-                    "Keep offline", state.contentMode.label, state.canEdit,
+                    "Music to download", state.contentMode.label, state.canEdit,
                     SyncContentMode.entries.map { it.label },
                     onChoose = { value -> onMode(SyncContentMode.entries.first { it.label == value }) },
                 )
@@ -57,13 +63,6 @@ internal fun SyncMusicPage(
                     )
                 )
             }
-            add(
-                SyncSetting(
-                    "About offline music",
-                    "Long press a song or playlist in the library and choose Keep offline. Playback uses the downloaded copy whenever it is available.",
-                    enabled = false,
-                )
-            )
         })
     }
 }
@@ -75,6 +74,7 @@ internal fun SyncAdvancedPage(
     onFolder: () -> Unit,
     onManagedStorage: () -> Unit,
     onLayout: (SyncLayout) -> Unit,
+    onBulkDownloads: () -> Unit,
     onSchedule: () -> Unit,
 ) {
     SyncSettingsPage("Advanced", onDismiss) {
@@ -102,6 +102,12 @@ internal fun SyncAdvancedPage(
                     "Folder layout", state.layout.label, state.canEdit,
                     SyncLayout.entries.map { it.label },
                     onChoose = { value -> onLayout(SyncLayout.entries.first { it.label == value }) },
+                )
+            )
+            add(
+                SyncSetting(
+                    "Bulk downloads", state.musicLabel, state.canEdit,
+                    onClick = onBulkDownloads,
                 )
             )
             add(
@@ -172,15 +178,49 @@ internal fun SyncSchedulePage(
 
 @Composable
 internal fun SyncHelpPage(onDismiss: () -> Unit) {
-    SyncReadingPage("Remote library", onDismiss) {
-        Text("Connect your library")
-        Text("Enter your AudioStream server address and login. Connecting adds songs and playlists to your app library without downloading audio. Tap a song to stream it; playback uses an offline copy when one is available.")
-        Text("Keep music offline")
-        Text("Long press a song or playlist and choose Keep offline. Cymatic manages storage automatically. You can also download all music or selected playlists here.")
-        Text("When you first enable offline music, automatic downloads use Wi-Fi with a daily check. Change this in Advanced → Automatic downloads.")
-        Text("Storage and downloads")
-        Text("Advanced contains custom folders, folder layout, and automatic downloads. Existing custom folders stay selected. Cymatic storage is private to this app and is removed if you uninstall it. Changing storage leaves existing files in place and may download another copy.")
-        Text("Library icons")
-        Text("The download icon means available offline. The cloud with a download arrow means partially offline. The cloud means stream only. Choosing items in the library keeps their offline selections, including when you change the bulk download setting.")
+    SyncReadingPage("Remote library help", onDismiss) {
+        SyncHelpSection(
+            "Connect and listen",
+            "Enter your AudioStream server address, username and password in Connection.",
+            "Connecting adds songs, albums and playlists to your library without downloading audio. Tap a song to stream it. Playback uses its offline copy when one is available.",
+        )
+        SyncHelpSection(
+            "Keep music offline",
+            "Long press a song, playlist, album or artist and choose Keep offline. You can add more items while downloads are running.",
+            "A small animated icon marks queued or processing music. Open Downloads to check progress, stop downloads or retry them.",
+            "Hold Menu in the library and choose Show → Offline only to browse downloaded music. Choose Not offline to find music that still needs downloading.",
+        )
+        SyncHelpSection(
+            "Library icons",
+            "Download arrow: available offline. Half-filled circle: partially offline. Cloud: stream only.",
+            "The animated loading icon returns to the availability icon when processing ends.",
+        )
+        SyncHelpSection(
+            "Bulk and automatic downloads",
+            "Advanced → Bulk downloads lets you download all music or selected playlists. Choose in library keeps individual Keep offline selections in control.",
+            "When offline music is first enabled, automatic downloads default to a daily Wi-Fi check. Change the network and frequency in Advanced → Automatic downloads.",
+        )
+        SyncHelpSection(
+            "Download storage",
+            "Cymatic manages storage automatically. Advanced contains custom folders and folder layout settings.",
+            "Cymatic storage is private to this app and is removed when you uninstall it. Changing storage leaves existing files in place and may download another copy.",
+        )
+        SyncHelpSection(
+            "One-way sync",
+            "Library changes are imported from AudioStream. Local files and playlist edits are not uploaded. Refreshing may replace local edits to server playlists.",
+        )
+    }
+}
+
+@Composable
+private fun SyncHelpSection(title: String, vararg paragraphs: String) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        paragraphs.forEach { Text(it) }
     }
 }

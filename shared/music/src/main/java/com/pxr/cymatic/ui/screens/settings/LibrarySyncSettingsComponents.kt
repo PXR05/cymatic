@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -109,8 +110,21 @@ internal fun SyncReadingPage(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val readingContent: @Composable () -> Unit = {
+        ProvideTextStyle(
+            MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 14.sp,
+                lineHeight = 21.sp,
+            )
+        ) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                content()
+            }
+        }
+    }
     if (LocalWheelNavigation.current != null) {
-        WheelReadingPage(title, onDismiss, content)
+        WheelReadingPage(title, onDismiss, readingContent)
     } else {
         SyncSettingsPage(title, onDismiss) {
             Column(
@@ -118,9 +132,8 @@ internal fun SyncReadingPage(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                content()
+                readingContent()
             }
         }
     }
@@ -162,6 +175,7 @@ internal fun SyncStatusPage(
     onDismiss: () -> Unit,
     onStart: () -> Unit,
     onCancel: () -> Unit,
+    onOfflineLibrary: () -> Unit,
 ) {
     val context = LocalContext.current
     val isRunning = state.running
@@ -181,7 +195,8 @@ internal fun SyncStatusPage(
                 )
             } else {
                 NavigationItem(
-                    label = "Download now",
+                    label = if (state.nextStep == SyncSetupStep.MUSIC && state.contentMode == com.pxr.cymatic.sync.SyncContentMode.NONE)
+                        "Choose music in library" else "Download now",
                     subLabel =
                         if (state.nextStep == null) "Download ${state.musicLabel.lowercase()}"
                         else "Choose music to keep offline",
@@ -191,6 +206,15 @@ internal fun SyncStatusPage(
                     onClick = onStart,
                 )
             }
+        )
+
+        add(
+            NavigationItem(
+                label = "Browse offline music",
+                subLabel = "Music available without internet",
+                key = "offline_library",
+                onClick = onOfflineLibrary,
+            )
         )
 
         add(

@@ -43,8 +43,8 @@ internal class WheelPlayerState(
     previousPanel: WheelPanel = WheelPanel.BROWSER,
     coverVisible: Boolean = true,
     coverDefault: Boolean = true,
-    browserRoute: String = MUSIC_BROWSER_ROUTE,
-    browserRoot: String = MUSIC_BROWSER_ROUTE,
+    browserRoute: String = Screen.AllSongs.createRoute(),
+    browserRoot: String = libraryRoot(browserRoute),
     internal var needsBackStackRestore: Boolean = false,
 ) {
     var panel by mutableStateOf(panel)
@@ -59,10 +59,12 @@ internal class WheelPlayerState(
     var coverDefault by mutableStateOf(coverDefault)
         private set
 
-    var browserRoute by mutableStateOf(browserRoute)
+    var browserRoute by mutableStateOf(browserRoute.currentLibraryRoute())
         private set
 
-    var browserRoot by mutableStateOf(browserRoot)
+    var browserRoot by mutableStateOf(
+        if (browserRoot == MUSIC_BROWSER_ROUTE) libraryRoot(this.browserRoute) else browserRoot
+    )
         private set
 
     var showPlaylistPicker by mutableStateOf(false)
@@ -120,15 +122,9 @@ internal class WheelPlayerState(
     }
 
     fun rememberBrowser(entry: NavBackStackEntry?) {
-        val route = entry?.musicBrowserRoute() ?: return
+        val route = entry?.musicBrowserRoute()?.currentLibraryRoute() ?: return
         browserRoute = route
-        browserRoot =
-            when (entry.destination.route) {
-                Screen.Playlists.route,
-                Screen.PlaylistSongs.route -> Screen.Playlists.route
-
-                else -> MUSIC_BROWSER_ROUTE
-            }
+        browserRoot = libraryRoot(route)
     }
 
     fun mainMenu() {
@@ -208,9 +204,19 @@ internal class WheelPlayerState(
     internal fun applyPersistedState(saved: WheelPageState) {
         panel = saved.panel.toWheelPanel()
         previousPanel = saved.previousPanel.toWheelPanel()
-        browserRoute = saved.browserRoute
-        browserRoot = saved.browserRoot
+        browserRoute = saved.browserRoute.currentLibraryRoute()
+        browserRoot = libraryRoot(browserRoute)
     }
+}
+
+private fun String.currentLibraryRoute(): String =
+    if (this == MUSIC_BROWSER_ROUTE) Screen.AllSongs.createRoute() else this
+
+private fun libraryRoot(route: String): String = when (route.substringBefore('/').substringBefore('?')) {
+    "artist", "artists" -> Screen.Artists.route
+    "album", "albums" -> Screen.Albums.route
+    "playlist", "playlists" -> Screen.Playlists.route
+    else -> Screen.AllSongs.createRoute()
 }
 
 private fun String.toWheelPanel(): WheelPanel =
@@ -260,8 +266,8 @@ internal fun rememberWheelPlayerState(
                 previousPanel = saved?.previousPanel?.toWheelPanel() ?: WheelPanel.BROWSER,
                 coverVisible = coverDefault,
                 coverDefault = coverDefault,
-                browserRoute = saved?.browserRoute ?: MUSIC_BROWSER_ROUTE,
-                browserRoot = saved?.browserRoot ?: MUSIC_BROWSER_ROUTE,
+                browserRoute = saved?.browserRoute ?: Screen.AllSongs.createRoute(),
+                browserRoot = saved?.browserRoot ?: Screen.AllSongs.createRoute(),
                 needsBackStackRestore = true,
             )
         }
@@ -284,6 +290,7 @@ internal fun rememberWheelPlayerState(
                     navigator.backStack.value.mapNotNull { it.resolvedRoute() }
                 if (currentRoutes.size <= 1 && saved.backStack.isNotEmpty()) {
                     saved.backStack
+                        .filterNot { it == MUSIC_BROWSER_ROUTE }
                         .dropWhile { it == Screen.Home.route }
                         .forEach { route ->
                             runCatching { nav.navigate(route) { launchSingleTop = true } }
