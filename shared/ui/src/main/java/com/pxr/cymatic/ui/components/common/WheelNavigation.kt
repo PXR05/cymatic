@@ -24,10 +24,11 @@ data class WheelActions(
 
 class WheelNavigation {
     private data class Handler(val actions: WheelActions, val overlay: WheelOverlay?)
+    private data class MenuHoldHandler(val onMenuHold: () -> Unit, val overlay: WheelOverlay?)
 
     private val handlers = mutableStateListOf<Handler>()
     private val overlayStack = mutableStateListOf<WheelOverlay>()
-    private val menuHoldHandlers = mutableStateListOf<() -> Unit>()
+    private val menuHoldHandlers = mutableStateListOf<MenuHoldHandler>()
     val actions: WheelActions?
         get() = handlers.lastOrNull { it.overlay === overlay }?.actions
 
@@ -38,17 +39,17 @@ class WheelNavigation {
         get() = overlayStack.lastOrNull()
 
     val onMenuHold: (() -> Unit)?
-        get() = menuHoldHandlers.lastOrNull()
+        get() = menuHoldHandlers.lastOrNull { it.overlay === overlay }?.onMenuHold
 
     var onPlaybackRequested: () -> Unit = {}
     var onBackRequested: (() -> Unit)? = null
 
-    fun registerMenuHold(handler: () -> Unit) {
-        menuHoldHandlers.add(handler)
+    fun registerMenuHold(handler: () -> Unit, overlay: WheelOverlay? = null) {
+        menuHoldHandlers.add(MenuHoldHandler(handler, overlay))
     }
 
     fun unregisterMenuHold(handler: () -> Unit) {
-        menuHoldHandlers.removeAll { it === handler }
+        menuHoldHandlers.removeAll { it.onMenuHold === handler }
     }
 
     fun register(actions: WheelActions, overlay: WheelOverlay? = null) {

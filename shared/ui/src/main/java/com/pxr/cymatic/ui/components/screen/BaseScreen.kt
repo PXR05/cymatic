@@ -18,6 +18,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.LocalWheelOverlay
 
 val LocalScreenBackdrop = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 val LocalScreenNotice = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
@@ -39,15 +40,16 @@ fun BaseScreen(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val wheel = LocalWheelNavigation.current
+    val overlay = LocalWheelOverlay.current
     val back = if (onBackClick != null) wheel?.onBackRequested ?: onBackClick else null
     val backdrop = if (showWallpaperBackdrop) LocalScreenBackdrop.current else null
 
     val menuHold = onMenuLongClick ?: onTitleClick
     if (menuHold != null && wheel != null) {
         val currentMenuHold by rememberUpdatedState(menuHold)
-        DisposableEffect(wheel) {
+        DisposableEffect(wheel, overlay) {
             val handler: () -> Unit = { currentMenuHold() }
-            wheel.registerMenuHold(handler)
+            wheel.registerMenuHold(handler, overlay)
             onDispose {
                 wheel.unregisterMenuHold(handler)
             }
