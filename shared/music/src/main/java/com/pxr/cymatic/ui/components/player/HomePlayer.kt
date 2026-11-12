@@ -124,6 +124,7 @@ fun HomePlayer(modifier: Modifier = Modifier, onMaximize: (() -> Unit)? = null) 
             ProgressBar(
                 currentPosition = playbackState.currentPositionMs,
                 durationMs = durationMs,
+                isBuffering = playbackState.isBuffering,
                 onSeek = { mediaController.seekTo(it) },
                 showNumber = false
             )

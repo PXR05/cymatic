@@ -23,7 +23,10 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
 
     BaseScreen(title = "Current queue", onBackClick = { nav.popBackStack() }) {
         if (playback.queue.items.isEmpty()) {
-            EmptyState(title = "Queue is empty", message = "Choose a song from your library or playlists.")
+            EmptyState(
+                title = "Queue is empty",
+                message = "Choose a song from your library or playlists."
+            )
         } else {
             NavigationList(
                 playback.queue.items.mapIndexed { index, entry ->

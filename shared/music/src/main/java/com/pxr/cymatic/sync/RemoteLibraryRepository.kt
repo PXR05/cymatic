@@ -27,11 +27,11 @@ internal object RemoteLibraryRepository {
             SyncCatalogStore.write(context, current, currentCatalog, metadataVersion = 1)
         File(context.filesDir, "library-catalogs").listFiles().orEmpty()
             .filter { it.extension == "json" }.forEach { file ->
-            val source =
-                SyncCatalogStore.source(context, file.nameWithoutExtension) ?: return@forEach
-            val catalog = SyncCatalogStore.read(context, source) ?: return@forEach
-            publish(context, source, catalog)
-        }
+                val source =
+                    SyncCatalogStore.source(context, file.nameWithoutExtension) ?: return@forEach
+                val catalog = SyncCatalogStore.read(context, source) ?: return@forEach
+                publish(context, source, catalog)
+            }
         if (refreshMetadata && SyncCredentialStore.hasPassword(context, current.id))
             LibraryCatalogManager.refresh(context)
     }

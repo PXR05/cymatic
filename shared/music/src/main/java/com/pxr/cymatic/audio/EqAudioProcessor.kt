@@ -26,6 +26,7 @@ class EqAudioProcessor : AudioProcessor {
     )
 
     private val pendingUpdate = AtomicReference<FilterState?>(null)
+
     @Volatile
     private var appliedState = FilterState(emptyList(), 1f)
 
@@ -42,6 +43,7 @@ class EqAudioProcessor : AudioProcessor {
     @Volatile
     private var inputFormat: AudioFormat = AudioFormat.NOT_SET
     private var outputFormat: AudioFormat = AudioFormat.NOT_SET
+
     @Volatile
     private var isActive = false
 

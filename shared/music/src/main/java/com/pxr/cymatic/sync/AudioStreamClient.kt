@@ -24,6 +24,8 @@ class AudioStreamClient(
     private val cancelled = AtomicBoolean(false)
     private val activeConnection = AtomicReference<HttpURLConnection?>(null)
 
+    fun authenticate() = ensureAuthenticated()
+
     override fun cancel() {
         cancelled.set(true)
         activeConnection.getAndSet(null)?.disconnect()

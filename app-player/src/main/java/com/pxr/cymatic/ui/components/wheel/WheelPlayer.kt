@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,9 +19,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.data.store.currentInterfaceSettings
 import com.pxr.cymatic.data.store.interfaceSettingsFlow
+import com.pxr.cymatic.setup.MusicSetupScreen
+import com.pxr.cymatic.setup.MusicSetupStep
+import com.pxr.cymatic.setup.MusicSetupViewModel
 import com.pxr.cymatic.ui.components.BatteryIndicator
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.LocalWheelOverlay
@@ -31,6 +36,7 @@ import com.pxr.cymatic.ui.components.screen.LocalScreenHeaderStatus
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.state.PlaybackState
 import com.pxr.cymatic.ui.state.rememberPlaybackState
 
@@ -39,6 +45,9 @@ fun WheelPlayer(
     onUpdateScreenBounds: (Rect?) -> Unit = {},
     onUpdateWheelBounds: (Offset?, Float?) -> Unit = { _, _ -> },
 ) {
+    val setup: MusicSetupViewModel = viewModel()
+    val setupState by setup.state.collectAsState()
+    val settingUp = setupState.step != MusicSetupStep.COMPLETE
     val controller = LocalMediaController.current
     val playback = rememberPlaybackState(controller)
     val settings by
@@ -51,11 +60,20 @@ fun WheelPlayer(
     val state =
         rememberWheelPlayerState(LocalNavController.current, wheel, settings.coverVisibleByDefault)
     val volume = rememberMusicVolumeState(poll = state.controlsPlayback)
-    val controls = WheelPlayerControls(state, controller, volume, playback.durationMs)
+    val controls = WheelPlayerControls(
+        state, controller, volume, playback.durationMs,
+        setupBack = if (settingUp) setup::back else null
+    )
+    LaunchedEffect(setupState.step) {
+        if (setupState.step == MusicSetupStep.COMPLETE && setupState.openLibrary) {
+            state.open(Screen.AllSongs.createRoute())
+            setup.libraryOpened()
+        }
+    }
 
     SideEffect {
         wheel.onPlaybackRequested = state::nowPlaying
-        wheel.onBackRequested = state::back
+        wheel.onBackRequested = if (settingUp) setup::back else state::back
     }
 
     Surface(Modifier.fillMaxSize()) {
@@ -70,16 +88,25 @@ fun WheelPlayer(
                 onUpdateScreenBounds = onUpdateScreenBounds,
                 onUpdateWheelBounds = onUpdateWheelBounds,
             ) {
-                PlayerScreen(
-                    state = state,
-                    playback = playback,
-                    volume = volume.volume,
-                    maxVolume = volume.maxVolume,
-                    modifier = Modifier
+                if (settingUp) {
+                    Box(Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
-                )
-                if (!state.controlsPlayback) {
+                        .fillMaxWidth()) {
+                        MusicSetupScreen(setup, Modifier.fillMaxSize())
+                        WheelOverlays(wheel)
+                    }
+                } else {
+                    PlayerScreen(
+                        state = state,
+                        playback = playback,
+                        volume = volume.volume,
+                        maxVolume = volume.maxVolume,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                }
+                if (!settingUp && !state.controlsPlayback) {
                     WheelPlaybackBar(
                         title = controller?.currentMediaItem?.mediaMetadata?.title?.toString(),
                         isPlaying = playback.isPlaying,
@@ -87,7 +114,7 @@ fun WheelPlayer(
                     )
                 }
             }
-            WheelTrackDialogs(state, playback.currentMediaId)
+            if (!settingUp) WheelTrackDialogs(state, playback.currentMediaId)
         }
     }
 }

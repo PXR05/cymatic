@@ -1,5 +1,11 @@
 package com.pxr.cymatic.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -24,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -33,7 +40,8 @@ internal fun PixelMeter(
     modifier: Modifier = Modifier,
     onDragStart: (() -> Unit)? = null,
     onDragEnd: (() -> Unit)? = null,
-    onFractionChange: ((Float) -> Unit)? = null
+    onFractionChange: ((Float) -> Unit)? = null,
+    isBuffering: Boolean = false,
 ) {
     val onStart by rememberUpdatedState(onDragStart)
     val onEnd by rememberUpdatedState(onDragEnd)
@@ -41,11 +49,25 @@ internal fun PixelMeter(
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     val progress = (dragFraction ?: fraction).coerceIn(0f, 1f)
     val color = MaterialTheme.colorScheme.onBackground
+    val loadingPhase = if (isBuffering) {
+        val transition = rememberInfiniteTransition(label = "Playback buffering")
+        val phase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(650, easing = LinearEasing),
+                RepeatMode.Reverse
+            ),
+            label = "Buffering pulse",
+        )
+        phase
+    } else 0f
     Box(
         modifier
             .semantics {
                 contentDescription = description
                 progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f)
+                if (isBuffering) stateDescription = "Buffering"
                 if (onFractionChange != null) setProgress { value ->
                     onStart?.invoke()
                     onChange?.invoke(value.coerceIn(0f, 1f))
@@ -82,7 +104,7 @@ internal fun PixelMeter(
                 .fillMaxWidth()
                 .height(20.dp)
         ) {
-            drawRect(color.copy(alpha = 0.10f))
+            drawRect(color.copy(alpha = if (isBuffering) 0.10f + loadingPhase * 0.20f else 0.10f))
             val pixel = 1.dp.toPx()
             val gap = 3.dp.toPx()
             var row = 0
@@ -96,7 +118,15 @@ internal fun PixelMeter(
                 row++
                 y += gap
             }
-            if (progress > 0f) drawRect(color, size = Size(size.width * progress, size.height))
+            if (progress > 0f) drawRect(
+                color.copy(alpha = if (isBuffering) 0.55f + loadingPhase * 0.45f else 1f),
+                size = Size(size.width * progress, size.height),
+            )
+            if (isBuffering && progress > 0f) drawRect(
+                color,
+                Offset((size.width * progress - 2.dp.toPx()).coerceAtLeast(0f), 0f),
+                Size(2.dp.toPx(), size.height),
+            )
         }
     }
 }

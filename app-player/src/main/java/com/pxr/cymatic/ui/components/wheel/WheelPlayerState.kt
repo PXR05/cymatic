@@ -212,12 +212,13 @@ internal class WheelPlayerState(
 private fun String.currentLibraryRoute(): String =
     if (this == MUSIC_BROWSER_ROUTE) Screen.AllSongs.createRoute() else this
 
-private fun libraryRoot(route: String): String = when (route.substringBefore('/').substringBefore('?')) {
-    "artist", "artists" -> Screen.Artists.route
-    "album", "albums" -> Screen.Albums.route
-    "playlist", "playlists" -> Screen.Playlists.route
-    else -> Screen.AllSongs.createRoute()
-}
+private fun libraryRoot(route: String): String =
+    when (route.substringBefore('/').substringBefore('?')) {
+        "artist", "artists" -> Screen.Artists.route
+        "album", "albums" -> Screen.Albums.route
+        "playlist", "playlists" -> Screen.Playlists.route
+        else -> Screen.AllSongs.createRoute()
+    }
 
 private fun String.toWheelPanel(): WheelPanel =
     WheelPanel.entries.firstOrNull { it.name == this } ?: WheelPanel.BROWSER

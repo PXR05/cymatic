@@ -22,8 +22,10 @@ internal object UsbDsdSupport {
 
     @Volatile
     private var capability: Capability? = null
+
     @Volatile
     private var selectedMode: DsdUsbMode? = null
+
     @Volatile
     private var knownInterface = false
     private val failedRates = ConcurrentHashMap.newKeySet<Int>()

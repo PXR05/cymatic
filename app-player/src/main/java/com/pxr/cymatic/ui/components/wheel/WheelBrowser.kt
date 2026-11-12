@@ -36,7 +36,9 @@ private fun MainMenu(state: WheelPlayerState) {
         NavigationList(
             listOf(
                 NavigationItem("Now Playing", onClick = state::nowPlaying),
-                NavigationItem("All Songs", onClick = { state.open(Screen.AllSongs.createRoute()) }),
+                NavigationItem(
+                    "All Songs",
+                    onClick = { state.open(Screen.AllSongs.createRoute()) }),
                 NavigationItem("Artists", onClick = { state.open(Screen.Artists.route) }),
                 NavigationItem("Albums", onClick = { state.open(Screen.Albums.route) }),
                 NavigationItem("Playlists", onClick = { state.open(Screen.Playlists.route) }),

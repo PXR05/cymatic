@@ -96,7 +96,7 @@ fun rememberWheelSelection(
     val availableIndices by rememberUpdatedState(selectableIndices)
     val actions =
         remember(wheel, listState) {
-            var canWrap = false
+            val navigator = WheelSelectionNavigator()
             WheelActions(
                 onRotate = { steps ->
                     val available = availableIndices
@@ -107,20 +107,10 @@ fun rememberWheelSelection(
                         val current =
                             available?.indexOf(selection)?.coerceAtLeast(0)
                                 ?: selection.coerceIn(0, last)
-                        val nextPosition =
-                            when {
-                                canWrap && steps > 0 && current == last ->
-                                    (steps - 1).coerceIn(0, last)
-
-                                canWrap && steps < 0 && current == 0 ->
-                                    (last + steps + 1).coerceIn(0, last)
-
-                                else -> (current + steps).coerceIn(0, last)
-                            }
+                        val nextPosition = navigator.next(current, steps, choices)
                         val next = available?.get(nextPosition) ?: nextPosition
                         listState.scrollWheelSelectionIntoView(next, scrollDirection)
                         selection = next
-                        canWrap = false
                     }
                 },
                 onSelect = {
@@ -137,7 +127,7 @@ fun rememberWheelSelection(
                     )
                         context(selection.coerceIn(0, count - 1))
                 },
-                onMovementStarted = { canWrap = true },
+                onMovementStarted = navigator::beginMovement,
             )
         }
 

@@ -14,12 +14,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncProgress
 import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
+import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 private enum class SyncPage { LIBRARY, BULK_DOWNLOADS, ADVANCED, SCHEDULE, STATUS, HELP }
 
@@ -70,6 +70,7 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
             SyncSetupStep.MUSIC -> if (state.contentMode == SyncContentMode.NONE) {
                 nav.navigate(Screen.AllSongs.createRoute())
             } else openBulkDownloads()
+
             null -> model.startSync()
         }
     }
@@ -167,6 +168,7 @@ fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
                 nav.navigate(Screen.AllSongs.createRoute())
             },
         )
+
         SyncPage.HELP -> SyncHelpPage { page = null }
         null -> Unit
     }

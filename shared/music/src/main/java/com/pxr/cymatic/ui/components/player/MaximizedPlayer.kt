@@ -246,6 +246,7 @@ fun MaximizedPlayer(
                             ProgressBar(
                                 currentPosition = playbackState.currentPositionMs,
                                 durationMs = playbackState.durationMs ?: 0L,
+                                isBuffering = playbackState.isBuffering,
                                 onSeek = { mediaController.seekTo(it) },
                                 showNumber = true
                             )

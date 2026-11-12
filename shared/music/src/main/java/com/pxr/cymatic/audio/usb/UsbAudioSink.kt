@@ -21,38 +21,52 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
     @Volatile
     private var direct = false
     private var listener: AudioSink.Listener? = null
+
     @Volatile
     private var format: Format? = null
+
     @Volatile
     private var pendingFormat: Format? = null
+
     @Volatile
     private var device: UsbPcmDevice? = null
+
     @Volatile
     private var stream: UsbPcmStream? = null
     private var packer: UsbPcmPacker? = null
     private var trimmer: UsbPcmTrimmer? = null
+
     @Volatile
     private var playing = false
+
     @Volatile
     private var ended = false
+
     @Volatile
     private var baseTimeUs = C.TIME_UNSET
+
     @Volatile
     private var outputStreamOffsetUs = 0L
+
     @Volatile
     private var writtenFrames = 0L
     private var completedFrames = 0L
     private var discontinuity = false
     private var advancing = false
     private var volume = 1f
+
     @Volatile
     private var requestedBufferBytes = 0
+
     @Volatile
     private var requestedChannelMap: IntArray? = null
+
     @Volatile
     private var lastFeedBytes = 0
+
     @Volatile
     private var lastFeedTimeUs = C.TIME_UNSET
+
     @Volatile
     private var lastAccessUnitCount = 0
 

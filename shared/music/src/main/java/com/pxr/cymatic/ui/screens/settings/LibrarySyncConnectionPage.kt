@@ -90,7 +90,7 @@ internal fun SyncConnectionPage(
                         )
                         add(
                             SyncSetting(
-                                if (state.saving) "Saving…" else "Save & connect",
+                                if (state.saving) "Connecting…" else "Connect",
                                 enabled = enabled && valid,
                                 onClick = { onSave(url, username, password) },
                             )
@@ -145,7 +145,7 @@ internal fun SyncConnectionPage(
                         )
                 }
                 Text(
-                    if (state.saving) "Saving…" else "Save & connect",
+                    if (state.saving) "Connecting…" else "Connect",
                     modifier =
                         Modifier
                             .fillMaxWidth()

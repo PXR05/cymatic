@@ -1,6 +1,12 @@
 package com.pxr.cymatic.ui.components.player
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -28,7 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToLong
@@ -41,17 +48,31 @@ fun ProgressBar(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
     seekEnabled: Boolean = true,
-    showNumber: Boolean = true
+    showNumber: Boolean = true,
+    isBuffering: Boolean = false,
 ) {
-    val density = LocalDensity.current
     var barWidthPx by remember { mutableIntStateOf(0) }
     var isDragging by remember { mutableStateOf(false) }
     var dragPositionPx by remember { mutableIntStateOf(0) }
+    val loadingPhase = if (isBuffering) {
+        val transition = rememberInfiniteTransition(label = "Buffering")
+        val phase by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(650, easing = LinearEasing),
+                RepeatMode.Reverse
+            ),
+            label = "Buffering pulse",
+        )
+        phase
+    } else 0f
 
     val seekModifier = Modifier
         .fillMaxWidth()
         .height(24.dp)
         .onSizeChanged { barWidthPx = it.width }
+        .semantics { if (isBuffering) stateDescription = "Buffering" }
         .pointerInput(durationMs, barWidthPx, seekEnabled) {
             if (durationMs <= 0L || !seekEnabled) return@pointerInput
             awaitEachGesture {
@@ -86,7 +107,7 @@ fun ProgressBar(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(barShape)
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f))
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = if (isBuffering) 0.15f + loadingPhase * 0.20f else 0.15f))
             ) {
                 if (durationMs > 0 && barWidthPx > 0) {
                     val fraction = if (isDragging) {
@@ -99,7 +120,7 @@ fun ProgressBar(
                             .fillMaxWidth(fraction)
                             .fillMaxHeight()
                             .clip(barShape)
-                            .background(MaterialTheme.colorScheme.onBackground)
+                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = if (isBuffering) 0.55f + loadingPhase * 0.45f else 1f))
                     )
                 }
             }

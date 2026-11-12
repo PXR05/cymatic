@@ -7,14 +7,15 @@ internal class WheelPlayerControls(
     private val state: WheelPlayerState,
     private val controller: MediaController?,
     private val volume: MusicVolumeState,
-    private val durationMs: Long?
+    private val durationMs: Long?,
+    private val setupBack: (() -> Unit)? = null
 ) {
     fun beginMovement() {
-        if (!state.controlsPlayback) state.wheel.actions?.onMovementStarted?.invoke()
+        if (setupBack != null || !state.controlsPlayback) state.wheel.actions?.onMovementStarted?.invoke()
     }
 
     fun rotate(steps: Int) {
-        if (state.controlsPlayback) {
+        if (setupBack == null && state.controlsPlayback) {
             volume.adjust(steps)
         } else {
             state.wheel.actions?.onRotate?.invoke(steps)
@@ -22,6 +23,16 @@ internal class WheelPlayerControls(
     }
 
     fun press(button: WheelButton) {
+        if (setupBack != null) {
+            when (button) {
+                WheelButton.MENU, WheelButton.PREVIOUS ->
+                    state.wheel.overlay?.onDismiss?.invoke() ?: setupBack.invoke()
+
+                WheelButton.SELECT, WheelButton.NEXT -> selectItem()
+                WheelButton.PLAY -> if (controller?.isPlaying == true) controller.pause()
+            }
+            return
+        }
         when (button) {
             WheelButton.MENU -> state.mainMenu()
             WheelButton.PREVIOUS -> if (state.controlsPlayback) {
@@ -48,6 +59,7 @@ internal class WheelPlayerControls(
     }
 
     fun hold(button: WheelButton) {
+        if (setupBack != null) return
         when (button) {
             WheelButton.MENU -> {
                 val menuHold = state.wheel.onMenuHold
@@ -84,6 +96,7 @@ internal class WheelPlayerControls(
     }
 
     fun endHold(button: WheelButton) {
+        if (setupBack != null) return
         if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
             state.endSeek(controller)
         }

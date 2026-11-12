@@ -312,7 +312,7 @@ fun VersionSettingsScreen(
         WheelReadingPage("Changelog", { showChangelog = false }) {
             Text(
                 latestRelease?.changelog?.replace("\r\n", "\n")?.replace(Regex("\n{3,}"), "\n\n")
-                ?.ifBlank { "No changelog provided." } ?: "No changelog provided.")
+                    ?.ifBlank { "No changelog provided." } ?: "No changelog provided.")
         }
     }
 }

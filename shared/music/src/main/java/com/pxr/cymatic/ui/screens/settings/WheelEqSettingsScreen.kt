@@ -299,9 +299,11 @@ internal fun WheelEqSettingsScreen(
 
     if (graph) {
         WheelReadingPage("Response graph", { graph = false }) {
-            EqBodePlot(preset, Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f))
+            EqBodePlot(
+                preset, Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+            )
         }
     }
 }

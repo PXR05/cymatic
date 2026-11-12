@@ -34,7 +34,9 @@ data class PlaybackState(
     val queueSource: String?,
     val queue: PlaybackQueue,
     val metadata: AudioMetadata? = null,
-)
+) {
+    val isBuffering: Boolean get() = playbackState == Player.STATE_BUFFERING
+}
 
 @Composable
 fun rememberPlaybackState(

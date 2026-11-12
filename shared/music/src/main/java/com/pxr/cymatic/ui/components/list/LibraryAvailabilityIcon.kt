@@ -40,9 +40,10 @@ fun LibraryAvailabilityIcon(
             ),
             label = "Loading frame",
         )
-        Canvas(Modifier
-            .size(10.dp)
-            .semantics { contentDescription = "Queued or downloading" }) {
+        Canvas(
+            Modifier
+                .size(10.dp)
+                .semantics { contentDescription = "Queued or downloading" }) {
             val pixel = size.width / 10f
             val points = listOf(4 to 0, 7 to 1, 8 to 4, 7 to 7, 4 to 8, 1 to 7, 0 to 4, 1 to 1)
             points.forEachIndexed { index, (x, y) ->

@@ -237,9 +237,11 @@ fun WheelReadingPage(title: String, onDismiss: () -> Unit, content: @Composable 
             wheel?.register(actions, overlay)
             onDispose { wheel?.unregister(actions) }
         }
-        Column(Modifier
-            .fillMaxSize()
-            .verticalScroll(scroll)
-            .padding(24.dp)) { content() }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(24.dp)
+        ) { content() }
     }
 }

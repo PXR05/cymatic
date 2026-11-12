@@ -93,6 +93,7 @@ internal fun WheelPlaybackMeters(
                 if (duration > 0) position.toFloat() / duration else 0f,
                 "Playback position",
                 Modifier.weight(1f),
+                isBuffering = playback.isBuffering,
                 onDragStart = if (duration > 0) onSeekStart else null,
                 onDragEnd = if (duration > 0) onSeekEnd else null,
                 onFractionChange =

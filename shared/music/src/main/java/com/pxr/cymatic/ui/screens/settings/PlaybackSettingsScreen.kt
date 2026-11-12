@@ -1,13 +1,18 @@
 package com.pxr.cymatic.ui.screens.settings
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,14 +42,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +61,45 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var notificationsAllowed by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val notificationPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            notificationsAllowed = it
+        }
+    var notificationAsked by rememberSaveable { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME)
+                notificationsAllowed = Build.VERSION.SDK_INT < 33 ||
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    fun openNotificationSettings() {
+        if (Build.VERSION.SDK_INT >= 33 && !notificationsAllowed && !notificationAsked) {
+            notificationAsked = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        context.startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(
+                Settings.EXTRA_APP_PACKAGE,
+                context.packageName
+            )
+        )
+    }
 
     val resumeOnBt by
     SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
@@ -148,6 +197,12 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
                     NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
                     NavigationItem("USB audio") { navController.navigate(Screen.UsbSettings.route) },
                     NavigationItem(
+                        "App notifications",
+                        if (notificationsAllowed) "Allowed" else "Off"
+                    ) {
+                        openNotificationSettings()
+                    },
+                    NavigationItem(
                         "Auto-resume",
                         if (resumeOnBt) "On" else "Off",
                         checked = resumeOnBt,
@@ -195,6 +250,13 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            SettingsActionRow(
+                title = "App notifications",
+                subtitle = if (notificationsAllowed) "Allowed" else "Off",
+                actionLabel = "OPEN",
+                onActionClick = ::openNotificationSettings,
+            )
 
             SettingsActionRow(
                 title = "USB audio",

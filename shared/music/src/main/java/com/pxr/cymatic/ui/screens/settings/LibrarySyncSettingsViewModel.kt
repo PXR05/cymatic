@@ -6,13 +6,11 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.sync.AudioStreamClient
 import com.pxr.cymatic.sync.CatalogProgress
 import com.pxr.cymatic.sync.LibraryCatalogManager
 import com.pxr.cymatic.sync.LibrarySyncJobService
 import com.pxr.cymatic.sync.LibrarySyncManager
 import com.pxr.cymatic.sync.RemoteLibraries
-import com.pxr.cymatic.sync.RemoteLibrarySource
 import com.pxr.cymatic.sync.SyncCatalogStore
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncCredentialStore
@@ -181,26 +179,16 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
     fun saveConnection(url: String, username: String, password: String, onSaved: () -> Unit) {
         if (state.value.running) return
         save {
-            val normalized = AudioStreamClient.normalizeBaseUrl(url)
-            require(username.isNotBlank()) { "Enter your AudioStream username" }
-            val source = RemoteLibrarySource("audiostream", normalized, username.trim())
-            val changed = source.id != RemoteLibraries.currentSource().id
-            require(password.isNotEmpty() || (state.value.hasPassword && !changed)) {
-                "Enter your password for this account"
+            val previous = RemoteLibraries.currentSource()
+            val source = try {
+                com.pxr.cymatic.sync.AudioStreamConnection(context, url, username, password).save()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                throw IllegalArgumentException(com.pxr.cymatic.sync.connectionError(error))
             }
-            if (password.isNotEmpty())
-                withContext(Dispatchers.IO) {
-                    SyncCredentialStore.savePassword(
-                        context,
-                        password,
-                        source.id
-                    )
-                }
-            SettingsStore.setSyncConnection(normalized, username, changed)
-            if (changed) {
-                LibrarySyncManager.clearStatus()
-                LibraryCatalogManager.clearStatus()
-            }
+            val normalized = source.address
+            val changed = source.id != previous.id
             val catalog = withContext(Dispatchers.IO) { SyncCatalogStore.read(context, source) }
             mutableState.update {
                 it.copy(

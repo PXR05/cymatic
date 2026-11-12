@@ -8,14 +8,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.media.LocalLibraryScanner
+import com.pxr.cymatic.data.media.LocalScanProgress
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
+import com.pxr.cymatic.sync.CatalogProgress
+import com.pxr.cymatic.sync.LibraryCatalogManager
+import com.pxr.cymatic.sync.RemoteLibrarySource
+import com.pxr.cymatic.sync.SyncCredentialStore
 import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
@@ -31,6 +39,9 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AllSongsScreen(
@@ -42,6 +53,24 @@ fun AllSongsScreen(
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
     val queueSource = Screen.AllSongs.createRoute()
+    val catalogProgress by LibraryCatalogManager.progress.collectAsState()
+    val scanProgress by LocalLibraryScanner.progress.collectAsState()
+    val remoteConnected by produceState<Boolean?>(null, context) {
+        combine(
+            SettingsStore.syncUrlFlow,
+            SettingsStore.syncUsernameFlow
+        ) { address, username -> address to username }
+            .collect { (address, username) ->
+                value = withContext(Dispatchers.IO) {
+                    address.isNotBlank() && username.isNotBlank() && runCatching {
+                        SyncCredentialStore.hasPassword(
+                            context,
+                            RemoteLibrarySource("audiostream", address, username).id
+                        )
+                    }.getOrDefault(false)
+                }
+            }
+    }
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -49,6 +78,7 @@ fun AllSongsScreen(
     ) { isGranted ->
         hasPermission = isGranted
         if (isGranted) {
+            LocalLibraryScanner.scan(context)
             viewModel.loadAudioFiles()
         }
     }
@@ -71,7 +101,21 @@ fun AllSongsScreen(
         showWallpaperBackdrop = true
     ) {
         LibraryFilterStatus(availabilityFilter)
-        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.songs.isEmpty()) {
+        if (uiState.songs.isEmpty() &&
+            (catalogProgress is CatalogProgress.Refreshing || scanProgress is LocalScanProgress.Scanning || remoteConnected == null)
+        ) {
+            LoadingState()
+        } else if (uiState.songs.isEmpty() && remoteConnected == true && catalogProgress is CatalogProgress.Failed) {
+            ErrorState(
+                message = "Could not load the remote library. Check the connection and try again.",
+                onRetry = { LibraryCatalogManager.refresh(context) },
+            )
+        } else if (uiState.songs.isEmpty() && scanProgress is LocalScanProgress.Failed && hasPermission) {
+            ErrorState(
+                message = "Could not scan device music. Try again.",
+                onRetry = { LocalLibraryScanner.scan(context) },
+            )
+        } else if (!hasPermission && remoteConnected != true && availabilityFilter == LibraryFilter.ALL && uiState.songs.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -102,10 +146,13 @@ fun AllSongsScreen(
             } else {
                 EmptyState(
                     title = "No Songs Found",
-                    message = "Cymatic did not find any audio files.",
+                    message = if (remoteConnected == true) "The server library has no songs. Add music on AudioStream, then refresh." else "Cymatic did not find any audio files.",
                     iconText = "( ! )",
-                    actionLabel = "GO TO STORAGE",
-                    onActionClick = { navController.navigate(Screen.StorageSettings.route) }
+                    actionLabel = if (remoteConnected == true) "REFRESH LIBRARY" else "GO TO STORAGE",
+                    onActionClick = {
+                        if (remoteConnected == true) LibraryCatalogManager.refresh(context)
+                        else navController.navigate(Screen.StorageSettings.route)
+                    }
                 )
             }
         } else {

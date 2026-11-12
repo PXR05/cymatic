@@ -114,15 +114,15 @@ object LibraryOfflineManager {
                 val songs = PlaylistRepository.getInstance(context).getPlaylistAudio(playlistId)
                 songs.filter { it.sourceId != null && it.remoteId != null }
                     .groupBy { it.sourceId!! }.forEach { (source, tracks) ->
-                    request(
-                        context,
-                        source,
-                        tracks.mapTo(mutableSetOf()) { it.remoteId!! },
-                        emptySet(),
-                        title,
-                        playlistId
-                    )
-                }
+                        request(
+                            context,
+                            source,
+                            tracks.mapTo(mutableSetOf()) { it.remoteId!! },
+                            emptySet(),
+                            title,
+                            playlistId
+                        )
+                    }
             } catch (error: Exception) {
                 notify("Could not queue $title", failed = true)
             }

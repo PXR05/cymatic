@@ -262,6 +262,7 @@ fun PlayerBar(
                     TrackProgressBar(
                         currentPosition = playbackState.currentPositionMs,
                         durationMs = playbackState.durationMs ?: 0L,
+                        isBuffering = playbackState.isBuffering,
                         locked = locked,
                         onSeek = { mediaController.seekTo(it) },
                         modifier = Modifier.fillMaxWidth()
@@ -323,6 +324,7 @@ fun PlayerBar(
                 TrackProgressBar(
                     currentPosition = playbackState.currentPositionMs,
                     durationMs = playbackState.durationMs ?: 0L,
+                    isBuffering = playbackState.isBuffering,
                     locked = locked,
                     onSeek = { mediaController.seekTo(it) },
                     modifier = Modifier.padding(horizontal = 24.dp)
@@ -449,6 +451,7 @@ private fun TrackInfoAndStatus(
 private fun TrackProgressBar(
     currentPosition: Long,
     durationMs: Long,
+    isBuffering: Boolean,
     locked: Boolean,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier
@@ -456,6 +459,7 @@ private fun TrackProgressBar(
     ProgressBar(
         currentPosition = currentPosition,
         durationMs = durationMs,
+        isBuffering = isBuffering,
         onSeek = { targetMs ->
             if (locked) return@ProgressBar
             onSeek(targetMs)
