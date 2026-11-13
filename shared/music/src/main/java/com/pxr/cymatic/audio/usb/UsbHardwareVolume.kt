@@ -1,6 +1,9 @@
 package com.pxr.cymatic.audio.usb
 
 import android.hardware.usb.UsbDeviceConnection
+import com.pxr.cymatic.usb.UsbPcmStream
+import java.io.Closeable
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -8,8 +11,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.Closeable
-import kotlin.math.roundToInt
 
 internal class UsbHardwareVolume(
     private val connection: UsbDeviceConnection,
@@ -51,6 +52,8 @@ internal class UsbHardwareVolume(
     private var closed = false
     private var changes = 0
     private var appliedPercent = -1
+    private var output: UsbPcmStream? = null
+    private var streamMuted = false
     val report = JSONObject().put("featureUnit", feature.json())
 
     @Volatile
@@ -119,13 +122,9 @@ internal class UsbHardwareVolume(
     private fun apply(percent: Int) {
         if (closed || percent == appliedPercent) return
         val muted = percent == 0
-        if (muted) {
-            val selected =
-                checkNotNull(feature.muteChannels) {
-                    "DAC has no writable channel mute control; playback stopped"
-                }
-            selected.forEach { writeAndConfirm(1, it, 1, 1) }
-        }
+        val muteChannels = feature.muteChannels
+        if (muted && muteChannels == null) setStreamMuted(true)
+        if (muted) muteChannels?.forEach { writeAndConfirm(1, it, 1, 1) }
         val requested = minimum + ((maximum - minimum).toLong() * percent / 100).toInt()
         channels.forEach { channel ->
             val target =
@@ -140,6 +139,7 @@ internal class UsbHardwareVolume(
             channel.current = target
         }
         if (!muted) mutes.forEach { writeAndConfirm(1, it.number, 0, 1) }
+        if (!muted) setStreamMuted(false)
         appliedPercent = percent
         changes++
         val loudest = channels.maxOf { it.current }
@@ -153,10 +153,30 @@ internal class UsbHardwareVolume(
             .put("requestedPercent", percent)
             .put("confirmedPercent", confirmedPercent)
             .put("muted", muted)
-            .put("muteMethod", "Feature unit MUTE control")
+            .put(
+                "muteMethod",
+                if (muteChannels != null) "Feature unit MUTE control" else "USB stream silence",
+            )
             .put("confirmedDb", loudest / 256f)
             .put("volumeChanges", changes)
-        UsbVolumeState.confirm(confirmedPercent, if (muted) null else loudest / 256f, muted)
+        UsbVolumeState.confirm(
+            confirmedPercent,
+            if (muted) null else loudest / 256f,
+            muted,
+            streamSilence = streamMuted,
+        )
+    }
+
+    @Synchronized
+    fun attachStream(stream: UsbPcmStream) {
+        check(!closed)
+        stream.mute(streamMuted)
+        output = stream
+    }
+
+    private fun setStreamMuted(muted: Boolean) {
+        output?.mute(muted)
+        streamMuted = muted
     }
 
     private fun readRanges(channel: Int): List<Range> {
@@ -182,9 +202,9 @@ internal class UsbHardwareVolume(
     private fun validateRange(minimum: Int, maximum: Int, resolution: Int): Range {
         require(
             minimum > SILENCE &&
-                    maximum >= minimum &&
-                    resolution in 0..32767 &&
-                    (resolution > 0 || minimum == maximum)
+                maximum >= minimum &&
+                resolution in 0..32767 &&
+                (resolution > 0 || minimum == maximum)
         ) {
             "DAC returned a malformed volume range"
         }

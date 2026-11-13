@@ -8,6 +8,7 @@ internal object UsbAudioDescriptors {
         val collections = mutableListOf<UsbAudioCollection>()
         val features = mutableListOf<UsbFeatureUnit>()
         val outputs = mutableListOf<UsbOutputTerminal>()
+        val extensions = mutableListOf<UsbExtensionUnit>()
         val warnings = mutableListOf<String>()
         var offset = 0
         var configuration = -1
@@ -104,8 +105,8 @@ internal object UsbAudioDescriptors {
                         }
                         if (
                             subclass == 1 &&
-                            subtype == 3 &&
-                            ((protocol == 0x20 && length >= 12) ||
+                                subtype == 3 &&
+                                ((protocol == 0x20 && length >= 12) ||
                                     (protocol == 0 && length >= 9))
                         ) {
                             outputs +=
@@ -116,6 +117,21 @@ internal object UsbAudioDescriptors {
                                     descriptor.u8(7),
                                     descriptor.le16(4),
                                 )
+                        }
+                        if (subclass == 1 && protocol == 0x20 && subtype == 9) {
+                            val count = if (length >= 7) descriptor.u8(6) else 0
+                            if (count > 0 && length == 15 + count) {
+                                extensions +=
+                                    UsbExtensionUnit(
+                                        configuration,
+                                        interfaceNumber,
+                                        descriptor.u8(3),
+                                        List(count) { descriptor.u8(7 + it) },
+                                        protocol,
+                                    )
+                            } else
+                                warnings +=
+                                    "Malformed UAC2 extension unit on interface $interfaceNumber"
                         }
                         if (subclass == 1 && protocol == 0x20 && subtype == 6) {
                             if (length >= 10 && (length - 6) % 4 == 0) {
@@ -143,9 +159,9 @@ internal object UsbAudioDescriptors {
                                         List((length - 7) / size) { channel ->
                                             (0 until size).fold(0L) { value, byte ->
                                                 value or
-                                                        (descriptor
-                                                            .u8(6 + channel * size + byte)
-                                                            .toLong() shl (byte * 8))
+                                                    (descriptor
+                                                        .u8(6 + channel * size + byte)
+                                                        .toLong() shl (byte * 8))
                                             }
                                         },
                                         protocol,
@@ -216,24 +232,24 @@ internal object UsbAudioDescriptors {
                 collections
                     .filter {
                         it.configuration == format.configuration &&
-                                it.streamingInterface == format.interfaceNumber
+                            it.streamingInterface == format.interfaceNumber
                     }
                     .singleOrNull()
             val terminal =
                 terminals
                     .filter {
                         it.configuration == format.configuration &&
-                                it.id == format.terminalLink &&
-                                (format.protocol != 0 ||
-                                        it.controlInterface == collection?.controlInterface)
+                            it.id == format.terminalLink &&
+                            (format.protocol != 0 ||
+                                it.controlInterface == collection?.controlInterface)
                     }
                     .singleOrNull()
             val clock = terminal?.let { value ->
                 clocks
                     .filter {
                         it.configuration == value.configuration &&
-                                it.controlInterface == value.controlInterface &&
-                                it.id == value.clockId
+                            it.controlInterface == value.controlInterface &&
+                            it.id == value.clockId
                     }
                     .singleOrNull()
             }
@@ -248,7 +264,14 @@ internal object UsbAudioDescriptors {
                 channelMask = format.channelMask ?: terminal?.channelMask,
             )
         }
-        return UsbDescriptorSummary(resolvedFormats, clocks.distinct(), features, outputs, warnings)
+        return UsbDescriptorSummary(
+            resolvedFormats,
+            clocks.distinct(),
+            features,
+            outputs,
+            warnings,
+            extensions,
+        )
     }
 }
 

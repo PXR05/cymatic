@@ -55,18 +55,24 @@ internal data class UsbDescriptorSummary(
     val features: List<UsbFeatureUnit>,
     val outputs: List<UsbOutputTerminal>,
     val warnings: List<String>,
+    val extensions: List<UsbExtensionUnit> = emptyList(),
 ) {
     fun playbackVolume(format: UsbPcmFormat): UsbFeatureUnit? {
         val units = features.filter {
             it.configuration == format.configuration &&
-                    it.controlInterface == format.controlInterface
+                it.controlInterface == format.controlInterface
+        }
+        val bridges = extensions.filter {
+            it.configuration == format.configuration &&
+                it.controlInterface == format.controlInterface &&
+                it.protocol == format.protocol
         }
         val paths =
             outputs
                 .filter {
                     it.configuration == format.configuration &&
-                            it.controlInterface == format.controlInterface &&
-                            it.type shr 8 != 1
+                        it.controlInterface == format.controlInterface &&
+                        it.type shr 8 != 1
                 }
                 .map { output ->
                     val path = mutableListOf<UsbFeatureUnit>()
@@ -74,9 +80,17 @@ internal data class UsbDescriptorSummary(
                     var source = output.sourceId
                     while (source != format.terminalLink) {
                         if (!visited.add(source)) return null
-                        val unit = units.singleOrNull { it.id == source } ?: return null
-                        path += unit
-                        source = unit.sourceId
+                        val matchingUnits = units.filter { it.id == source }
+                        val matchingBridges = bridges.filter { it.id == source }
+                        if (matchingUnits.size + matchingBridges.size != 1) return null
+                        val unit = matchingUnits.singleOrNull()
+                        if (unit != null) {
+                            path += unit
+                            source = unit.sourceId
+                        } else {
+                            source =
+                                matchingBridges.single().sourceIds.singleOrNull() ?: return null
+                        }
                     }
                     path
                 }
@@ -85,8 +99,8 @@ internal data class UsbDescriptorSummary(
             path
                 .filter {
                     it.volumeChannels != null &&
-                            it.protocol == format.protocol &&
-                            it.controls.size in listOf(1, (format.channels ?: 0) + 1)
+                        it.protocol == format.protocol &&
+                        it.controls.size in listOf(1, (format.channels ?: 0) + 1)
                 }
                 .singleOrNull() ?: return null
         }
@@ -142,4 +156,12 @@ internal data class UsbOutputTerminal(
     val id: Int,
     val sourceId: Int,
     val type: Int,
+)
+
+internal data class UsbExtensionUnit(
+    val configuration: Int,
+    val controlInterface: Int,
+    val id: Int,
+    val sourceIds: List<Int>,
+    val protocol: Int,
 )

@@ -23,10 +23,10 @@ object UsbVolumeState {
     private val mutableLevel = MutableStateFlow(UsbVolumeLevel())
     val level = mutableLevel.asStateFlow()
 
-    @Volatile
-    private var deviceKey: String? = null
+    @Volatile private var deviceKey: String? = null
     internal val volumeProfileKey: String?
         get() = deviceKey
+
     private var unmutedPercent = 25
 
     private val saves = Channel<Pair<String, Int>>(Channel.UNLIMITED)
@@ -97,12 +97,18 @@ object UsbVolumeState {
             )
     }
 
-    internal fun confirm(percent: Int, decibels: Float?, muted: Boolean) {
+    internal fun confirm(
+        percent: Int,
+        decibels: Float?,
+        muted: Boolean,
+        streamSilence: Boolean = false,
+    ) {
         mutableLevel.value =
             UsbVolumeLevel(
                 percent,
                 decibels,
-                if (muted) "DAC hardware mute" else "DAC hardware volume",
+                if (streamSilence) "USB output muted"
+                else if (muted) "DAC hardware mute" else "DAC hardware volume",
                 muted,
             )
     }

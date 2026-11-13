@@ -65,6 +65,7 @@ namespace {
         int64_t feedbackTimeouts = 0, completedPackets = 0, completedTransfers = 0;
         int error = 0;
         bool playing = false, ending = false, stopping = false, started = false;
+        bool muted = false;
         bool feedbackRunning = false;
         Clock::time_point lastCompletion = Clock::now(), feedbackDeadline = Clock::now();
 
@@ -160,13 +161,15 @@ namespace {
             const auto first = std::min(music, ring.size() - readAt);
             std::memcpy(transfer.bytes.data() + priming, ring.data() + readAt, first);
             std::memcpy(transfer.bytes.data() + priming + first, ring.data(), music - first);
+            if (muted)
+                std::memset(transfer.bytes.data(), 0, needed);
             unsigned char nextMarker = dopMarker;
             if (dopChannels != 0) {
                 const int bytesPerChannel = frameBytes / dopChannels;
                 for (size_t frame = 0; frame < needed; frame += frameBytes) {
                     for (int channel = 0; channel < dopChannels; ++channel) {
                         auto *sample = transfer.bytes.data() + frame + channel * bytesPerChannel;
-                        if (frame < priming) {
+                        if (muted || frame < priming) {
                             sample[bytesPerChannel - 3] = 0x69;
                             sample[bytesPerChannel - 2] = 0x69;
                         }
@@ -439,6 +442,13 @@ extern "C" JNIEXPORT void JNICALL Java_com_pxr_cymatic_usb_UsbPcmStream_setPlayi
     }
     value->playing = playing;
     value->changed.notify_all();
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_pxr_cymatic_usb_UsbPcmStream_setMuted(
+    JNIEnv *, jobject, jlong handle, jboolean muted) {
+    auto *value = stream(handle);
+    std::lock_guard<std::mutex> lock(value->mutex);
+    value->muted = muted;
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_pxr_cymatic_usb_UsbPcmStream_endInput(JNIEnv *, jobject,
