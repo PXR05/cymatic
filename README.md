@@ -7,11 +7,11 @@ and direct USB DAC playback.
 
 | Now Playing | Main menu |
 | --- | --- |
-| <img src="docs/screenshots/player-now-playing.jpg" alt="Now Playing with Moonshot, album art, FLAC format, direct USB output, and the click wheel" width="280"> | <img src="docs/screenshots/player-main-menu.jpg" alt="Main menu with music, playlists, queue, settings, and the click wheel" width="280"> |
+| <img src="docs/screenshots/player-now-playing.jpg" alt="Now Playing, album art, FLAC format, direct USB output, and the click wheel" width="280"> | <img src="docs/screenshots/player-main-menu.jpg" alt="Main menu with artists, albums, playlists, queue, settings, and the click wheel" width="280"> |
 
-| Album tracks | Interface settings |
+| Track Queue | Settings |
 | --- | --- |
-| <img src="docs/screenshots/player-album-tracks.jpg" alt="Moonshot album track list with artist names, track durations, and the playback bar" width="280"> | <img src="docs/screenshots/player-interface-settings.jpg" alt="Interface settings for wheel sensitivity, gesture pause, haptic feedback, and wheel size" width="280"> |
+| <img src="docs/screenshots/player-album-tracks.jpg" alt="Track queue with artist names, track durations, and the playback bar" width="280"> | <img src="docs/screenshots/player-interface-settings.jpg" alt="Settings page" width="280"> |
 
 ## Features
 
