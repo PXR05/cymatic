@@ -9,6 +9,9 @@ strict (VID/PID and product name where the upstream catalog requires it); unknow
 DACs are never written. Upstream proven-feature gates remain in release mode,
 including in Cymatic debug builds.
 
+The catalog generator is a compiled Gradle task in `buildSrc`. Device records stay
+in this module's `devices` directory.
+
 Changes and full licences: `../music/src/main/assets/licenses/contour/`.
 Update source and device records together. The core's unused
 serialization annotations and text codecs are omitted. No firmware updates or

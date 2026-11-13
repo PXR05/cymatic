@@ -1,9 +1,20 @@
 // Modified for Cymatic: Device-record paths point to this module; Android build consumes the
-// generated catalog.
+// generated catalog. Task compiled in buildSrc for compatibility with Android lint.
 // Upstream: Chronosauros/contour 95d592df (Apache-2.0); see README.md and bundled notices.
+
+package com.pxr.cymatic.buildlogic
 
 import groovy.json.JsonSlurper
 import java.io.File
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 
 abstract class GenerateDeviceCatalog : DefaultTask() {
     @get:InputFiles
@@ -1245,12 +1256,4 @@ abstract class GenerateDeviceCatalog : DefaultTask() {
         }
         append('"')
     }
-}
-
-tasks.register<GenerateDeviceCatalog>("generateDeviceCatalog") {
-    group = "build"
-    description = "Generates GeneratedDevices.kt from the device records in <repo>/devices/*.json"
-
-    records.from(fileTree(project.projectDir.resolve("devices")) { include("*.json") })
-    outputDir.set(layout.buildDirectory.dir("generated/devices/kotlin"))
 }
