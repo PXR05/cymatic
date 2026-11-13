@@ -50,9 +50,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.pxr.cymatic.playback.PlaybackActions
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SwipeCarousel
 import com.pxr.cymatic.ui.components.common.verticalFadingEdge
@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
 fun MaximizedPlayer(
     modifier: Modifier = Modifier,
     isActive: Boolean = true,
-    onClose: (() -> Unit)? = null
+    onClose: (() -> Unit)? = null,
 ) {
     val mediaController = LocalMediaController.current ?: return
     val playbackState = rememberPlaybackState(mediaController)
@@ -84,7 +84,8 @@ fun MaximizedPlayer(
     val nextItem =
         if (hasNext) mediaController.getMediaItemAt(mediaController.nextMediaItemIndex) else null
     val prevItem =
-        if (hasPrev) mediaController.getMediaItemAt(mediaController.previousMediaItemIndex) else null
+        if (hasPrev) mediaController.getMediaItemAt(mediaController.previousMediaItemIndex)
+        else null
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -103,25 +104,18 @@ fun MaximizedPlayer(
     Box(modifier = modifier.fillMaxSize()) {
         VerticalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalFadingEdge(enabled = selectedQueueIndex == null)
-                .background(Color.Transparent),
-            beyondViewportPageCount = 1
+            modifier =
+                Modifier.fillMaxSize()
+                    .verticalFadingEdge(enabled = selectedQueueIndex == null)
+                    .background(Color.Transparent),
+            beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
                 0 -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .safeDrawingPadding()
-                    ) {
+                    Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(vertical = 16.dp)
+                            modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 16.dp),
                         ) {
                             SwipeCarousel(
                                 modifier = Modifier.fillMaxWidth(),
@@ -144,48 +138,46 @@ fun MaximizedPlayer(
                                 },
                                 content = {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 24.dp),
-                                        contentAlignment = Alignment.Center
+                                        modifier =
+                                            Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         AsyncImage(
-                                            model = ImageRequest
-                                                .Builder(LocalContext.current)
-                                                .data(metadata.artworkUri)
-                                                .crossfade(true)
-                                                .build(),
+                                            model =
+                                                ImageRequest.Builder(LocalContext.current)
+                                                    .data(metadata.artworkUri)
+                                                    .crossfade(true)
+                                                    .build(),
                                             contentDescription = metadata.album,
                                             contentScale = ContentScale.Crop,
                                             filterQuality = FilterQuality.High,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .aspectRatio(1f)
-                                                .clip(RoundedCornerShape(20.dp))
+                                            modifier =
+                                                Modifier.fillMaxWidth()
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(20.dp)),
                                         )
                                     }
                                 },
                                 prevContent = {
                                     if (prevItem != null) {
                                         Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 24.dp),
-                                            contentAlignment = Alignment.Center
+                                            modifier =
+                                                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                            contentAlignment = Alignment.Center,
                                         ) {
                                             AsyncImage(
-                                                model = ImageRequest
-                                                    .Builder(LocalContext.current)
-                                                    .data(prevItem.mediaMetadata.artworkUri)
-                                                    .crossfade(true)
-                                                    .build(),
+                                                model =
+                                                    ImageRequest.Builder(LocalContext.current)
+                                                        .data(prevItem.mediaMetadata.artworkUri)
+                                                        .crossfade(true)
+                                                        .build(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.Crop,
                                                 filterQuality = FilterQuality.High,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .aspectRatio(1f)
-                                                    .clip(RoundedCornerShape(20.dp))
+                                                modifier =
+                                                    Modifier.fillMaxWidth()
+                                                        .aspectRatio(1f)
+                                                        .clip(RoundedCornerShape(20.dp)),
                                             )
                                         }
                                     }
@@ -193,42 +185,37 @@ fun MaximizedPlayer(
                                 nextContent = {
                                     if (nextItem != null) {
                                         Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 24.dp),
-                                            contentAlignment = Alignment.Center
+                                            modifier =
+                                                Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                            contentAlignment = Alignment.Center,
                                         ) {
                                             AsyncImage(
-                                                model = ImageRequest
-                                                    .Builder(LocalContext.current)
-                                                    .data(nextItem.mediaMetadata.artworkUri)
-                                                    .crossfade(true)
-                                                    .build(),
+                                                model =
+                                                    ImageRequest.Builder(LocalContext.current)
+                                                        .data(nextItem.mediaMetadata.artworkUri)
+                                                        .crossfade(true)
+                                                        .build(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.Crop,
                                                 filterQuality = FilterQuality.High,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .aspectRatio(1f)
-                                                    .clip(RoundedCornerShape(20.dp))
+                                                modifier =
+                                                    Modifier.fillMaxWidth()
+                                                        .aspectRatio(1f)
+                                                        .clip(RoundedCornerShape(20.dp)),
                                             )
                                         }
                                     }
-                                }
+                                },
                             )
                         }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                        ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                             Text(
                                 text = title,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 20.sp,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
 
                             Spacer(modifier = Modifier.height(2.dp))
@@ -238,7 +225,7 @@ fun MaximizedPlayer(
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontSize = 13.sp,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
 
                             Spacer(modifier = Modifier.height(24.dp))
@@ -248,35 +235,16 @@ fun MaximizedPlayer(
                                 durationMs = playbackState.durationMs ?: 0L,
                                 isBuffering = playbackState.isBuffering,
                                 onSeek = { mediaController.seekTo(it) },
-                                showNumber = true
+                                showNumber = true,
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            Controls(
+                            PlayerControls(
                                 isPlaying = playbackState.isPlaying,
                                 isShuffling = playbackState.isShuffling,
                                 repeatMode = playbackState.repeatMode,
-                                onClick = mapOf(
-                                    "shuffle" to {
-                                        mediaController.shuffleModeEnabled =
-                                            !playbackState.isShuffling
-                                    },
-                                    "previous" to { mediaController.seekToPrevious() },
-                                    "play_pause" to {
-                                        if (playbackState.isPlaying) mediaController.pause()
-                                        else mediaController.play()
-                                    },
-                                    "next" to { mediaController.seekToNext() },
-                                    "repeat" to {
-                                        val newMode = when (playbackState.repeatMode) {
-                                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                            else -> Player.REPEAT_MODE_OFF
-                                        }
-                                        mediaController.repeatMode = newMode
-                                    }
-                                )
+                                actions = PlaybackActions.forPlayer(mediaController),
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -284,15 +252,13 @@ fun MaximizedPlayer(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                             ) {
                                 Text(
                                     text = "${playbackState.totalTracks} TRACKS IN QUEUE",
                                     color = MaterialTheme.colorScheme.secondary,
                                     fontSize = 11.sp,
-                                    letterSpacing = 2.sp
+                                    letterSpacing = 2.sp,
                                 )
                             }
                         }
@@ -301,64 +267,67 @@ fun MaximizedPlayer(
 
                 1 -> {
                     val queueListState = rememberLazyListState()
-                    val nestedScrollConnection = remember(queueListState, pagerState, scope) {
-                        object : NestedScrollConnection {
-                            override fun onPreScroll(
-                                available: Offset,
-                                source: NestedScrollSource
-                            ): Offset {
-                                if (available.y > 0f) {
-                                    val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
-                                            queueListState.firstVisibleItemScrollOffset == 0
-                                    if (isAtTop) {
-                                        val consumed = pagerState.dispatchRawDelta(-available.y)
-                                        return Offset(0f, -consumed)
-                                    }
-                                }
-                                return Offset.Zero
-                            }
-
-                            override suspend fun onPreFling(available: Velocity): Velocity {
-                                if (available.y > 0f) {
-                                    val isAtTop = queueListState.firstVisibleItemIndex == 0 &&
-                                            queueListState.firstVisibleItemScrollOffset == 0
-                                    if (isAtTop) {
-                                        scope.launch {
-                                            pagerState.animateScrollToPage(0)
+                    val nestedScrollConnection =
+                        remember(queueListState, pagerState, scope) {
+                            object : NestedScrollConnection {
+                                override fun onPreScroll(
+                                    available: Offset,
+                                    source: NestedScrollSource,
+                                ): Offset {
+                                    if (available.y > 0f) {
+                                        val isAtTop =
+                                            queueListState.firstVisibleItemIndex == 0 &&
+                                                queueListState.firstVisibleItemScrollOffset == 0
+                                        if (isAtTop) {
+                                            val consumed = pagerState.dispatchRawDelta(-available.y)
+                                            return Offset(0f, -consumed)
                                         }
-                                        return available
                                     }
+                                    return Offset.Zero
                                 }
-                                return Velocity.Zero
+
+                                override suspend fun onPreFling(available: Velocity): Velocity {
+                                    if (available.y > 0f) {
+                                        val isAtTop =
+                                            queueListState.firstVisibleItemIndex == 0 &&
+                                                queueListState.firstVisibleItemScrollOffset == 0
+                                        if (isAtTop) {
+                                            scope.launch {
+                                                pagerState.animateScrollToPage(0)
+                                            }
+                                            return available
+                                        }
+                                    }
+                                    return Velocity.Zero
+                                }
                             }
                         }
-                    }
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .nestedScroll(nestedScrollConnection)
-                            .background(Color.Transparent)
-                            .safeDrawingPadding()
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .nestedScroll(nestedScrollConnection)
+                                .background(Color.Transparent)
+                                .safeDrawingPadding()
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .pointerInput(Unit) {
-                                    detectVerticalDragGestures { _, dragAmount ->
-                                        if (dragAmount > 12f) {
-                                            scope.launch { pagerState.animateScrollToPage(0) }
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectVerticalDragGestures { _, dragAmount ->
+                                            if (dragAmount > 12f) {
+                                                scope.launch { pagerState.animateScrollToPage(0) }
+                                            }
                                         }
                                     }
-                                }
-                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                                    .padding(horizontal = 24.dp, vertical = 12.dp),
                         ) {
                             Text(
                                 text = "QUEUE · ${playbackState.totalTracks}",
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontSize = 11.sp,
-                                letterSpacing = 2.sp
+                                letterSpacing = 2.sp,
                             )
                         }
 
@@ -368,11 +337,12 @@ fun MaximizedPlayer(
                             state = queueListState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             items(
                                 count = playbackState.queue.items.size,
-                                key = { playbackState.queue.items[it].mediaItemIndex }) { index ->
+                                key = { playbackState.queue.items[it].mediaItemIndex },
+                            ) { index ->
                                 val (item, mediaItemIndex) = playbackState.queue.items[index]
                                 val itemTitle =
                                     item.mediaMetadata.title?.toString() ?: "Unknown Title"
@@ -382,37 +352,43 @@ fun MaximizedPlayer(
                                 val itemShape = RoundedCornerShape(12.dp)
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(itemShape)
-                                        .background(
-                                            if (isCurrent) {
-                                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
-                                            } else {
-                                                Color.Transparent
-                                            }
-                                        )
-                                        .combinedClickable(
-                                            onClick = {
-                                                mediaController.seekTo(
-                                                    mediaItemIndex,
-                                                    0L
-                                                )
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                selectedQueueIndex = mediaItemIndex
-                                            },
-                                            indication = null,
-                                            interactionSource = null
-                                        )
-                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                            .clip(itemShape)
+                                            .background(
+                                                if (isCurrent) {
+                                                    MaterialTheme.colorScheme.onBackground.copy(
+                                                        alpha = 0.12f
+                                                    )
+                                                } else {
+                                                    Color.Transparent
+                                                }
+                                            )
+                                            .combinedClickable(
+                                                onClick = {
+                                                    mediaController.seekTo(
+                                                        mediaItemIndex,
+                                                        0L,
+                                                    )
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(
+                                                        HapticFeedbackType.LongPress
+                                                    )
+                                                    selectedQueueIndex = mediaItemIndex
+                                                },
+                                                indication = null,
+                                                interactionSource = null,
+                                            )
+                                            .padding(horizontal = 16.dp, vertical = 10.dp),
                                 ) {
                                     Text(
                                         text = (index + 1).toString().padStart(2, '0'),
-                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                                        color =
+                                            if (isCurrent) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.secondary,
                                         fontSize = 11.sp,
-                                        modifier = Modifier.width(28.dp)
+                                        modifier = Modifier.width(28.dp),
                                     )
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -420,20 +396,25 @@ fun MaximizedPlayer(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = itemTitle,
-                                            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                                            color =
+                                                if (isCurrent) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onBackground,
                                             fontSize = 14.sp,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                         if (itemArtist.isNotBlank()) {
                                             Text(
                                                 text = itemArtist,
-                                                color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(
-                                                    alpha = 0.7f
-                                                ) else MaterialTheme.colorScheme.secondary,
+                                                color =
+                                                    if (isCurrent)
+                                                        MaterialTheme.colorScheme.primary.copy(
+                                                            alpha = 0.7f
+                                                        )
+                                                    else MaterialTheme.colorScheme.secondary,
                                                 fontSize = 11.sp,
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                         }
                                     }
@@ -475,7 +456,7 @@ fun MaximizedPlayer(
                         if (selectedIdx < mediaController.mediaItemCount - 1) {
                             mediaController.moveMediaItem(
                                 selectedIdx,
-                                mediaController.mediaItemCount - 1
+                                mediaController.mediaItemCount - 1,
                             )
                         }
                     },
@@ -483,7 +464,7 @@ fun MaximizedPlayer(
                         if (selectedIdx in 0 until mediaController.mediaItemCount) {
                             mediaController.removeMediaItem(selectedIdx)
                         }
-                    }
+                    },
                 )
             }
         }

@@ -14,7 +14,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.library.filterByArtist
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.sync.LibraryOfflineManager
@@ -33,9 +35,7 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.LibraryGroup
-import com.pxr.cymatic.ui.screens.library.filterByArtist
 import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
 
 @Composable
@@ -44,40 +44,44 @@ fun AlbumSongsScreen(
     artistName: String? = null,
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
-    viewModel: AlbumSongsViewModel = viewModel()
+    viewModel: AlbumSongsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
-    val queueSource = if (artistName == null) {
-        Screen.AlbumSongs.createRoute(albumName)
-    } else {
-        Screen.ArtistAlbumSongs.createRoute(artistName, albumName)
-    }
+    val queueSource =
+        if (artistName == null) {
+            Screen.AlbumSongs.createRoute(albumName)
+        } else {
+            Screen.ArtistAlbumSongs.createRoute(artistName, albumName)
+        }
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
-            viewModel.loadAlbumSongs(albumName, artistName)
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasPermission = isGranted
+            if (isGranted) {
+                viewModel.loadAlbumSongs(albumName, artistName)
+            }
         }
-    }
 
     LaunchedEffect(albumName, artistName) {
         viewModel.loadAlbumSongs(albumName, artistName)
     }
 
     val groups = rememberLibraryGroups()
-    val offlineGroup = groups.albums[albumName]?.let { album ->
-        LibraryGroup(
-            if (artistName == null) album.songs else filterByArtist(
-                album.songs,
-                artistName
+    val offlineGroup =
+        groups.albums[albumName]?.let { album ->
+            LibraryGroup(
+                if (artistName == null) album.songs
+                else
+                    filterByArtist(
+                        album.songs,
+                        artistName,
+                    )
             )
-        )
-    }
+        }
 
     var showHeaderMenu by remember { mutableStateOf(false) }
     val filteredFiles by viewModel.songs.collectAsState()
@@ -91,7 +95,7 @@ fun AlbumSongsScreen(
         onBackClick = { navController.popBackStack() },
         onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         if (!hasPermission && availabilityFilter == LibraryFilter.ALL && filteredFiles.isEmpty()) {
@@ -109,7 +113,7 @@ fun AlbumSongsScreen(
         } else if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadAlbumSongs(albumName, artistName) }
+                onRetry = { viewModel.loadAlbumSongs(albumName, artistName) },
             )
         } else if (isLoading) {
             LoadingState()
@@ -119,7 +123,7 @@ fun AlbumSongsScreen(
             EmptyState(
                 title = "No Songs Found",
                 message = "Cymatic did not find any songs for '$albumName'.",
-                iconText = "( ! )"
+                iconText = "( ! )",
             )
         } else {
             AudioFileList(
@@ -131,11 +135,11 @@ fun AlbumSongsScreen(
                             mediaController = it,
                             audioFile,
                             queue = filteredFiles,
-                            queueSource = queueSource
+                            queueSource = queueSource,
                         )
                     }
                 },
-                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
+                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile },
             )
         }
     }
@@ -150,7 +154,7 @@ fun AlbumSongsScreen(
                         mediaController = it,
                         audioFile = file,
                         queue = filteredFiles,
-                        queueSource = queueSource
+                        queueSource = queueSource,
                     )
                 }
             },
@@ -180,7 +184,7 @@ fun AlbumSongsScreen(
                     }
                 }
             },
-            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id },
         )
     }
 
@@ -188,9 +192,12 @@ fun AlbumSongsScreen(
         AlbumArtistContextMenu(
             showLibraryFilter = true,
             title = albumName,
-            onKeepOffline = offlineGroup?.takeIf { it.canKeepOffline }?.let { group ->
-                { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
-            },
+            onKeepOffline =
+                offlineGroup
+                    ?.takeIf { it.canKeepOffline }
+                    ?.let { group ->
+                        { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
+                    },
             onDismiss = { showHeaderMenu = false },
             onPlay = {
                 mediaController?.let { controller ->
@@ -225,7 +232,7 @@ fun AlbumSongsScreen(
                         controller.addMediaItems(items)
                     }
                 }
-            }
+            },
         )
     }
 
@@ -233,7 +240,7 @@ fun AlbumSongsScreen(
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { viewModel.infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null },
         )
     }
 }

@@ -4,7 +4,16 @@ import android.content.Context
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.util.Log
-import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.LibrarySyncSettings
+import java.io.EOFException
+import java.io.IOException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -17,15 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.EOFException
-import java.io.IOException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.resume
 
 data class SyncSummary(
     val downloaded: Int,
@@ -71,7 +71,8 @@ object LibrarySyncManager {
     val progress: StateFlow<SyncProgress> = _progress.asStateFlow()
     private val manualScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    val isRunning: Boolean get() = running.get()
+    val isRunning: Boolean
+        get() = running.get()
 
     fun start(context: Context): Boolean {
         if (!begin()) return false
@@ -107,7 +108,7 @@ object LibrarySyncManager {
 
     private suspend fun syncAcquired(
         context: Context,
-        source: RemoteLibrarySource? = null
+        source: RemoteLibrarySource? = null,
     ): SyncSummary {
         return try {
             syncBlocking(context.applicationContext, source).also {
@@ -115,16 +116,16 @@ object LibrarySyncManager {
             }
         } catch (_: SyncCancelledException) {
             _progress.value = SyncProgress.Cancelled
-            SettingsStore.setSyncResult(System.currentTimeMillis(), "Sync stopped")
+            LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), "Sync stopped")
             throw SyncCancelledException()
         } catch (error: Throwable) {
             if (cancelRequested.get()) {
                 _progress.value = SyncProgress.Cancelled
-                SettingsStore.setSyncResult(System.currentTimeMillis(), "Sync stopped")
+                LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), "Sync stopped")
                 throw SyncCancelledException()
             }
             _progress.value = SyncProgress.Failed(error.message ?: "Sync failed")
-            SettingsStore.setSyncResult(
+            LibrarySyncSettings.setSyncResult(
                 System.currentTimeMillis(),
                 "Sync failed: ${error.message ?: "unknown error"}",
             )
@@ -138,14 +139,14 @@ object LibrarySyncManager {
 
     private suspend fun syncBlocking(
         context: Context,
-        requestedSource: RemoteLibrarySource?
+        requestedSource: RemoteLibrarySource?,
     ): SyncSummary {
         val currentSource = RemoteLibraries.currentSource()
         val source = requestedSource ?: currentSource
         val current = source.id == currentSource.id
         SyncCredentialStore.migrateLegacy(context, source.id)
         SyncCatalogStore.migrateLegacy(context, source)
-        SettingsStore.migrateSyncPlaylistIds(source.id)
+        LibrarySyncSettings.migrateSyncPlaylistIds(source.id)
         val client = RemoteLibraries.client(context, source)
         activeClient.set(client)
         val catalog =
@@ -155,10 +156,12 @@ object LibrarySyncManager {
         val remotePlaylists = catalog.playlists
 
         val mode =
-            if (current) SyncContentMode.from(SettingsStore.getSyncContentMode()) else SyncContentMode.NONE
+            if (current) SyncContentMode.from(LibrarySyncSettings.getSyncContentMode())
+            else SyncContentMode.NONE
         val pins = OfflineSelectionStore.read(context, source.id)
         val selectedIds =
-            (if (current) SettingsStore.getSyncSelectedPlaylists() else emptySet()) + pins.playlists
+            (if (current) LibrarySyncSettings.getSyncSelectedPlaylists() else emptySet()) +
+                pins.playlists
         val playlistsToSync =
             when (mode) {
                 SyncContentMode.NONE -> remotePlaylists.filter { it.id in pins.playlists }
@@ -170,32 +173,36 @@ object LibrarySyncManager {
         val tracksToSync =
             if (mode == SyncContentMode.ALL) tracks else tracks.filter { it.id in selectedTrackIds }
         if (tracksToSync.isEmpty()) {
-            SettingsStore.setSyncResult(
+            LibrarySyncSettings.setSyncResult(
                 System.currentTimeMillis(),
-                "No music selected for download"
+                "No music selected for download",
             )
             return SyncSummary(0, 0, 0, 0, 0)
         }
 
-        val offline = com.pxr.cymatic.data.media.AudioRepository.getInstance(context).getAllAudio()
-            .filter { it.sourceId == source.id && it.offlineUri != null }
-            .mapNotNullTo(mutableSetOf()) { it.remoteId }
+        val offline =
+            com.pxr.cymatic.data.media.AudioRepository.getInstance(context)
+                .getAllAudio()
+                .filter { it.sourceId == source.id && it.offlineUri != null }
+                .mapNotNullTo(mutableSetOf()) { it.remoteId }
         val pending = tracksToSync.map { it.id }.toSet() - offline
         LibraryOfflineManager.setSyncWork(
             OfflineWorkItems(
                 pending.mapTo(mutableSetOf()) { source.itemKey(it) },
-                playlistsToSync.filter { playlist -> playlist.trackIds.any { it in pending } }
+                playlistsToSync
+                    .filter { playlist -> playlist.trackIds.any { it in pending } }
                     .mapTo(mutableSetOf()) { source.itemKey(it.id) },
             )
         )
 
-        val directory = if (current) SettingsStore.getSyncDirectory() else ""
-        val tree: SyncStorage = if (directory.isBlank()) {
-            ManagedSyncStorage(java.io.File(context.filesDir, "library-downloads/${source.id}"))
-        } else {
-            SafTree(context.contentResolver, Uri.parse(directory))
-        }
-        val layout = SyncLayout.from(SettingsStore.getSyncLayout())
+        val directory = if (current) LibrarySyncSettings.getSyncDirectory() else ""
+        val tree: SyncStorage =
+            if (directory.isBlank()) {
+                ManagedSyncStorage(java.io.File(context.filesDir, "library-downloads/${source.id}"))
+            } else {
+                SafTree(context.contentResolver, Uri.parse(directory))
+            }
+        val layout = SyncLayout.from(LibrarySyncSettings.getSyncLayout())
         _progress.value = SyncProgress.Preparing("Planning local files")
         checkCancelled()
         val placements =
@@ -216,7 +223,7 @@ object LibrarySyncManager {
             SyncManifestStore(
                 context,
                 (if (source.provider == "audiostream") "" else "${source.provider}\n") +
-                        "${source.address}\n${source.account}\n$directory",
+                    "${source.address}\n${source.account}\n$directory",
             )
         val folderManifest = readManifest(tree, source.id)
         val previous = manifestStore.read() ?: folderManifest
@@ -367,7 +374,7 @@ object LibrarySyncManager {
             } else {
                 "Sync incomplete: $downloaded downloaded, $failed failed. $firstFailure"
             }
-        SettingsStore.setSyncResult(System.currentTimeMillis(), message)
+        LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), message)
         if (failed > 0) throw IOException(message)
         return summary
     }
@@ -483,8 +490,8 @@ object LibrarySyncManager {
             val unique =
                 if (dot > target.relativePath.lastIndexOf('/')) {
                     target.relativePath.substring(0, dot) +
-                            suffix +
-                            target.relativePath.substring(dot)
+                        suffix +
+                        target.relativePath.substring(dot)
                 } else {
                     target.relativePath + suffix
                 }
@@ -505,7 +512,7 @@ object LibrarySyncManager {
     private fun writeManifest(
         tree: SyncStorage,
         entries: Map<String, SyncManifestEntry>,
-        sourceId: String
+        sourceId: String,
     ) {
         val value = org.json.JSONObject(SyncManifestStore.encode(entries)).put("sourceId", sourceId)
         tree.writeText(MANIFEST, value.toString())
@@ -539,8 +546,9 @@ object LibrarySyncManager {
                     suspendCancellableCoroutine<Map<String, Uri>> { continuation ->
                         val scanned = ConcurrentHashMap<String, Uri>()
                         val remaining = AtomicInteger(batch.size)
-                        MediaScannerConnection.scanFile(context, batch.toTypedArray(), null) { path,
-                                                                                               uri ->
+                        MediaScannerConnection.scanFile(context, batch.toTypedArray(), null) {
+                            path,
+                            uri ->
                             if (uri != null) scanned[path] = uri
                             if (remaining.decrementAndGet() == 0 && continuation.isActive)
                                 continuation.resume(scanned.toMap())
@@ -554,5 +562,4 @@ object LibrarySyncManager {
         }
         return results
     }
-
 }

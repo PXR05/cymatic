@@ -20,14 +20,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import com.pxr.cymatic.design.R
+import com.pxr.cymatic.playback.PlaybackActions
 
 @Composable
-fun Controls(
+fun PlayerControls(
     isPlaying: Boolean,
     isShuffling: Boolean,
     repeatMode: Int,
-    onClick: Map<String, () -> Unit>,
-    modifier: Modifier = Modifier
+    actions: PlaybackActions,
+    modifier: Modifier = Modifier,
 ) {
     val activeColor = MaterialTheme.colorScheme.onBackground
     val inactiveColor = MaterialTheme.colorScheme.secondary
@@ -37,89 +38,89 @@ fun Controls(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = modifier
-            .fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_pixel_shuffle),
             contentDescription = "Shuffle",
             tint = shuffleColor,
-            modifier = Modifier
-                .size(56.dp)
-                .clickable(
-                    onClick = onClick["shuffle"] ?: {},
-                    indication = null,
-                    interactionSource = null
-                )
-                .padding(16.dp)
+            modifier =
+                Modifier.size(56.dp)
+                    .clickable(
+                        onClick = actions.shuffle,
+                        indication = null,
+                        interactionSource = null,
+                    )
+                    .padding(16.dp),
         )
 
         Icon(
             painter = painterResource(R.drawable.ic_pixel_previous),
             contentDescription = "Previous",
             tint = activeColor,
-            modifier = Modifier
-                .size(32.dp)
-                .clickable(
-                    onClick = onClick["previous"] ?: {},
-                    indication = null,
-                    interactionSource = null
-                )
+            modifier =
+                Modifier.size(32.dp)
+                    .clickable(
+                        onClick = actions.previous,
+                        indication = null,
+                        interactionSource = null,
+                    ),
         )
 
         Icon(
-            painter = painterResource(if (isPlaying) R.drawable.ic_pixel_pause else R.drawable.ic_pixel_play),
+            painter =
+                painterResource(
+                    if (isPlaying) R.drawable.ic_pixel_pause else R.drawable.ic_pixel_play
+                ),
             contentDescription = "Play/Pause",
             tint = activeColor,
-            modifier = Modifier
-                .size(42.dp)
-                .clickable(
-                    onClick = onClick["play_pause"] ?: {},
-                    indication = null,
-                    interactionSource = null
-                )
+            modifier =
+                Modifier.size(42.dp)
+                    .clickable(
+                        onClick = actions.playPause,
+                        indication = null,
+                        interactionSource = null,
+                    ),
         )
 
         Icon(
             painter = painterResource(R.drawable.ic_pixel_next),
             contentDescription = "Next",
             tint = activeColor,
-            modifier = Modifier
-                .size(32.dp)
-                .clickable(
-                    onClick = onClick["next"] ?: {},
-                    indication = null,
-                    interactionSource = null
-                )
+            modifier =
+                Modifier.size(32.dp)
+                    .clickable(
+                        onClick = actions.next,
+                        indication = null,
+                        interactionSource = null,
+                    ),
         )
         Box(
             contentAlignment = Alignment.BottomEnd,
-            modifier = Modifier
-                .size(56.dp)
-                .clickable(
-                    onClick = onClick["repeat"] ?: {},
-                    indication = null,
-                    interactionSource = null
-                )
+            modifier =
+                Modifier.size(56.dp)
+                    .clickable(
+                        onClick = actions.repeat,
+                        indication = null,
+                        interactionSource = null,
+                    ),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_pixel_repeat),
                 contentDescription = "Repeat",
                 tint = repeatColor,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxSize().padding(16.dp),
             )
             if (repeatMode == Player.REPEAT_MODE_ONE) {
                 Text(
                     text = "1",
                     color = activeColor,
                     fontSize = 10.sp,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 12.dp, end = 12.dp)
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(horizontal = 2.dp)
+                    modifier =
+                        Modifier.align(Alignment.BottomEnd)
+                            .padding(bottom = 12.dp, end = 12.dp)
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = 2.dp),
                 )
             }
         }

@@ -7,10 +7,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.library.libraryRefreshEvents
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class PlaylistSongsViewModel(
     application: Application,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : AndroidViewModel(application) {
     private val repository = PlaylistRepository.getInstance(application)
     private val playlistId: Long = savedStateHandle.get<String>("playlistId")?.toLongOrNull() ?: -1L
@@ -45,10 +46,7 @@ class PlaylistSongsViewModel(
             _isLoading.value = false
         }
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(
-                com.pxr.cymatic.data.media.LibraryChanges.version,
-                LibraryFilterStore.changes
-            ).collect {
+            libraryRefreshEvents(includeScans = false).collect {
                 if (playlistId != -1L) loadPlaylist(playlistId)
             }
         }

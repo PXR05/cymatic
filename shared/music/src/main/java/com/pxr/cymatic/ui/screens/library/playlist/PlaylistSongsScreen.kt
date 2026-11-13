@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.sync.LibraryOfflineManager
@@ -28,14 +29,13 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun PlaylistSongsScreen(
     playlistId: Long,
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
-    viewModel: PlaylistSongsViewModel = viewModel()
+    viewModel: PlaylistSongsViewModel = viewModel(),
 ) {
     val context = LocalContext.current
     val navController = LocalNavController.current
@@ -61,13 +61,13 @@ fun PlaylistSongsScreen(
         onBackClick = { navController.popBackStack() },
         onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadPlaylist(playlistId) }
+                onRetry = { viewModel.loadPlaylist(playlistId) },
             )
         } else if (isLoading) {
             LoadingState()
@@ -79,7 +79,7 @@ fun PlaylistSongsScreen(
                 message = "Add tracks to this playlist from the context menu of a track.",
                 iconText = "( ! )",
                 actionLabel = "GO TO SONGS",
-                onActionClick = { navController.navigate(Screen.AllSongs.createRoute()) }
+                onActionClick = { navController.navigate(Screen.AllSongs.createRoute()) },
             )
         } else {
             AudioFileList(
@@ -91,11 +91,11 @@ fun PlaylistSongsScreen(
                             mediaController = it,
                             audioFile,
                             queue = audioFiles,
-                            queueSource = queueSource
+                            queueSource = queueSource,
                         )
                     }
                 },
-                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
+                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile },
             )
         }
     }
@@ -110,7 +110,7 @@ fun PlaylistSongsScreen(
                         mediaController = it,
                         audioFile = file,
                         queue = audioFiles,
-                        queueSource = queueSource
+                        queueSource = queueSource,
                     )
                 }
             },
@@ -140,28 +140,35 @@ fun PlaylistSongsScreen(
                     }
                 }
             },
-            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id },
         )
     }
 
     if (showHeaderMenu && audioFiles.isNotEmpty()) {
         AlbumArtistContextMenu(
             showLibraryFilter = true,
-            onKeepOffline = if (playlist?.availability != LibraryAvailability.OFFLINE && audioFiles.isNotEmpty()) ({
-                val source = playlist?.sourceId
-                val remoteId = playlist?.remoteId
-                if (source != null && remoteId != null) LibraryOfflineManager.keepPlaylist(
-                    context,
-                    source,
-                    remoteId,
-                    playlist?.name ?: "Playlist"
+            onKeepOffline =
+                if (
+                    playlist?.availability != LibraryAvailability.OFFLINE && audioFiles.isNotEmpty()
                 )
-                else LibraryOfflineManager.keepPlaylist(
-                    context,
-                    playlistId,
-                    playlist?.name ?: "Playlist"
-                )
-            }) else null,
+                    ({
+                        val source = playlist?.sourceId
+                        val remoteId = playlist?.remoteId
+                        if (source != null && remoteId != null)
+                            LibraryOfflineManager.keepPlaylist(
+                                context,
+                                source,
+                                remoteId,
+                                playlist?.name ?: "Playlist",
+                            )
+                        else
+                            LibraryOfflineManager.keepPlaylist(
+                                context,
+                                playlistId,
+                                playlist?.name ?: "Playlist",
+                            )
+                    })
+                else null,
             title = playlist?.name ?: "Playlist",
             onDismiss = { showHeaderMenu = false },
             onPlay = {
@@ -197,7 +204,7 @@ fun PlaylistSongsScreen(
                         controller.addMediaItems(items)
                     }
                 }
-            }
+            },
         )
     }
 
@@ -205,7 +212,7 @@ fun PlaylistSongsScreen(
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { viewModel.infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null },
         )
     }
 }

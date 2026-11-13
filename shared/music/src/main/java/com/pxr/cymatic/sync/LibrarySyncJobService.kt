@@ -6,7 +6,7 @@ import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
-import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.LibrarySyncSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +26,7 @@ class LibrarySyncJobService : JobService() {
                 .exceptionOrNull()
                 ?.takeUnless { it is SyncCancelledException }
                 ?.let { error ->
-                    SettingsStore.setSyncResult(
+                    LibrarySyncSettings.setSyncResult(
                         System.currentTimeMillis(),
                         "Automatic sync failed: ${error.message ?: "unknown error"}",
                     )
@@ -57,44 +57,45 @@ class LibrarySyncJobService : JobService() {
         suspend fun reschedule(context: Context) {
             val scheduler = context.getSystemService(JobScheduler::class.java)
             scheduler.cancel(JOB_ID)
-            val network = SyncNetwork.from(SettingsStore.syncNetworkFlow.first())
-            val directory = SettingsStore.syncDirectoryFlow.first()
+            val network = SyncNetwork.from(LibrarySyncSettings.syncNetworkFlow.first())
+            val directory = LibrarySyncSettings.syncDirectoryFlow.first()
             val source = RemoteLibraries.currentSource()
             SyncCredentialStore.migrateLegacy(context, source.id)
             if (
-                network == SyncNetwork.NEVER ||
-                !SyncCredentialStore.hasPassword(context, source.id)
+                network == SyncNetwork.NEVER || !SyncCredentialStore.hasPassword(context, source.id)
             )
                 return
 
             val pins = OfflineSelectionStore.read(context, source.id)
-            if (!SettingsStore.getSyncContentConfigured() && pins.isEmpty) return
+            if (!LibrarySyncSettings.getSyncContentConfigured() && pins.isEmpty) return
 
             if (
-                directory.isNotBlank() && context.contentResolver.persistedUriPermissions.none {
-                    it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
-                }
+                directory.isNotBlank() &&
+                    context.contentResolver.persistedUriPermissions.none {
+                        it.uri.toString() == directory &&
+                            it.isReadPermission &&
+                            it.isWritePermission
+                    }
             )
                 return
 
-            val mode = SyncContentMode.from(SettingsStore.syncContentModeFlow.first())
+            val mode = SyncContentMode.from(LibrarySyncSettings.syncContentModeFlow.first())
             if (mode == SyncContentMode.NONE && pins.isEmpty) return
             if (
-                mode ==
-                SyncContentMode.SELECTED_PLAYLISTS &&
-                SettingsStore.syncSelectedPlaylistsFlow.first().isEmpty() && pins.isEmpty
+                mode == SyncContentMode.SELECTED_PLAYLISTS &&
+                    LibrarySyncSettings.syncSelectedPlaylistsFlow.first().isEmpty() &&
+                    pins.isEmpty
             )
                 return
 
             val intervalMs =
-                (SettingsStore.syncIntervalHoursFlow.first() * 60L * 60L * 1000L).coerceAtLeast(
-                    MINIMUM_INTERVAL_MS
-                )
+                (LibrarySyncSettings.syncIntervalHoursFlow.first() * 60L * 60L * 1000L)
+                    .coerceAtLeast(MINIMUM_INTERVAL_MS)
             val info =
                 JobInfo.Builder(
-                    JOB_ID,
-                    ComponentName(context, LibrarySyncJobService::class.java),
-                )
+                        JOB_ID,
+                        ComponentName(context, LibrarySyncJobService::class.java),
+                    )
                     .setRequiredNetworkType(
                         if (network == SyncNetwork.WIFI) JobInfo.NETWORK_TYPE_UNMETERED
                         else JobInfo.NETWORK_TYPE_ANY

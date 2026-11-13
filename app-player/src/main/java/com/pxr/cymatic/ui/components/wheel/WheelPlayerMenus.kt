@@ -3,6 +3,7 @@ package com.pxr.cymatic.ui.components.wheel
 import androidx.compose.runtime.Composable
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import com.pxr.cymatic.playback.cycleRepeat
 import com.pxr.cymatic.ui.components.common.AddToPlaylistDialog
 import com.pxr.cymatic.ui.components.common.OutputInfoDialog
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
@@ -78,13 +79,4 @@ internal fun WheelTrackDialogs(state: WheelPlayerState, mediaId: String?) {
             onDismissRequest = { state.showTrackInfo = false },
         )
     }
-}
-
-private fun MediaController.cycleRepeat() {
-    repeatMode =
-        when (repeatMode) {
-            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-            else -> Player.REPEAT_MODE_OFF
-        }
 }

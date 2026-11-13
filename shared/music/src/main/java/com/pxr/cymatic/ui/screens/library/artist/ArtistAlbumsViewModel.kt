@@ -3,12 +3,12 @@ package com.pxr.cymatic.ui.screens.library.artist
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.library.albumDisplayName
+import com.pxr.cymatic.data.library.filterByArtist
+import com.pxr.cymatic.data.library.libraryRefreshEvents
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
-import com.pxr.cymatic.ui.screens.library.albumDisplayName
-import com.pxr.cymatic.ui.screens.library.filterByArtist
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +31,7 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(
-                SettingsStore.lastScanTimeMsFlow,
-                com.pxr.cymatic.data.media.LibraryChanges.version,
-                LibraryFilterStore.changes
-            ).collect {
+            libraryRefreshEvents().collect {
                 currentArtist?.let(::load)
             }
         }
@@ -53,10 +49,11 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
             runCatching { repository.getAllAudio() }
                 .onSuccess { _uiState.value = buildState(it, artistName, isLoading = false) }
                 .onFailure {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = it.message ?: "Failed to load albums",
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = it.message ?: "Failed to load albums",
+                        )
                 }
         }
     }
@@ -64,14 +61,15 @@ class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(applica
     private fun buildState(
         songs: List<AudioFile>,
         artistName: String,
-        isLoading: Boolean
+        isLoading: Boolean,
     ): ArtistAlbumsState {
         val artistSongs = filterByArtist(LibraryFilterStore.audio(songs), artistName)
-        val albums = artistSongs
-            .groupingBy(::albumDisplayName)
-            .eachCount()
-            .map { (name, count) -> ArtistAlbum(name, count) }
-            .sortedBy { it.name.lowercase() }
+        val albums =
+            artistSongs
+                .groupingBy(::albumDisplayName)
+                .eachCount()
+                .map { (name, count) -> ArtistAlbum(name, count) }
+                .sortedBy { it.name.lowercase() }
         return ArtistAlbumsState(
             isLoading = isLoading,
             albums = albums,

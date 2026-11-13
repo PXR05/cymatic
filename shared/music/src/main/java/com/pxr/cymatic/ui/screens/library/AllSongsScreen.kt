@@ -17,7 +17,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.media.LocalLibraryScanner
 import com.pxr.cymatic.data.media.LocalScanProgress
 import com.pxr.cymatic.data.model.LibraryFilter
-import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.data.store.LibrarySyncSettings
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.sync.CatalogProgress
@@ -47,7 +48,7 @@ import kotlinx.coroutines.withContext
 fun AllSongsScreen(
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
-    viewModel: AllSongsViewModel = viewModel()
+    viewModel: AllSongsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
@@ -55,33 +56,41 @@ fun AllSongsScreen(
     val queueSource = Screen.AllSongs.createRoute()
     val catalogProgress by LibraryCatalogManager.progress.collectAsState()
     val scanProgress by LocalLibraryScanner.progress.collectAsState()
-    val remoteConnected by produceState<Boolean?>(null, context) {
-        combine(
-            SettingsStore.syncUrlFlow,
-            SettingsStore.syncUsernameFlow
-        ) { address, username -> address to username }
-            .collect { (address, username) ->
-                value = withContext(Dispatchers.IO) {
-                    address.isNotBlank() && username.isNotBlank() && runCatching {
-                        SyncCredentialStore.hasPassword(
-                            context,
-                            RemoteLibrarySource("audiostream", address, username).id
-                        )
-                    }.getOrDefault(false)
+    val remoteConnected by
+        produceState<Boolean?>(null, context) {
+            combine(
+                    LibrarySyncSettings.syncUrlFlow,
+                    LibrarySyncSettings.syncUsernameFlow,
+                ) { address, username ->
+                    address to username
                 }
-            }
-    }
+                .collect { (address, username) ->
+                    value =
+                        withContext(Dispatchers.IO) {
+                            address.isNotBlank() &&
+                                username.isNotBlank() &&
+                                runCatching {
+                                        SyncCredentialStore.hasPassword(
+                                            context,
+                                            RemoteLibrarySource("audiostream", address, username)
+                                                .id,
+                                        )
+                                    }
+                                    .getOrDefault(false)
+                        }
+                }
+        }
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
-            LocalLibraryScanner.scan(context)
-            viewModel.loadAudioFiles()
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasPermission = isGranted
+            if (isGranted) {
+                LocalLibraryScanner.scan(context)
+                viewModel.loadAudioFiles()
+            }
         }
-    }
 
     var showHeaderMenu by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
@@ -98,24 +107,38 @@ fun AllSongsScreen(
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showSearchAction = false,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
-        if (uiState.songs.isEmpty() &&
-            (catalogProgress is CatalogProgress.Refreshing || scanProgress is LocalScanProgress.Scanning || remoteConnected == null)
+        if (
+            uiState.items.isEmpty() &&
+                (catalogProgress is CatalogProgress.Refreshing ||
+                    scanProgress is LocalScanProgress.Scanning ||
+                    remoteConnected == null)
         ) {
             LoadingState()
-        } else if (uiState.songs.isEmpty() && remoteConnected == true && catalogProgress is CatalogProgress.Failed) {
+        } else if (
+            uiState.items.isEmpty() &&
+                remoteConnected == true &&
+                catalogProgress is CatalogProgress.Failed
+        ) {
             ErrorState(
                 message = "Could not load the remote library. Check the connection and try again.",
                 onRetry = { LibraryCatalogManager.refresh(context) },
             )
-        } else if (uiState.songs.isEmpty() && scanProgress is LocalScanProgress.Failed && hasPermission) {
+        } else if (
+            uiState.items.isEmpty() && scanProgress is LocalScanProgress.Failed && hasPermission
+        ) {
             ErrorState(
                 message = "Could not scan device music. Try again.",
                 onRetry = { LocalLibraryScanner.scan(context) },
             )
-        } else if (!hasPermission && remoteConnected != true && availabilityFilter == LibraryFilter.ALL && uiState.songs.isEmpty()) {
+        } else if (
+            !hasPermission &&
+                remoteConnected != true &&
+                availabilityFilter == LibraryFilter.ALL &&
+                uiState.items.isEmpty()
+        ) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -130,46 +153,54 @@ fun AllSongsScreen(
         } else if (uiState.errorMessage != null) {
             ErrorState(
                 message = uiState.errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadAudioFiles() }
+                onRetry = { viewModel.loadAudioFiles() },
             )
         } else if (uiState.isLoading) {
             LoadingState()
-        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.songs.isEmpty()) {
+        } else if (
+            availabilityFilter != LibraryFilter.ALL &&
+                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+                uiState.items.isEmpty()
+        ) {
             LibraryFilteredEmptyState()
-        } else if (uiState.songs.isEmpty()) {
+        } else if (uiState.items.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
                     title = "No Matches Found",
                     message = "No songs match '${viewModel.searchQuery}'",
-                    iconText = "( ? )"
+                    iconText = "( ? )",
                 )
             } else {
                 EmptyState(
                     title = "No Songs Found",
-                    message = if (remoteConnected == true) "The server library has no songs. Add music on AudioStream, then refresh." else "Cymatic did not find any audio files.",
+                    message =
+                        if (remoteConnected == true)
+                            "The server library has no songs. Add music on AudioStream, then refresh."
+                        else "Cymatic did not find any audio files.",
                     iconText = "( ! )",
-                    actionLabel = if (remoteConnected == true) "REFRESH LIBRARY" else "GO TO STORAGE",
+                    actionLabel =
+                        if (remoteConnected == true) "REFRESH LIBRARY" else "GO TO STORAGE",
                     onActionClick = {
                         if (remoteConnected == true) LibraryCatalogManager.refresh(context)
                         else navController.navigate(Screen.StorageSettings.route)
-                    }
+                    },
                 )
             }
         } else {
             AudioFileList(
-                audioFiles = uiState.songs,
+                audioFiles = uiState.items,
                 scrollTargetId = scrollTargetId,
                 onItemClick = { audioFile ->
                     mediaController?.let {
                         handleItemClick(
                             mediaController = it,
                             audioFile,
-                            queue = uiState.songs,
-                            queueSource = queueSource
+                            queue = uiState.items,
+                            queueSource = queueSource,
                         )
                     }
                 },
-                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
+                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile },
             )
         }
     }
@@ -183,8 +214,8 @@ fun AllSongsScreen(
                     handleItemClick(
                         mediaController = it,
                         audioFile = file,
-                        queue = uiState.songs,
-                        queueSource = queueSource
+                        queue = uiState.items,
+                        queueSource = queueSource,
                     )
                 }
             },
@@ -214,7 +245,7 @@ fun AllSongsScreen(
                     }
                 }
             },
-            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id },
         )
     }
 
@@ -223,50 +254,53 @@ fun AllSongsScreen(
             showLibraryFilter = true,
             title = "All Songs",
             onDismiss = { showHeaderMenu = false },
-            onPlay = if (uiState.songs.isNotEmpty()) {
-                {
-                    mediaController?.let { controller ->
-                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                        controller.setMediaItems(items, 0, 0L)
-                        controller.prepare()
-                        controller.play()
-                    }
-                }
-            } else null,
-            onPlayNext = if (uiState.songs.isNotEmpty()) {
-                {
-                    mediaController?.let { controller ->
-                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                        val currentIndex = controller.currentMediaItemIndex
-                        val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
-                        if (controller.mediaItemCount == 0) {
-                            controller.setMediaItems(items)
+            onPlay =
+                if (uiState.items.isNotEmpty()) {
+                    {
+                        mediaController?.let { controller ->
+                            val items = uiState.items.map { createMediaItem(it, queueSource) }
+                            controller.setMediaItems(items, 0, 0L)
                             controller.prepare()
                             controller.play()
-                        } else {
-                            controller.addMediaItems(targetIndex, items)
                         }
                     }
-                }
-            } else null,
-            onAddToQueue = if (uiState.songs.isNotEmpty()) {
-                {
-                    mediaController?.let { controller ->
-                        val items = uiState.songs.map { createMediaItem(it, queueSource) }
-                        if (controller.mediaItemCount == 0) {
-                            controller.setMediaItems(items)
-                            controller.prepare()
-                            controller.play()
-                        } else {
-                            controller.addMediaItems(items)
+                } else null,
+            onPlayNext =
+                if (uiState.items.isNotEmpty()) {
+                    {
+                        mediaController?.let { controller ->
+                            val items = uiState.items.map { createMediaItem(it, queueSource) }
+                            val currentIndex = controller.currentMediaItemIndex
+                            val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(items)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(targetIndex, items)
+                            }
                         }
                     }
-                }
-            } else null,
+                } else null,
+            onAddToQueue =
+                if (uiState.items.isNotEmpty()) {
+                    {
+                        mediaController?.let { controller ->
+                            val items = uiState.items.map { createMediaItem(it, queueSource) }
+                            if (controller.mediaItemCount == 0) {
+                                controller.setMediaItems(items)
+                                controller.prepare()
+                                controller.play()
+                            } else {
+                                controller.addMediaItems(items)
+                            }
+                        }
+                    }
+                } else null,
             onSearch = {
                 showHeaderMenu = false
                 viewModel.onSearchActiveChange(true)
-            }
+            },
         )
     }
 
@@ -274,7 +308,7 @@ fun AllSongsScreen(
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { viewModel.infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null },
         )
     }
 }

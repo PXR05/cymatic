@@ -48,6 +48,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.playback.PlaybackActions
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.common.SongInfoDialog
 import com.pxr.cymatic.ui.locals.LocalMediaController
@@ -60,7 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlayerBar(
     modifier: Modifier = Modifier,
-    isDocked: Boolean = false
+    isDocked: Boolean = false,
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -72,7 +73,8 @@ fun PlayerBar(
     val metadata = currentMediaItem.toAudioMetadata()
     val locked by SettingsStore.lockedFlow.collectAsState(initial = SettingsStore.currentLocked)
 
-    val hideArtwork by SettingsStore.hideArtworkFlow.collectAsState(initial = SettingsStore.currentHideArtwork)
+    val hideArtwork by
+        SettingsStore.hideArtworkFlow.collectAsState(initial = SettingsStore.currentHideArtwork)
     var showInfoDialog by remember { mutableStateOf(false) }
 
     SongInfoDialog(
@@ -82,100 +84,100 @@ fun PlayerBar(
     )
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onDoubleClick = {
-                    if (!locked && !isDocked) return@combinedClickable
-                    val newValue = !hideArtwork
-                    scope.launch {
-                        SettingsStore.setHideArtwork(newValue)
-                    }
-                    haptic.performHapticFeedback(
-                        if (newValue) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
-                    )
-                },
-                onLongClick = {
-                    scope.launch {
-                        SettingsStore.setLocked(!SettingsStore.isLocked())
-                    }
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                },
-                indication = null,
-                interactionSource = null
-            ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {},
+                    onDoubleClick = {
+                        if (!locked && !isDocked) return@combinedClickable
+                        val newValue = !hideArtwork
+                        scope.launch {
+                            SettingsStore.setHideArtwork(newValue)
+                        }
+                        haptic.performHapticFeedback(
+                            if (newValue) HapticFeedbackType.ToggleOff
+                            else HapticFeedbackType.ToggleOn
+                        )
+                    },
+                    onLongClick = {
+                        scope.launch {
+                            SettingsStore.setLocked(!SettingsStore.isLocked())
+                        }
+                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    },
+                    indication = null,
+                    interactionSource = null,
+                )
     ) {
         if (locked || isDocked) {
             AsyncImage(
-                model = ImageRequest
-                    .Builder(LocalContext.current)
-                    .data(metadata.artworkUri)
-                    .crossfade(true)
-                    .build(),
+                model =
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(metadata.artworkUri)
+                        .crossfade(true)
+                        .build(),
                 contentDescription = metadata.album,
                 contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.None,
-                modifier = Modifier
-                    .then(
-                        if (isDocked) {
-                            Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                        } else {
-                            Modifier.fillMaxHeight()
-                        }
-                    )
-                    .blur(32.dp)
+                modifier =
+                    Modifier.then(
+                            if (isDocked) {
+                                Modifier.fillMaxWidth().aspectRatio(1f)
+                            } else {
+                                Modifier.fillMaxHeight()
+                            }
+                        )
+                        .blur(32.dp),
             )
 
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.25f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                            ),
+                modifier =
+                    Modifier.fillMaxSize()
+                        .background(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors =
+                                        listOf(
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                            MaterialTheme.colorScheme.background.copy(
+                                                alpha = 0.25f
+                                            ),
+                                            MaterialTheme.colorScheme.background.copy(
+                                                alpha = 0.25f
+                                            ),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
+                                        )
+                                )
                         )
-                    )
             )
 
             if (locked && !isDocked) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
                     AsyncImage(
-                        model = ImageRequest
-                            .Builder(LocalContext.current)
-                            .data(metadata.artworkUri)
-                            .crossfade(true)
-                            .build(),
+                        model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(metadata.artworkUri)
+                                .crossfade(true)
+                                .build(),
                         contentDescription = metadata.album,
                         contentScale = ContentScale.Crop,
                         filterQuality = FilterQuality.High,
-                        modifier = Modifier
-                            .padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
+                        modifier =
+                            Modifier.padding(start = 24.dp, end = 24.dp, bottom = 92.dp)
+                                .fillMaxWidth()
+                                .aspectRatio(1f),
                     )
                 }
             }
 
             if (hideArtwork) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                )
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black))
             }
-
         }
 
         if (isDocked) {
@@ -188,48 +190,44 @@ fun PlayerBar(
             val bottomPadding = safeDrawingPaddingValues.calculateBottomPadding()
 
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = maxHorizontalPadding + 48.dp,
-                        end = maxHorizontalPadding + 48.dp,
-                        top = topPadding + 48.dp,
-                        bottom = bottomPadding + 48.dp
-                    ),
+                modifier =
+                    Modifier.fillMaxSize()
+                        .padding(
+                            start = maxHorizontalPadding + 48.dp,
+                            end = maxHorizontalPadding + 48.dp,
+                            top = topPadding + 48.dp,
+                            bottom = bottomPadding + 48.dp,
+                        ),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(48.dp)
+                horizontalArrangement = Arrangement.spacedBy(48.dp),
             ) {
                 if (!hideArtwork) {
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.Center,
                     ) {
                         AsyncImage(
-                            model = ImageRequest
-                                .Builder(LocalContext.current)
-                                .data(metadata.artworkUri)
-                                .crossfade(true)
-                                .build(),
+                            model =
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(metadata.artworkUri)
+                                    .crossfade(true)
+                                    .build(),
                             contentDescription = metadata.album,
                             contentScale = ContentScale.Crop,
                             filterQuality = FilterQuality.High,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .aspectRatio(1f)
+                            modifier = Modifier.fillMaxSize().aspectRatio(1f),
                         )
                     }
                 }
 
                 Column(
                     modifier = Modifier.weight(if (hideArtwork) 1f else 1.2f),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         TrackQueueIndex(
                             currentIndex = playbackState.queue.currentIndex,
@@ -237,13 +235,13 @@ fun PlayerBar(
                             queueSource = playbackState.queueSource,
                             currentMediaId = playbackState.currentMediaId,
                             locked = locked,
-                            navController = navController
+                            navController = navController,
                         )
 
                         TrackFileInfo(
                             metadata = metadata,
                             locked = locked,
-                            onShowInfo = { showInfoDialog = true }
+                            onShowInfo = { showInfoDialog = true },
                         )
                     }
 
@@ -254,7 +252,7 @@ fun PlayerBar(
                         isShuffling = playbackState.isShuffling,
                         repeatMode = playbackState.repeatMode,
                         locked = locked,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -265,7 +263,7 @@ fun PlayerBar(
                         isBuffering = playbackState.isBuffering,
                         locked = locked,
                         onSeek = { mediaController.seekTo(it) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -275,7 +273,7 @@ fun PlayerBar(
                         isShuffling = playbackState.isShuffling,
                         repeatMode = playbackState.repeatMode,
                         locked = locked,
-                        mediaController = mediaController
+                        mediaController = mediaController,
                     )
                 }
             }
@@ -287,9 +285,7 @@ fun PlayerBar(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 ) {
                     TrackQueueIndex(
                         currentIndex = playbackState.queue.currentIndex,
@@ -297,13 +293,13 @@ fun PlayerBar(
                         queueSource = playbackState.queueSource,
                         currentMediaId = playbackState.currentMediaId,
                         locked = locked,
-                        navController = navController
+                        navController = navController,
                     )
 
                     TrackFileInfo(
                         metadata = metadata,
                         locked = locked,
-                        onShowInfo = { showInfoDialog = true }
+                        onShowInfo = { showInfoDialog = true },
                     )
                 }
 
@@ -314,9 +310,7 @@ fun PlayerBar(
                     isShuffling = playbackState.isShuffling,
                     repeatMode = playbackState.repeatMode,
                     locked = locked,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -327,7 +321,7 @@ fun PlayerBar(
                     isBuffering = playbackState.isBuffering,
                     locked = locked,
                     onSeek = { mediaController.seekTo(it) },
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -338,7 +332,7 @@ fun PlayerBar(
                     repeatMode = playbackState.repeatMode,
                     locked = locked,
                     mediaController = mediaController,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
         }
@@ -353,25 +347,26 @@ private fun TrackQueueIndex(
     currentMediaId: String?,
     locked: Boolean,
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = "${currentIndex + 1} of $totalTracks",
         color = MaterialTheme.colorScheme.secondary,
         fontSize = 14.sp,
-        modifier = modifier
-            .padding(vertical = 2.dp)
-            .clickable(
-                onClick = {
-                    if (!locked) {
-                        navController.navigate(Screen.Queue.route) {
-                            launchSingleTop = true
+        modifier =
+            modifier
+                .padding(vertical = 2.dp)
+                .clickable(
+                    onClick = {
+                        if (!locked) {
+                            navController.navigate(Screen.Queue.route) {
+                                launchSingleTop = true
+                            }
                         }
-                    }
-                },
-                indication = null,
-                interactionSource = null
-            )
+                    },
+                    indication = null,
+                    interactionSource = null,
+                ),
     )
 }
 
@@ -380,19 +375,20 @@ private fun TrackFileInfo(
     metadata: AudioMetadata,
     locked: Boolean,
     onShowInfo: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     FileInfo(
         metadata = metadata,
-        modifier = modifier.clickable(
-            onClick = {
-                if (!locked) {
-                    onShowInfo()
-                }
-            },
-            indication = null,
-            interactionSource = null
-        )
+        modifier =
+            modifier.clickable(
+                onClick = {
+                    if (!locked) {
+                        onShowInfo()
+                    }
+                },
+                indication = null,
+                interactionSource = null,
+            ),
     )
 }
 
@@ -402,20 +398,18 @@ private fun TrackInfoAndStatus(
     isShuffling: Boolean,
     repeatMode: Int,
     locked: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.Bottom,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Info(
             metadata,
             titleSize = 20.sp,
             artistSize = 14.sp,
             gap = 2.dp,
-            modifier = Modifier
-                .height(48.dp)
-                .weight(1f)
+            modifier = Modifier.height(48.dp).weight(1f),
         )
         if (locked) {
             if (isShuffling || repeatMode != Player.REPEAT_MODE_OFF) {
@@ -427,20 +421,21 @@ private fun TrackInfoAndStatus(
                     text = "SHUF",
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
 
             if (repeatMode != Player.REPEAT_MODE_OFF) {
                 Text(
-                    text = when (repeatMode) {
-                        Player.REPEAT_MODE_ALL -> "ALL"
-                        Player.REPEAT_MODE_ONE -> "ONE"
-                        else -> ""
-                    },
+                    text =
+                        when (repeatMode) {
+                            Player.REPEAT_MODE_ALL -> "ALL"
+                            Player.REPEAT_MODE_ONE -> "ONE"
+                            else -> ""
+                        },
                     color = MaterialTheme.colorScheme.secondary,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
         }
@@ -454,7 +449,7 @@ private fun TrackProgressBar(
     isBuffering: Boolean,
     locked: Boolean,
     onSeek: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     ProgressBar(
         currentPosition = currentPosition,
@@ -477,33 +472,15 @@ private fun TrackControls(
     repeatMode: Int,
     locked: Boolean,
     mediaController: MediaController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (!locked) {
-        Controls(
+        PlayerControls(
             modifier = modifier,
             isPlaying = isPlaying,
             isShuffling = isShuffling,
             repeatMode = repeatMode,
-            onClick = mapOf(
-                "shuffle" to {
-                    mediaController.shuffleModeEnabled = !isShuffling
-                },
-                "previous" to { mediaController.seekToPrevious() },
-                "play_pause" to {
-                    if (isPlaying) mediaController.pause()
-                    else mediaController.play()
-                },
-                "next" to { mediaController.seekToNext() },
-                "repeat" to {
-                    val newMode = when (repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                    mediaController.repeatMode = newMode
-                }
-            )
+            actions = PlaybackActions.forPlayer(mediaController),
         )
     }
 }

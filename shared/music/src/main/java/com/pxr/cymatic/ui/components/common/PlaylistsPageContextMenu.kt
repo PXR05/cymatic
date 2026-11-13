@@ -26,11 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun PlaylistsPageContextMenu(
@@ -48,24 +48,25 @@ fun PlaylistsPageContextMenu(
     if (wheel != null) {
         WheelContextMenu(
             title = "Playlists",
-            items = listOf(
-                NavigationItem("Show · ${filter.label}", onClick = { choosingFilter = true }),
-                NavigationItem(
-                    label = "New playlist",
-                    onClick = {
-                        onCreatePlaylist()
-                        onDismiss()
-                    }
+            items =
+                listOf(
+                    NavigationItem("Show · ${filter.label}", onClick = { choosingFilter = true }),
+                    NavigationItem(
+                        label = "New playlist",
+                        onClick = {
+                            onCreatePlaylist()
+                            onDismiss()
+                        },
+                    ),
+                    NavigationItem(
+                        label = "Search",
+                        onClick = {
+                            onSearch()
+                            onDismiss()
+                        },
+                    ),
                 ),
-                NavigationItem(
-                    label = "Search",
-                    onClick = {
-                        onSearch()
-                        onDismiss()
-                    }
-                )
-            ),
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
         )
         return
     }
@@ -76,11 +77,7 @@ fun PlaylistsPageContextMenu(
         maxHeightRatio = 0.7f,
         widthRatio = 0.8f,
         content = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 PlaylistsPageContextMenuAction(
                     iconRes = R.drawable.ic_pixel_songs,
                     label = "Show · ${filter.label}",
@@ -92,7 +89,7 @@ fun PlaylistsPageContextMenu(
                     onClick = {
                         onCreatePlaylist()
                         onDismiss()
-                    }
+                    },
                 )
                 PlaylistsPageContextMenuAction(
                     iconRes = R.drawable.ic_pixel_search,
@@ -100,7 +97,7 @@ fun PlaylistsPageContextMenu(
                     onClick = {
                         onSearch()
                         onDismiss()
-                    }
+                    },
                 )
             }
         },
@@ -108,9 +105,9 @@ fun PlaylistsPageContextMenu(
             CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
-        }
+        },
     )
 }
 
@@ -125,32 +122,32 @@ private fun PlaylistsPageContextMenuAction(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
-            )
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = interactionSource
-            )
-            .padding(
-                vertical = 14.dp,
-                horizontal = 24.dp
-            )
+        modifier =
+            Modifier.fillMaxWidth()
+                .background(
+                    if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+                )
+                .clickable(
+                    onClick = onClick,
+                    indication = null,
+                    interactionSource = interactionSource,
+                )
+                .padding(
+                    vertical = 14.dp,
+                    horizontal = 24.dp,
+                ),
     ) {
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = label,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 16.sp
+            fontSize = 16.sp,
         )
     }
 }

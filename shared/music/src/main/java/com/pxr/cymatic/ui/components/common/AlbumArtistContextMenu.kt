@@ -26,11 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun AlbumArtistContextMenu(
@@ -54,51 +54,71 @@ fun AlbumArtistContextMenu(
         val items = buildList {
             if (onPlay != null) {
                 add(
-                    NavigationItem("Play", onClick = {
-                        onPlay()
-                        onDismiss()
-                        wheel.onPlaybackRequested()
-                    })
+                    NavigationItem(
+                        "Play",
+                        onClick = {
+                            onPlay()
+                            onDismiss()
+                            wheel.onPlaybackRequested()
+                        },
+                    )
                 )
             }
             if (onPlayNext != null) {
                 add(
-                    NavigationItem("Play Next", onClick = {
-                        onPlayNext()
-                        onDismiss()
-                    })
+                    NavigationItem(
+                        "Play Next",
+                        onClick = {
+                            onPlayNext()
+                            onDismiss()
+                        },
+                    )
                 )
             }
             if (onAddToQueue != null) {
                 add(
-                    NavigationItem("Add to Queue", onClick = {
-                        onAddToQueue()
-                        onDismiss()
-                    })
+                    NavigationItem(
+                        "Add to Queue",
+                        onClick = {
+                            onAddToQueue()
+                            onDismiss()
+                        },
+                    )
                 )
             }
-            if (onKeepOffline != null) add(NavigationItem("Keep offline", onClick = {
-                onKeepOffline()
-                onDismiss()
-            }))
-            if (showLibraryFilter) add(
-                NavigationItem(
-                    "Show · ${filter.label}",
-                    onClick = { choosingFilter = true })
-            )
+            if (onKeepOffline != null)
+                add(
+                    NavigationItem(
+                        "Keep offline",
+                        onClick = {
+                            onKeepOffline()
+                            onDismiss()
+                        },
+                    )
+                )
+            if (showLibraryFilter)
+                add(
+                    NavigationItem(
+                        "Show · ${filter.label}",
+                        onClick = { choosingFilter = true },
+                    )
+                )
             if (onSearch != null) {
                 add(
-                    NavigationItem("Search", onClick = {
-                        onSearch()
-                        onDismiss()
-                    })
+                    NavigationItem(
+                        "Search",
+                        onClick = {
+                            onSearch()
+                            onDismiss()
+                        },
+                    )
                 )
             }
         }
         WheelContextMenu(
             title = title,
             items = items,
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
         )
         return
     }
@@ -108,11 +128,7 @@ fun AlbumArtistContextMenu(
         maxHeightRatio = 0.7f,
         widthRatio = 0.8f,
         content = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 if (onPlay != null) {
                     ContextMenuAction(
                         iconRes = R.drawable.ic_pixel_play,
@@ -120,7 +136,7 @@ fun AlbumArtistContextMenu(
                         onClick = {
                             onPlay()
                             onDismiss()
-                        }
+                        },
                     )
                 }
                 if (onPlayNext != null) {
@@ -130,7 +146,7 @@ fun AlbumArtistContextMenu(
                         onClick = {
                             onPlayNext()
                             onDismiss()
-                        }
+                        },
                     )
                 }
                 if (onAddToQueue != null) {
@@ -140,19 +156,24 @@ fun AlbumArtistContextMenu(
                         onClick = {
                             onAddToQueue()
                             onDismiss()
-                        }
+                        },
                     )
                 }
-                if (onKeepOffline != null) ContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_offline,
-                    label = "Keep offline",
-                    onClick = { onKeepOffline(); onDismiss() },
-                )
-                if (showLibraryFilter) ContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_songs,
-                    label = "Show · ${filter.label}",
-                    onClick = { choosingFilter = true },
-                )
+                if (onKeepOffline != null)
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_offline,
+                        label = "Keep offline",
+                        onClick = {
+                            onKeepOffline()
+                            onDismiss()
+                        },
+                    )
+                if (showLibraryFilter)
+                    ContextMenuAction(
+                        iconRes = R.drawable.ic_pixel_songs,
+                        label = "Show · ${filter.label}",
+                        onClick = { choosingFilter = true },
+                    )
                 if (onSearch != null) {
                     ContextMenuAction(
                         iconRes = R.drawable.ic_pixel_search,
@@ -160,7 +181,7 @@ fun AlbumArtistContextMenu(
                         onClick = {
                             onSearch()
                             onDismiss()
-                        }
+                        },
                     )
                 }
             }
@@ -169,9 +190,9 @@ fun AlbumArtistContextMenu(
             CymaticDialogButton(
                 text = "Cancel",
                 onClick = onDismiss,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
             )
-        }
+        },
     )
 }
 
@@ -186,32 +207,32 @@ private fun ContextMenuAction(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
-            )
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = interactionSource
-            )
-            .padding(
-                vertical = 14.dp,
-                horizontal = 24.dp
-            )
+        modifier =
+            Modifier.fillMaxWidth()
+                .background(
+                    if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+                )
+                .clickable(
+                    onClick = onClick,
+                    indication = null,
+                    interactionSource = interactionSource,
+                )
+                .padding(
+                    vertical = 14.dp,
+                    horizontal = 24.dp,
+                ),
     ) {
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = label,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 16.sp
+            fontSize = 16.sp,
         )
     }
 }

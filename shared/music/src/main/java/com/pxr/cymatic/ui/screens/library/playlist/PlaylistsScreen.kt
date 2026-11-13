@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
@@ -30,12 +31,11 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun PlaylistsScreen(
     modifier: Modifier = Modifier,
-    viewModel: PlaylistsViewModel = viewModel()
+    viewModel: PlaylistsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
@@ -44,32 +44,36 @@ fun PlaylistsScreen(
     var showPageMenu by remember { mutableStateOf(false) }
 
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
-    val items = uiState.playlists.map { playlist ->
-        NavigationItem(
-            playlist.name,
-            trailingContent = { color ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    com.pxr.cymatic.ui.components.list.LibraryAvailabilityIcon(
-                        playlist.availability, color,
-                        busy = playlist.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
-                                (playlist.id in work.localPlaylists ||
+    val items =
+        uiState.items.map { playlist ->
+            NavigationItem(
+                playlist.name,
+                trailingContent = { color ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        com.pxr.cymatic.ui.components.list.LibraryAvailabilityIcon(
+                            playlist.availability,
+                            color,
+                            busy =
+                                playlist.availability !=
+                                    com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
+                                    (playlist.id in work.localPlaylists ||
                                         com.pxr.cymatic.sync.RemoteLibraryItemKey(
                                             playlist.sourceId.orEmpty(),
-                                            playlist.remoteId.orEmpty()
+                                            playlist.remoteId.orEmpty(),
                                         ) in work.playlists),
-                    )
-                    Text(">", color = color, fontSize = 20.sp)
-                }
-            },
-            onClick = {
-                navController.navigate(Screen.PlaylistSongs.createRoute(playlist.id))
-            },
-            onLongClick = { viewModel.selectedPlaylist = playlist }
-        )
-    }
+                        )
+                        Text(">", color = color, fontSize = 20.sp)
+                    }
+                },
+                onClick = {
+                    navController.navigate(Screen.PlaylistSongs.createRoute(playlist.id))
+                },
+                onLongClick = { viewModel.selectedPlaylist = playlist },
+            )
+        }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
@@ -83,24 +87,28 @@ fun PlaylistsScreen(
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showSearchAction = false,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         if (uiState.errorMessage != null) {
             ErrorState(
                 message = uiState.errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadPlaylists() }
+                onRetry = { viewModel.loadPlaylists() },
             )
         } else if (uiState.isLoading) {
             LoadingState()
-        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.playlists.isEmpty()) {
+        } else if (
+            availabilityFilter != LibraryFilter.ALL &&
+                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+                uiState.items.isEmpty()
+        ) {
             LibraryFilteredEmptyState()
-        } else if (uiState.playlists.isEmpty()) {
+        } else if (uiState.items.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
                     title = "No Matches Found",
                     message = "No playlists match '${viewModel.searchQuery}'",
-                    iconText = "( ? )"
+                    iconText = "( ? )",
                 )
             } else {
                 EmptyState(
@@ -108,7 +116,7 @@ fun PlaylistsScreen(
                     message = "Long press Menu to create a playlist.",
                     iconText = "( ! )",
                     actionLabel = "NEW PLAYLIST",
-                    onActionClick = { viewModel.showCreateDialog = true }
+                    onActionClick = { viewModel.showCreateDialog = true },
                 )
             }
         } else {
@@ -126,7 +134,7 @@ fun PlaylistsScreen(
             onSearch = {
                 showPageMenu = false
                 viewModel.onSearchActiveChange(true)
-            }
+            },
         )
     }
 
@@ -144,7 +152,7 @@ fun PlaylistsScreen(
             onDismiss = {
                 viewModel.newPlaylistName = ""
                 viewModel.showCreateDialog = false
-            }
+            },
         )
     }
 
@@ -206,7 +214,7 @@ fun PlaylistsScreen(
             },
             onDelete = { playlistId ->
                 viewModel.deletePlaylist(playlistId)
-            }
+            },
         )
     }
 }

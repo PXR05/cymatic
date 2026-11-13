@@ -4,7 +4,8 @@ import android.content.Context
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.data.store.LibrarySyncSettings
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,15 +15,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.atomic.AtomicLong
 
 data class OfflineSelection(
     val tracks: Set<String> = emptySet(),
-    val playlists: Set<String> = emptySet()
+    val playlists: Set<String> = emptySet(),
 ) {
-    val isEmpty get() = tracks.isEmpty() && playlists.isEmpty()
-    fun trackIds(catalog: RemoteCatalog): Set<String> = tracks + catalog.playlists
-        .filter { it.id in playlists }.flatMap { it.trackIds }
+    val isEmpty
+        get() = tracks.isEmpty() && playlists.isEmpty()
+
+    fun trackIds(catalog: RemoteCatalog): Set<String> =
+        tracks + catalog.playlists.filter { it.id in playlists }.flatMap { it.trackIds }
 }
 
 internal object OfflineSelectionStore {
@@ -30,16 +32,21 @@ internal object OfflineSelectionStore {
         val prefs = context.getSharedPreferences("library-offline", Context.MODE_PRIVATE)
         return OfflineSelection(
             prefs.getStringSet("${sourceId}_tracks", emptySet()).orEmpty().toSet(),
-            prefs.getStringSet("${sourceId}_playlists", emptySet()).orEmpty().toSet()
+            prefs.getStringSet("${sourceId}_playlists", emptySet()).orEmpty().toSet(),
         )
     }
 
     fun save(context: Context, sourceId: String, selection: OfflineSelection) {
         check(
-            context.getSharedPreferences("library-offline", Context.MODE_PRIVATE).edit()
+            context
+                .getSharedPreferences("library-offline", Context.MODE_PRIVATE)
+                .edit()
                 .putStringSet("${sourceId}_tracks", selection.tracks)
-                .putStringSet("${sourceId}_playlists", selection.playlists).commit()
-        ) { "Could not save offline selection" }
+                .putStringSet("${sourceId}_playlists", selection.playlists)
+                .commit()
+        ) {
+            "Could not save offline selection"
+        }
     }
 }
 
@@ -51,6 +58,7 @@ object LibraryOfflineManager {
     val workState = work.state
 
     internal fun setSyncWork(items: OfflineWorkItems) = work.setActive(items)
+
     private val noticeIds = AtomicLong()
     private val mutableNotice = MutableStateFlow<OfflineQueueNotice?>(null)
     val notice = mutableNotice.asStateFlow()
@@ -84,7 +92,7 @@ object LibraryOfflineManager {
                             if (error != null && error !is SyncCancelledException)
                                 notify(
                                     "Download failed · ${error.message ?: "try again"}",
-                                    failed = true
+                                    failed = true,
                                 )
                             break
                         }
@@ -104,23 +112,24 @@ object LibraryOfflineManager {
         context: Context,
         sourceId: String,
         remoteId: String,
-        title: String = "Playlist"
-    ) =
-        request(context, sourceId, emptySet(), setOf(remoteId), title)
+        title: String = "Playlist",
+    ) = request(context, sourceId, emptySet(), setOf(remoteId), title)
 
     fun keepPlaylist(context: Context, playlistId: Long, title: String = "Playlist") {
         scope.launch {
             try {
                 val songs = PlaylistRepository.getInstance(context).getPlaylistAudio(playlistId)
-                songs.filter { it.sourceId != null && it.remoteId != null }
-                    .groupBy { it.sourceId!! }.forEach { (source, tracks) ->
+                songs
+                    .filter { it.sourceId != null && it.remoteId != null }
+                    .groupBy { it.sourceId!! }
+                    .forEach { (source, tracks) ->
                         request(
                             context,
                             source,
                             tracks.mapTo(mutableSetOf()) { it.remoteId!! },
                             emptySet(),
                             title,
-                            playlistId
+                            playlistId,
                         )
                     }
             } catch (error: Exception) {
@@ -132,9 +141,10 @@ object LibraryOfflineManager {
     fun keepSongs(
         context: Context,
         songs: List<com.pxr.cymatic.data.model.AudioFile>,
-        title: String
+        title: String,
     ) {
-        songs.filter { it.sourceId != null && it.remoteId != null }
+        songs
+            .filter { it.sourceId != null && it.remoteId != null }
             .groupBy { it.sourceId!! }
             .forEach { (source, tracks) ->
                 request(
@@ -142,7 +152,7 @@ object LibraryOfflineManager {
                     source,
                     tracks.mapTo(mutableSetOf()) { it.remoteId!! },
                     emptySet(),
-                    title
+                    title,
                 )
             }
     }
@@ -153,7 +163,7 @@ object LibraryOfflineManager {
         tracks: Set<String>,
         playlists: Set<String>,
         title: String,
-        playlistId: Long? = null
+        playlistId: Long? = null,
     ) {
         val application = context.applicationContext
         scope.launch {
@@ -161,44 +171,59 @@ object LibraryOfflineManager {
                 selectionMutex.withLock {
                     val previous = OfflineSelectionStore.read(application, sourceId)
                     OfflineSelectionStore.save(
-                        application, sourceId,
+                        application,
+                        sourceId,
                         previous.copy(
                             tracks = previous.tracks + tracks,
-                            playlists = previous.playlists + playlists
-                        )
+                            playlists = previous.playlists + playlists,
+                        ),
                     )
                 }
-                val ids = tracks + SyncCatalogStore.read(application, sourceId)?.playlists.orEmpty()
-                    .filter { it.id in playlists }.flatMap { it.trackIds }
-                val offline = AudioRepository.getInstance(application).getAllAudio()
-                    .filter { it.sourceId == sourceId && it.availability == LibraryAvailability.OFFLINE }
-                    .mapNotNullTo(mutableSetOf()) { it.remoteId }
+                val ids =
+                    tracks +
+                        SyncCatalogStore.read(application, sourceId)
+                            ?.playlists
+                            .orEmpty()
+                            .filter { it.id in playlists }
+                            .flatMap { it.trackIds }
+                val offline =
+                    AudioRepository.getInstance(application)
+                        .getAllAudio()
+                        .filter {
+                            it.sourceId == sourceId &&
+                                it.availability == LibraryAvailability.OFFLINE
+                        }
+                        .mapNotNullTo(mutableSetOf()) { it.remoteId }
                 work.enqueue(
-                    sourceId, OfflineWorkItems(
+                    sourceId,
+                    OfflineWorkItems(
                         (ids - offline).mapTo(mutableSetOf()) {
                             RemoteLibraryItemKey(
                                 sourceId,
-                                it
+                                it,
                             )
                         },
                         playlists.mapTo(mutableSetOf()) { RemoteLibraryItemKey(sourceId, it) },
                         setOfNotNull(playlistId),
-                    )
+                    ),
                 )
                 com.pxr.cymatic.data.media.LibraryChanges.notifyChanged()
                 queue.offer(application to sourceId)
                 runCatching {
                     if (RemoteLibraries.currentSource().id == sourceId) {
-                        if (!SettingsStore.getSyncContentConfigured() && SettingsStore.getSyncNetwork() == SyncNetwork.NEVER.value)
-                            SettingsStore.setSyncNetwork(SyncNetwork.WIFI.value)
+                        if (
+                            !LibrarySyncSettings.getSyncContentConfigured() &&
+                                LibrarySyncSettings.getSyncNetwork() == SyncNetwork.NEVER.value
+                        )
+                            LibrarySyncSettings.setSyncNetwork(SyncNetwork.WIFI.value)
                         LibrarySyncJobService.reschedule(application)
                     }
                 }
             } catch (error: Exception) {
                 notify("Could not queue $title", failed = true)
-                SettingsStore.setSyncResult(
+                LibrarySyncSettings.setSyncResult(
                     System.currentTimeMillis(),
-                    "Download failed: ${error.message}"
+                    "Download failed: ${error.message}",
                 )
             }
         }

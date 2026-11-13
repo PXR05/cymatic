@@ -20,21 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
-import com.pxr.cymatic.data.model.FilterType
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import kotlin.math.round
-
-data class EqBandEditorLimits(
-    val frequency: ClosedFloatingPointRange<Float> = 20f..20000f,
-    val gain: ClosedFloatingPointRange<Float> = -12f..12f,
-    val q: ClosedFloatingPointRange<Float> = 0.1f..2f,
-    val types: List<FilterType> = FilterType.entries,
-    val gainStep: Float = 0.1f,
-    val showGain: Boolean = true,
-)
 
 @SuppressLint("DefaultLocale")
 @Composable

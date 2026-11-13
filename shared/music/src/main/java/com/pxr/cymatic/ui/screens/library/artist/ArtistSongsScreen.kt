@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.playback.handleItemClick
 import com.pxr.cymatic.sync.LibraryOfflineManager
@@ -33,7 +34,6 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
 
 @Composable
@@ -41,7 +41,7 @@ fun ArtistSongsScreen(
     artistName: String,
     modifier: Modifier = Modifier,
     scrollTargetId: Long? = null,
-    viewModel: ArtistSongsViewModel = viewModel()
+    viewModel: ArtistSongsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
@@ -49,14 +49,14 @@ fun ArtistSongsScreen(
     val queueSource = Screen.ArtistSongs.createRoute(artistName)
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
-            viewModel.loadArtistSongs(artistName)
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasPermission = isGranted
+            if (isGranted) {
+                viewModel.loadArtistSongs(artistName)
+            }
         }
-    }
 
     LaunchedEffect(artistName) {
         viewModel.loadArtistSongs(artistName)
@@ -77,7 +77,7 @@ fun ArtistSongsScreen(
         onBackClick = { navController.popBackStack() },
         onMenuLongClick = { showHeaderMenu = true },
         modifier = modifier,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         if (!hasPermission && availabilityFilter == LibraryFilter.ALL && filteredFiles.isEmpty()) {
@@ -95,7 +95,7 @@ fun ArtistSongsScreen(
         } else if (errorMessage != null) {
             ErrorState(
                 message = errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadArtistSongs(artistName) }
+                onRetry = { viewModel.loadArtistSongs(artistName) },
             )
         } else if (isLoading) {
             LoadingState()
@@ -105,7 +105,7 @@ fun ArtistSongsScreen(
             EmptyState(
                 title = "No Songs Found",
                 message = "Cymatic did not find any songs for '$artistName'.",
-                iconText = "( ! )"
+                iconText = "( ! )",
             )
         } else {
             AudioFileList(
@@ -117,11 +117,11 @@ fun ArtistSongsScreen(
                             mediaController = it,
                             audioFile,
                             queue = filteredFiles,
-                            queueSource = queueSource
+                            queueSource = queueSource,
                         )
                     }
                 },
-                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile }
+                onItemLongClick = { audioFile -> viewModel.contextMenuFile = audioFile },
             )
         }
     }
@@ -136,7 +136,7 @@ fun ArtistSongsScreen(
                         mediaController = it,
                         audioFile = file,
                         queue = filteredFiles,
-                        queueSource = queueSource
+                        queueSource = queueSource,
                     )
                 }
             },
@@ -166,7 +166,7 @@ fun ArtistSongsScreen(
                     }
                 }
             },
-            onTrackInfo = { file -> viewModel.infoDialogId = file.id }
+            onTrackInfo = { file -> viewModel.infoDialogId = file.id },
         )
     }
 
@@ -174,9 +174,12 @@ fun ArtistSongsScreen(
         AlbumArtistContextMenu(
             showLibraryFilter = true,
             title = artistName,
-            onKeepOffline = offlineGroup?.takeIf { it.canKeepOffline }?.let { group ->
-                { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
-            },
+            onKeepOffline =
+                offlineGroup
+                    ?.takeIf { it.canKeepOffline }
+                    ?.let { group ->
+                        { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
+                    },
             onDismiss = { showHeaderMenu = false },
             onPlay = {
                 mediaController?.let { controller ->
@@ -211,7 +214,7 @@ fun ArtistSongsScreen(
                         controller.addMediaItems(items)
                     }
                 }
-            }
+            },
         )
     }
 
@@ -219,7 +222,7 @@ fun ArtistSongsScreen(
         SongInfoDialog(
             showDialog = true,
             mediaId = id,
-            onDismissRequest = { viewModel.infoDialogId = null }
+            onDismissRequest = { viewModel.infoDialogId = null },
         )
     }
 }

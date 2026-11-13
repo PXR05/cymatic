@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
@@ -30,28 +31,27 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.LibraryGroupIndicator
 import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
 
 @Composable
 fun AlbumsScreen(
     modifier: Modifier = Modifier,
-    viewModel: AlbumsViewModel = viewModel()
+    viewModel: AlbumsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
-            viewModel.loadAlbums()
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasPermission = isGranted
+            if (isGranted) {
+                viewModel.loadAlbums()
+            }
         }
-    }
 
     var showPageMenu by remember { mutableStateOf(false) }
     var selectedAlbum by remember { mutableStateOf<String?>(null) }
@@ -59,16 +59,19 @@ fun AlbumsScreen(
 
     val groups = rememberLibraryGroups()
 
-    val items = uiState.albums.map { albumName ->
-        NavigationItem(
-            label = albumName,
-            trailingContent = { color -> LibraryGroupIndicator(groups.albums[albumName], color) },
-            onClick = {
-                navController.navigate(Screen.AlbumSongs.createRoute(albumName))
-            },
-            onLongClick = { selectedAlbum = albumName }
-        )
-    }
+    val items =
+        uiState.items.map { albumName ->
+            NavigationItem(
+                label = albumName,
+                trailingContent = { color ->
+                    LibraryGroupIndicator(groups.albums[albumName], color)
+                },
+                onClick = {
+                    navController.navigate(Screen.AlbumSongs.createRoute(albumName))
+                },
+                onLongClick = { selectedAlbum = albumName },
+            )
+        }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
@@ -82,10 +85,10 @@ fun AlbumsScreen(
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showSearchAction = false,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
-        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.albums.isEmpty()) {
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.items.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -100,18 +103,22 @@ fun AlbumsScreen(
         } else if (uiState.errorMessage != null) {
             ErrorState(
                 message = uiState.errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadAlbums() }
+                onRetry = { viewModel.loadAlbums() },
             )
         } else if (uiState.isLoading) {
             LoadingState()
-        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.albums.isEmpty()) {
+        } else if (
+            availabilityFilter != LibraryFilter.ALL &&
+                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+                uiState.items.isEmpty()
+        ) {
             LibraryFilteredEmptyState()
-        } else if (uiState.albums.isEmpty()) {
+        } else if (uiState.items.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
                     title = "No Matches Found",
                     message = "No albums match '${viewModel.searchQuery}'",
-                    iconText = "( ? )"
+                    iconText = "( ? )",
                 )
             } else {
                 EmptyState(
@@ -119,13 +126,13 @@ fun AlbumsScreen(
                     message = "Cymatic did not find any albums.",
                     iconText = "( ! )",
                     actionLabel = "GO TO STORAGE",
-                    onActionClick = { navController.navigate(Screen.StorageSettings.route) }
+                    onActionClick = { navController.navigate(Screen.StorageSettings.route) },
                 )
             }
         } else {
             NavigationList(
                 items = items,
-                modifier = Modifier
+                modifier = Modifier,
             )
         }
     }
@@ -133,9 +140,12 @@ fun AlbumsScreen(
     selectedAlbum?.let { albumName ->
         AlbumArtistContextMenu(
             title = albumName,
-            onKeepOffline = groups.albums[albumName]?.takeIf { it.canKeepOffline }?.let { group ->
-                { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
-            },
+            onKeepOffline =
+                groups.albums[albumName]
+                    ?.takeIf { it.canKeepOffline }
+                    ?.let { group ->
+                        { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
+                    },
             onDismiss = { selectedAlbum = null },
             onPlay = {
                 mediaController?.let { controller ->
@@ -185,7 +195,7 @@ fun AlbumsScreen(
                         }
                     }
                 }
-            }
+            },
         )
     }
 
@@ -197,7 +207,7 @@ fun AlbumsScreen(
             onSearch = {
                 showPageMenu = false
                 viewModel.onSearchActiveChange(true)
-            }
+            },
         )
     }
 }

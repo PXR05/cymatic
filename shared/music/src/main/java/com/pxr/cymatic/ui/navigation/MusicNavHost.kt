@@ -11,13 +11,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.pxr.cymatic.data.library.UnknownAlbum
+import com.pxr.cymatic.data.library.UnknownArtist
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.motion.CymaticMotion
 import com.pxr.cymatic.ui.screens.library.AllSongsScreen
 import com.pxr.cymatic.ui.screens.library.QueueScreen
-import com.pxr.cymatic.ui.screens.library.UnknownAlbum
-import com.pxr.cymatic.ui.screens.library.UnknownArtist
 import com.pxr.cymatic.ui.screens.library.album.AlbumSongsScreen
 import com.pxr.cymatic.ui.screens.library.album.AlbumsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistAlbumsScreen
@@ -25,15 +25,15 @@ import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.artist.ArtistsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
-import com.pxr.cymatic.ui.screens.settings.EQSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.LibrarySyncSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.LicensesSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.PlaybackSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.ReleaseProduct
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
-import com.pxr.cymatic.ui.screens.settings.StorageSettingsScreen
-import com.pxr.cymatic.ui.screens.settings.UsbSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.eq.EQSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.licenses.LicensesSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.playback.PlaybackSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.storage.StorageSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.sync.LibrarySyncSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.usb.UsbSettingsScreen
 
 @Composable
 fun MusicNavHost(

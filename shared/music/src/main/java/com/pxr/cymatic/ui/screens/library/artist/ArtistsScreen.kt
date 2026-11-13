@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.createMediaItem
 import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
@@ -30,28 +31,27 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.LibraryGroupIndicator
 import com.pxr.cymatic.ui.screens.library.rememberLibraryGroups
 
 @Composable
 fun ArtistsScreen(
     modifier: Modifier = Modifier,
-    viewModel: ArtistsViewModel = viewModel()
+    viewModel: ArtistsViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val mediaController = LocalMediaController.current
     val context = LocalContext.current
 
     var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
-            viewModel.loadArtists()
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
+            isGranted ->
+            hasPermission = isGranted
+            if (isGranted) {
+                viewModel.loadArtists()
+            }
         }
-    }
 
     var showPageMenu by remember { mutableStateOf(false) }
     var selectedArtist by remember { mutableStateOf<String?>(null) }
@@ -59,16 +59,19 @@ fun ArtistsScreen(
 
     val groups = rememberLibraryGroups()
 
-    val items = uiState.artists.map { artistName ->
-        NavigationItem(
-            label = artistName,
-            trailingContent = { color -> LibraryGroupIndicator(groups.artists[artistName], color) },
-            onClick = {
-                navController.navigate(Screen.ArtistAlbums.createRoute(artistName))
-            },
-            onLongClick = { selectedArtist = artistName }
-        )
-    }
+    val items =
+        uiState.items.map { artistName ->
+            NavigationItem(
+                label = artistName,
+                trailingContent = { color ->
+                    LibraryGroupIndicator(groups.artists[artistName], color)
+                },
+                onClick = {
+                    navController.navigate(Screen.ArtistAlbums.createRoute(artistName))
+                },
+                onLongClick = { selectedArtist = artistName },
+            )
+        }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
 
@@ -82,10 +85,10 @@ fun ArtistsScreen(
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showSearchAction = false,
-        showWallpaperBackdrop = true
+        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
-        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.artists.isEmpty()) {
+        if (!hasPermission && availabilityFilter == LibraryFilter.ALL && uiState.items.isEmpty()) {
             PermissionDeniedState(
                 onGrantClick = {
                     permissionLauncher.launch(
@@ -100,18 +103,22 @@ fun ArtistsScreen(
         } else if (uiState.errorMessage != null) {
             ErrorState(
                 message = uiState.errorMessage ?: "Unknown error",
-                onRetry = { viewModel.loadArtists() }
+                onRetry = { viewModel.loadArtists() },
             )
         } else if (uiState.isLoading) {
             LoadingState()
-        } else if (availabilityFilter != LibraryFilter.ALL && !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) && uiState.artists.isEmpty()) {
+        } else if (
+            availabilityFilter != LibraryFilter.ALL &&
+                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+                uiState.items.isEmpty()
+        ) {
             LibraryFilteredEmptyState()
-        } else if (uiState.artists.isEmpty()) {
+        } else if (uiState.items.isEmpty()) {
             if (viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) {
                 EmptyState(
                     title = "No Matches Found",
                     message = "No artists match '${viewModel.searchQuery}'",
-                    iconText = "( ? )"
+                    iconText = "( ? )",
                 )
             } else {
                 EmptyState(
@@ -119,13 +126,13 @@ fun ArtistsScreen(
                     message = "Cymatic did not find any artists.",
                     iconText = "( ! )",
                     actionLabel = "GO TO STORAGE",
-                    onActionClick = { navController.navigate(Screen.StorageSettings.route) }
+                    onActionClick = { navController.navigate(Screen.StorageSettings.route) },
                 )
             }
         } else {
             NavigationList(
                 items = items,
-                modifier = Modifier
+                modifier = Modifier,
             )
         }
     }
@@ -133,9 +140,12 @@ fun ArtistsScreen(
     selectedArtist?.let { artistName ->
         AlbumArtistContextMenu(
             title = artistName,
-            onKeepOffline = groups.artists[artistName]?.takeIf { it.canKeepOffline }?.let { group ->
-                { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
-            },
+            onKeepOffline =
+                groups.artists[artistName]
+                    ?.takeIf { it.canKeepOffline }
+                    ?.let { group ->
+                        { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
+                    },
             onDismiss = { selectedArtist = null },
             onPlay = {
                 mediaController?.let { controller ->
@@ -185,7 +195,7 @@ fun ArtistsScreen(
                         }
                     }
                 }
-            }
+            },
         )
     }
 
@@ -197,7 +207,7 @@ fun ArtistsScreen(
             onSearch = {
                 showPageMenu = false
                 viewModel.onSearchActiveChange(true)
-            }
+            },
         )
     }
 }

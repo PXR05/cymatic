@@ -8,65 +8,39 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.library.filterByArtist
+import com.pxr.cymatic.data.library.libraryRefreshEvents
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
-import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
-import com.pxr.cymatic.ui.screens.library.filterByArtist
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.LibraryCollectionLoader
 
-class ArtistSongsViewModel(
-    application: Application,
-    savedStateHandle: SavedStateHandle
-) : AndroidViewModel(application) {
+class ArtistSongsViewModel(application: Application, savedStateHandle: SavedStateHandle) :
+    AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
-    private val artistName: String =
-        Uri.decode(savedStateHandle.get<String>("artistName").orEmpty())
 
-    private val _songs = MutableStateFlow<List<AudioFile>>(emptyList())
-    val songs: StateFlow<List<AudioFile>> = _songs
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    private var artistName = Uri.decode(savedStateHandle.get<String>("artistName").orEmpty())
+
+    private val loader =
+        LibraryCollectionLoader(
+            scope = viewModelScope,
+            cachedItems = repository.getCachedAudio()?.let(::filterSongs),
+            changes = libraryRefreshEvents(),
+            failureMessage = "Failed to load artist songs",
+            loadItems = { filterSongs(repository.getAllAudio()) },
+        )
+    val songs = loader.items
+    val isLoading = loader.isLoading
+    val errorMessage = loader.errorMessage
 
     var contextMenuFile by mutableStateOf<AudioFile?>(null)
     var infoDialogId by mutableStateOf<Long?>(null)
 
-    init {
-        val cached = repository.getCachedAudio()
-        if (cached != null) {
-            _songs.value = filterByArtist(LibraryFilterStore.audio(cached), artistName)
-            _isLoading.value = false
-        }
-        viewModelScope.launch {
-            kotlinx.coroutines.flow.merge(
-                SettingsStore.lastScanTimeMsFlow,
-                com.pxr.cymatic.data.media.LibraryChanges.version,
-                LibraryFilterStore.changes
-            ).collect {
-                loadArtistSongs(artistName)
-            }
-        }
+    fun loadArtistSongs(artistName: String) {
+        this.artistName = artistName
+        loader.refresh()
     }
 
-    fun loadArtistSongs(artistName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            if (_songs.value.isEmpty()) {
-                _isLoading.value = true
-            }
-            _errorMessage.value = null
-            try {
-                val allSongs = repository.getAllAudio()
-                _songs.value = filterByArtist(LibraryFilterStore.audio(allSongs), artistName)
-            } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "Failed to load artist songs"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+    private fun filterSongs(songs: List<AudioFile>) =
+        filterByArtist(LibraryFilterStore.audio(songs), artistName)
 }

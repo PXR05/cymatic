@@ -2,8 +2,6 @@ package com.pxr.cymatic
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.media.AudioDeviceCallback
-import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
@@ -24,27 +22,27 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import com.pxr.cymatic.audio.DeviceVolumeMemory
 import com.pxr.cymatic.audio.EqAudioProcessor
-import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.audio.usb.UsbExtractorsFactory
 import com.pxr.cymatic.audio.usb.UsbPlaybackCoordinator
-import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.UsbRenderersFactory
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.EqPreset
+import com.pxr.cymatic.data.model.selectedOrDefault
+import com.pxr.cymatic.data.store.EqSettingsStore
 import com.pxr.cymatic.data.store.PlaybackStore
-import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.data.store.UsbPlaybackSettings
 import com.pxr.cymatic.design.R as DesignR
 import com.pxr.cymatic.music.R
 import com.pxr.cymatic.playback.FadingPlayer
 import com.pxr.cymatic.playback.OutputInfoState
+import com.pxr.cymatic.playback.PlaybackDeviceTracker
 import com.pxr.cymatic.playback.PlaybackOutputMonitor
+import com.pxr.cymatic.playback.PlaybackStateLogger
+import com.pxr.cymatic.playback.PlaybackStatePersistence
 import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
-import com.pxr.cymatic.playback.QUEUE_SOURCE_KEY
 import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
-import com.pxr.cymatic.playback.createMediaItem
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,8 +74,9 @@ class PlaybackService : MediaLibraryService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val eqAudioProcessor = EqAudioProcessor()
     private lateinit var audioManager: AudioManager
-    private var audioDeviceCallback: AudioDeviceCallback? = null
-    private var lastSavedPositionMs = -1L
+    private lateinit var deviceTracker: PlaybackDeviceTracker
+    private lateinit var persistence: PlaybackStatePersistence
+    private lateinit var logger: PlaybackStateLogger
     private lateinit var usbPlayback: UsbPlaybackCoordinator
 
     override fun onCreate() {
@@ -113,6 +112,9 @@ class PlaybackService : MediaLibraryService() {
                 .build()
 
         fadingPlayer = FadingPlayer(player, serviceScope)
+        persistence = PlaybackStatePersistence(this, player, fadingPlayer, serviceScope)
+        logger = PlaybackStateLogger(player)
+        deviceTracker = PlaybackDeviceTracker(audioManager, player, serviceScope)
         usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
         serviceScope.launch(Dispatchers.Main) {
             PlaybackOutputMonitor(
@@ -154,29 +156,29 @@ class PlaybackService : MediaLibraryService() {
             object : Player.Listener {
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     refreshCurrentLibraryMetadata()
-                    logPlayerState(
+                    logger.log(
                         "media item transition: ${mediaItem?.mediaId}, reason=${
-                            transitionReasonName(
+                            logger.transitionReasonName(
                                 reason
                             )
                         }"
                     )
-                    persistPlaybackState()
+                    persistence.save()
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    logPlayerState("isPlaying changed: $isPlaying")
-                    persistPlaybackState()
+                    logger.log("isPlaying changed: $isPlaying")
+                    persistence.save()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    logPlayerState("playback state changed: ${playbackStateName(playbackState)}")
+                    logger.log("playback state changed: ${logger.playbackStateName(playbackState)}")
                 }
 
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                    logPlayerState(
+                    logger.log(
                         "playWhenReady changed: $playWhenReady, reason=${
-                            playWhenReadyReasonName(
+                            logger.playWhenReadyReasonName(
                                 reason
                             )
                         }"
@@ -186,15 +188,15 @@ class PlaybackService : MediaLibraryService() {
                             reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
                     ) {
                         OutputInfoState.event(
-                            "Playback auto-paused: ${playWhenReadyReasonName(reason)}"
+                            "Playback auto-paused: ${logger.playWhenReadyReasonName(reason)}"
                         )
                     }
                 }
 
                 override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) {
-                    logPlayerState(
+                    logger.log(
                         "playback suppression changed: ${
-                            suppressionReasonName(
+                            logger.suppressionReasonName(
                                 playbackSuppressionReason
                             )
                         }",
@@ -202,7 +204,7 @@ class PlaybackService : MediaLibraryService() {
                     )
                     if (playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
                         OutputInfoState.event(
-                            "Playback suppressed: ${suppressionReasonName(playbackSuppressionReason)}"
+                            "Playback suppressed: ${logger.suppressionReasonName(playbackSuppressionReason)}"
                         )
                     }
                 }
@@ -213,7 +215,7 @@ class PlaybackService : MediaLibraryService() {
                         "Player error: code=${error.errorCodeName}, message=${error.message}",
                         error,
                     )
-                    logPlayerState("player error state")
+                    logger.log("player error state")
                 }
 
                 override fun onEvents(player: Player, events: Player.Events) {
@@ -240,25 +242,25 @@ class PlaybackService : MediaLibraryService() {
                     }
                         .joinToString(", ")
                         .ifBlank { "unlisted" }
-                    logPlayerState("events: $names")
+                    logger.log("events: $names")
                 }
 
                 override fun onRepeatModeChanged(repeatMode: Int) {
-                    persistPlaybackState()
+                    persistence.save()
                 }
 
                 override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                    persistPlaybackState()
+                    persistence.save()
                 }
 
                 override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                     if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) {
-                        persistPlaybackState()
+                        persistence.save()
                     }
                 }
 
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                    logPlayerState("audio session changed: $audioSessionId")
+                    logger.log("audio session changed: $audioSessionId")
                     serviceScope.launch { applyCurrentEqSettings() }
                 }
             }
@@ -273,19 +275,19 @@ class PlaybackService : MediaLibraryService() {
                 val shouldSave =
                     withContext(Dispatchers.Main) {
                         player.isPlaying &&
-                            abs(player.currentPosition - lastSavedPositionMs) >= 20_000L
+                            abs(player.currentPosition - persistence.lastSavedPositionMs) >= 20_000L
                     }
                 if (shouldSave) {
-                    persistPlaybackState()
+                    persistence.save()
                 }
             }
         }
 
         serviceScope.launch {
             combine(
-                    SettingsStore.eqGlobalEnabledFlow,
-                    SettingsStore.eqPresetsFlow,
-                    SettingsStore.effectiveEqSelectedPresetFlow,
+                    EqSettingsStore.eqGlobalEnabledFlow,
+                    EqSettingsStore.eqPresetsFlow,
+                    EqSettingsStore.effectiveEqSelectedPresetFlow,
                 ) { enabled, presets, selectedName ->
                     Triple(enabled, presets, selectedName)
                 }
@@ -299,7 +301,7 @@ class PlaybackService : MediaLibraryService() {
                 }
         }
 
-        registerAudioDeviceTracking()
+        deviceTracker.start()
     }
 
     private suspend fun initializePlayback() {
@@ -317,7 +319,7 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch(Dispatchers.Main) {
             UsbPlaybackSettings.dsdModesFlow.drop(1).collect { usbPlayback.refreshDsdOutput() }
         }
-        restorePlaybackState()
+        persistence.restore()
         serviceScope.launch {
             com.pxr.cymatic.data.media.LibraryChanges.version.collect {
                 refreshCurrentLibraryMetadata()
@@ -399,7 +401,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         val state =
             try {
-                buildPersistedState()
+                persistence.snapshot()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to build persisted state on destroy", e)
                 null
@@ -417,7 +419,7 @@ class PlaybackService : MediaLibraryService() {
         }
         serviceScope.cancel()
         usbPlayback.close()
-        audioDeviceCallback?.let { audioManager.unregisterAudioDeviceCallback(it) }
+        deviceTracker.close()
         mediaLibrarySession.release()
         fadingPlayer.release()
         OutputInfoState.clear()
@@ -425,17 +427,14 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private suspend fun applyCurrentEqSettings(
-        enabled: Boolean = SettingsStore.currentEqGlobalEnabled,
-        presets: List<EqPreset> = SettingsStore.currentEqPresets,
-        selectedName: String = SettingsStore.currentEqSelectedPreset,
+        enabled: Boolean = EqSettingsStore.currentEqGlobalEnabled,
+        presets: List<EqPreset> = EqSettingsStore.currentEqPresets,
+        selectedName: String = EqSettingsStore.currentEqSelectedPreset,
     ) {
         if (!enabled) {
             eqAudioProcessor.disable()
         } else {
-            val preset =
-                presets.firstOrNull { it.name == selectedName }
-                    ?: presets.firstOrNull()
-                    ?: EqPreset.defaultPreset()
+            val preset = presets.selectedOrDefault(selectedName)
             val sampleRate =
                 withContext(Dispatchers.Main) {
                     player.audioFormat?.sampleRate ?: 44100
@@ -458,186 +457,6 @@ class PlaybackService : MediaLibraryService() {
                     .setAudioOffloadPreferences(audioOffloadPreferences)
                     .build()
             Log.d(TAG, "Audio offload disabled; eqEnabled=$enabled")
-        }
-    }
-
-    private fun registerAudioDeviceTracking() {
-        fun updateActiveDevice() {
-            serviceScope.launch {
-                SettingsStore.setActiveAudioDevice(resolveActiveOutput(audioManager).key)
-            }
-        }
-
-        audioDeviceCallback =
-            object : AudioDeviceCallback() {
-                    override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-                        updateActiveDevice()
-                        val hasBluetooth = addedDevices.any { device ->
-                            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-                                device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
-                                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-                        }
-                        if (hasBluetooth) {
-                            serviceScope.launch {
-                                if (
-                                    SettingsStore.currentResumeOnBluetoothReconnect &&
-                                        !UsbPlaybackState.routeToUsb
-                                ) {
-                                    delay(500L)
-                                    withContext(Dispatchers.Main) {
-                                        if (player.mediaItemCount > 0 && !player.isPlaying) {
-                                            player.play()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-                        updateActiveDevice()
-                    }
-                }
-                .also { audioManager.registerAudioDeviceCallback(it, null) }
-
-        updateActiveDevice()
-    }
-
-    private fun persistPlaybackState() {
-        serviceScope.launch {
-            try {
-                val state = withContext(Dispatchers.Main) { buildPersistedState() }
-                if (state == null) {
-                    PlaybackStore.clear()
-                    lastSavedPositionMs = -1L
-                } else {
-                    PlaybackStore.saveState(state)
-                    lastSavedPositionMs = state.positionMs
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to persist playback state", e)
-            }
-        }
-    }
-
-    private suspend fun restorePlaybackState() {
-        val stored = PlaybackStore.loadState() ?: return
-        val audioRepository = AudioRepository.getInstance(this)
-
-        val currentId = stored.queueIds.getOrNull(stored.currentIndex)
-        val audioFiles = audioRepository.getAudioByIds(stored.queueIds)
-        if (audioFiles.isEmpty()) {
-            if (currentId != null) {
-                SettingsStore.setLocked(false)
-            }
-            return
-        }
-
-        val mediaItems = audioFiles.map { createMediaItem(it, stored.queueSource) }
-        val targetIndex =
-            if (currentId != null) {
-                audioFiles.indexOfFirst { it.id == currentId }
-            } else {
-                -1
-            }
-
-        if (currentId != null && targetIndex < 0) {
-            SettingsStore.setLocked(false)
-            Log.w(TAG, "Current audio file not found in database, cannot restore playback state")
-        }
-
-        val safeIndex =
-            if (targetIndex >= 0) targetIndex
-            else stored.currentIndex.coerceIn(0, mediaItems.lastIndex)
-
-        withContext(Dispatchers.Main) {
-            if (player.mediaItemCount > 0) return@withContext
-            player.shuffleModeEnabled = stored.shuffleEnabled
-            player.repeatMode = stored.repeatMode
-            fadingPlayer.setMediaItems(mediaItems, safeIndex, stored.positionMs)
-            player.playWhenReady = stored.wasPlaying
-            player.prepare()
-        }
-    }
-
-    private fun buildPersistedState(): PlaybackStore.PersistedPlaybackState? {
-        val queueIds: MutableList<Long> = mutableListOf()
-        for (i in 0 until player.mediaItemCount) {
-            val mediaId = player.getMediaItemAt(i).mediaId
-            val id = mediaId.toLongOrNull() ?: continue
-            queueIds.add(id)
-        }
-        if (queueIds.isEmpty()) return null
-        val currentIndex = player.currentMediaItemIndex.coerceAtLeast(0)
-        val queueSource =
-            player.currentMediaItem?.mediaMetadata?.extras?.getString(QUEUE_SOURCE_KEY)?.takeIf {
-                it.isNotBlank()
-            }
-        return PlaybackStore.PersistedPlaybackState(
-            queueIds = queueIds,
-            currentIndex = currentIndex,
-            positionMs = player.currentPosition,
-            shuffleEnabled = player.shuffleModeEnabled,
-            repeatMode = player.repeatMode,
-            queueSource = queueSource,
-            wasPlaying = player.playWhenReady,
-        )
-    }
-
-    private fun logPlayerState(message: String, warn: Boolean = false) {
-        val stateMessage =
-            "$message | " +
-                "state=${playbackStateName(player.playbackState)}, " +
-                "playWhenReady=${player.playWhenReady}, " +
-                "isPlaying=${player.isPlaying}, " +
-                "suppression=${suppressionReasonName(player.playbackSuppressionReason)}, " +
-                "position=${player.currentPosition}, " +
-                "buffered=${player.bufferedPosition}, " +
-                "mediaId=${player.currentMediaItem?.mediaId}"
-        if (warn) {
-            Log.w(TAG, stateMessage)
-        }
-    }
-
-    private fun playbackStateName(state: Int): String {
-        return when (state) {
-            Player.STATE_IDLE -> "IDLE"
-            Player.STATE_BUFFERING -> "BUFFERING"
-            Player.STATE_READY -> "READY"
-            Player.STATE_ENDED -> "ENDED"
-            else -> "UNKNOWN($state)"
-        }
-    }
-
-    private fun playWhenReadyReasonName(reason: Int): String {
-        return when (reason) {
-            Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> "USER_REQUEST"
-            Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> "AUDIO_FOCUS_LOSS"
-            Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> "AUDIO_BECOMING_NOISY"
-            Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE -> "REMOTE"
-            Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM -> "END_OF_MEDIA_ITEM"
-            else -> "UNKNOWN($reason)"
-        }
-    }
-
-    private fun suppressionReasonName(reason: Int): String {
-        return when (reason) {
-            Player.PLAYBACK_SUPPRESSION_REASON_NONE -> "NONE"
-            Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS ->
-                "TRANSIENT_AUDIO_FOCUS_LOSS"
-
-            Player.PLAYBACK_SUPPRESSION_REASON_UNSUITABLE_AUDIO_OUTPUT -> "UNSUITABLE_AUDIO_OUTPUT"
-            else -> "UNKNOWN($reason)"
-        }
-    }
-
-    private fun transitionReasonName(reason: Int): String {
-        return when (reason) {
-            Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
-            Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
-            Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
-            Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> "PLAYLIST_CHANGED"
-            else -> "UNKNOWN($reason)"
         }
     }
 }

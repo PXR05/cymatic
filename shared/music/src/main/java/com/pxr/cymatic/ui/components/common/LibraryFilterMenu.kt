@@ -12,28 +12,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.LibraryFilter
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
-import com.pxr.cymatic.ui.screens.library.LibraryFilterStore
 
 @Composable
 fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss) {
     val selected by LibraryFilterStore.filter.collectAsState()
-    val items = LibraryFilter.entries.map { filter ->
-        NavigationItem(filter.label, checked = filter == selected, key = filter.value, onClick = {
-            LibraryFilterStore.select(filter)
-            onSelected()
-        })
-    }
+    val items =
+        LibraryFilter.entries.map { filter ->
+            NavigationItem(
+                filter.label,
+                checked = filter == selected,
+                key = filter.value,
+                onClick = {
+                    LibraryFilterStore.select(filter)
+                    onSelected()
+                },
+            )
+        }
     if (LocalWheelNavigation.current != null) {
         WheelContextMenu("Show music", items, onDismiss)
     } else {
         CymaticDialog(
-            "Show music", onDismiss,
+            "Show music",
+            onDismiss,
             content = { NavigationList(items) },
-            buttons = { CymaticDialogButton("Close", onDismiss) })
+            buttons = { CymaticDialogButton("Close", onDismiss) },
+        )
     }
 }
 
@@ -44,10 +52,11 @@ fun LibraryFilterStatus(filter: LibraryFilter) {
         "${filter.label} · Show all",
         fontSize = 11.sp,
         color = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { LibraryFilterStore.select(LibraryFilter.ALL) }
-            .padding(horizontal = 24.dp, vertical = 6.dp))
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable { LibraryFilterStore.select(LibraryFilter.ALL) }
+                .padding(horizontal = 24.dp, vertical = 6.dp),
+    )
 }
 
 @Composable
