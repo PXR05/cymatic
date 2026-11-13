@@ -39,9 +39,7 @@ class MainActivity : MusicActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.action == Intent.ACTION_MAIN &&
-            intent.hasCategory(Intent.CATEGORY_HOME)
-        ) {
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
             LauncherHomePressBus.notifyHomePressed()
         }
     }
@@ -50,14 +48,14 @@ class MainActivity : MusicActivity() {
     override fun AppContent() {
         val navController = LocalNavController.current
         val state = rememberMusicWindowState(window)
-        val wallpaperBlurRadius by LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0f)
+        val wallpaperBlurRadius by
+            LauncherStore.wallpaperBlurRadiusFlow.collectAsState(initial = 0f)
 
         LaunchedEffect(navController) {
             LauncherHomePressBus.events.collect {
                 try {
                     navController.popBackStack(Screen.Home.route, false)
-                } catch (_: Exception) {
-                }
+                } catch (_: Exception) {}
             }
         }
 
@@ -81,23 +79,25 @@ class MainActivity : MusicActivity() {
             }
         }
 
-
         CompositionLocalProvider(LocalScreenBackdrop provides { LibraryWallpaperBackdrop() }) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = Color.Transparent
+                color = Color.Transparent,
             ) {
                 when {
                     state.isExpanded -> {
                         Column(
-                            modifier = Modifier.padding(
-                                bottom = WindowInsets.systemBars.asPaddingValues()
-                                    .calculateBottomPadding()
-                            )
+                            modifier =
+                                Modifier.padding(
+                                    bottom =
+                                        WindowInsets.systemBars
+                                            .asPaddingValues()
+                                            .calculateBottomPadding()
+                                )
                         ) {
                             PlayerBar(
                                 modifier = Modifier.weight(1f),
-                                isDocked = state.isDocked
+                                isDocked = state.isDocked,
                             )
                         }
                     }
@@ -108,21 +108,34 @@ class MainActivity : MusicActivity() {
                             home = { HomeScreen() },
                             modifier = Modifier.fillMaxSize(),
                             animate = true,
-                            settingsItems = listOf(
-                                NavigationItem("Permissions", onClick = { navController.navigate(LauncherRoutes.Permissions) }),
-                                NavigationItem("Launcher", onClick = { navController.navigate(LauncherRoutes.Settings) }),
-                            ),
-                            additionalRoutes = mapOf(
-                                LauncherRoutes.AllApps to {
-                                    Box(Modifier.fillMaxSize()) {
-                                        LibraryWallpaperBackdrop()
-                                        AllAppsScreen()
-                                    }
-                                },
-                                LauncherRoutes.Permissions to { PermissionsScreen() },
-                                LauncherRoutes.Settings to { LauncherSettingsScreen() },
-                                LauncherRoutes.HiddenApps to { HiddenAppsScreen() },
-                            ),
+                            settingsItems =
+                                listOf(
+                                    NavigationItem(
+                                        "Permissions",
+                                        onClick = {
+                                            navController.navigate(LauncherRoutes.Permissions)
+                                        },
+                                    ),
+                                    NavigationItem(
+                                        "Launcher",
+                                        onClick = {
+                                            navController.navigate(LauncherRoutes.Settings)
+                                        },
+                                    ),
+                                ),
+                            additionalRoutes =
+                                mapOf(
+                                    LauncherRoutes.AllApps to
+                                        {
+                                            Box(Modifier.fillMaxSize()) {
+                                                LibraryWallpaperBackdrop()
+                                                AllAppsScreen()
+                                            }
+                                        },
+                                    LauncherRoutes.Permissions to { PermissionsScreen() },
+                                    LauncherRoutes.Settings to { LauncherSettingsScreen() },
+                                    LauncherRoutes.HiddenApps to { HiddenAppsScreen() },
+                                ),
                         )
                     }
                 }

@@ -10,6 +10,14 @@ import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 
+internal fun wheelContextMenuItems(
+    items: List<NavigationItem>,
+    onDismiss: () -> Unit,
+): List<NavigationItem> =
+    items.mapIndexed { index, item ->
+        item.copy(key = "wheel-menu:$index:${item.key ?: item.label}")
+    } + NavigationItem("Cancel", key = "wheel-menu:cancel", onClick = onDismiss)
+
 @Composable
 fun WheelContextMenu(
     title: String,
@@ -32,9 +40,7 @@ fun WheelContextMenu(
                         onBackClick = { dismiss() },
                         onMenuLongClick = currentMenuLongClick,
                     ) {
-                        NavigationList(
-                            currentItems + NavigationItem("Cancel", onClick = { dismiss() })
-                        )
+                        NavigationList(wheelContextMenuItems(currentItems) { dismiss() })
                     }
                 },
                 onDismiss = { dismiss() },

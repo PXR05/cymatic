@@ -1,0 +1,14 @@
+Apple Lossless Audio Codec (ALAC) decoder
+Copyright (c) 2011 Apple Inc. All rights reserved.
+
+Source: https://github.com/macosforge/alac/tree/c38887c5c5e64a4b31108733bd79ca9b2496d987
+The compiled decoding source files carry Apple Apache-2.0 headers.
+Cymatic modifies bounded reads, Rice decoding, packet validation and PCM packing.
+See shared/alac/third_party/README.md for the modification list.
+
+# libFLAC
+
+Copyright (C) 2000-2009 Josh Coalson
+Copyright (C) 2011-2025 Xiph.Org Foundation
+
+https://xiph.org/flac/

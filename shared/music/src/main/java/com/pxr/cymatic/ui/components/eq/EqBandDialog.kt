@@ -20,10 +20,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.EqBand
+import com.pxr.cymatic.data.model.FilterType
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
+import kotlin.math.round
+
+data class EqBandEditorLimits(
+    val frequency: ClosedFloatingPointRange<Float> = 20f..20000f,
+    val gain: ClosedFloatingPointRange<Float> = -12f..12f,
+    val q: ClosedFloatingPointRange<Float> = 0.1f..2f,
+    val types: List<FilterType> = FilterType.entries,
+    val gainStep: Float = 0.1f,
+    val showGain: Boolean = true,
+)
 
 @SuppressLint("DefaultLocale")
 @Composable
@@ -32,25 +43,29 @@ fun EqBandDialog(
     band: EqBand,
     onDismiss: () -> Unit,
     onBandChange: (EqBand) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    limits: EqBandEditorLimits = EqBandEditorLimits(),
 ) {
     var editingField by remember { mutableStateOf<String?>(null) }
     var inputValue by remember { mutableStateOf("") }
 
     if (editingField != null) {
         val field = editingField!!
-        val title = when (field) {
-            "frequency" -> "Edit Frequency"
-            "gain" -> "Edit Gain"
-            "q" -> "Edit Q Factor"
-            else -> ""
-        }
-        val hint = when (field) {
-            "frequency" -> "Enter frequency (20 - 20000 Hz)"
-            "gain" -> "Enter gain (-12 - 12 dB)"
-            "q" -> "Enter Q factor (0.1 - 2.0)"
-            else -> ""
-        }
+        val title =
+            when (field) {
+                "frequency" -> "Edit Frequency"
+                "gain" -> "Edit Gain"
+                "q" -> "Edit Q Factor"
+                else -> ""
+            }
+        val hint =
+            when (field) {
+                "frequency" ->
+                    "Frequency (${limits.frequency.start}–${limits.frequency.endInclusive} Hz)"
+                "gain" -> "Gain (${limits.gain.start}–${limits.gain.endInclusive} dB)"
+                "q" -> "Q (${limits.q.start}–${limits.q.endInclusive})"
+                else -> ""
+            }
         CymaticInputDialog(
             title = title,
             hint = hint,
@@ -58,27 +73,30 @@ fun EqBandDialog(
             onValueChange = { inputValue = it },
             onConfirm = {
                 val floatVal = inputValue.toFloatOrNull()
-                if (floatVal != null) {
+                if (floatVal != null && floatVal.isFinite()) {
                     when (field) {
                         "frequency" -> {
-                            val coerced = floatVal.coerceIn(20f, 20000f)
+                            val coerced = floatVal.coerceIn(limits.frequency)
                             onBandChange(band.copy(frequency = coerced))
                         }
 
                         "gain" -> {
-                            val coerced = floatVal.coerceIn(-12f, 12f)
+                            val coerced =
+                                (round(floatVal / limits.gainStep) * limits.gainStep).coerceIn(
+                                    limits.gain
+                                )
                             onBandChange(band.copy(gain = coerced))
                         }
 
                         "q" -> {
-                            val coerced = floatVal.coerceIn(0.1f, 2f)
+                            val coerced = floatVal.coerceIn(limits.q)
                             onBandChange(band.copy(q = coerced))
                         }
                     }
                 }
                 editingField = null
             },
-            onDismiss = { editingField = null }
+            onDismiss = { editingField = null },
         )
     }
 
@@ -88,20 +106,24 @@ fun EqBandDialog(
         maxHeightRatio = 0.7f,
         content = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
             ) {
                 Text(
                     "Type",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                FilterTypeSelector(selected = band.type) { newType ->
-                    onBandChange(band.copy(type = newType))
-                }
+                FilterTypeSelector(
+                    selected = band.type,
+                    onSelect = { newType ->
+                        onBandChange(band.copy(type = newType))
+                    },
+                    types = limits.types,
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -109,41 +131,47 @@ fun EqBandDialog(
                     String.format("Frequency: %.0f Hz", band.frequency),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            inputValue = String.format("%.0f", band.frequency)
-                            editingField = "frequency"
-                        }
-                        .padding(vertical = 4.dp)
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clickable {
+                                inputValue = String.format("%.0f", band.frequency)
+                                editingField = "frequency"
+                            }
+                            .padding(vertical = 4.dp),
                 )
                 CymaticSlider(
                     value = band.frequency,
                     onValueChange = { onBandChange(band.copy(frequency = it)) },
-                    valueRange = 20f..20_000f,
-                    modifier = Modifier.fillMaxWidth()
+                    valueRange = limits.frequency,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    String.format("Gain: %.1f dB", band.gain),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            inputValue = String.format("%.1f", band.gain)
-                            editingField = "gain"
-                        }
-                        .padding(vertical = 4.dp)
-                )
-                CymaticSlider(
-                    value = band.gain,
-                    onValueChange = { onBandChange(band.copy(gain = it)) },
-                    valueRange = -12f..12f,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (limits.showGain) {
+                    Text(
+                        String.format("Gain: %.1f dB", band.gain),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable {
+                                    inputValue = String.format("%.1f", band.gain)
+                                    editingField = "gain"
+                                }
+                                .padding(vertical = 4.dp),
+                    )
+                    CymaticSlider(
+                        value = band.gain,
+                        onValueChange = {
+                            onBandChange(
+                                band.copy(gain = round(it / limits.gainStep) * limits.gainStep)
+                            )
+                        },
+                        valueRange = limits.gain,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -151,19 +179,19 @@ fun EqBandDialog(
                     String.format("Q: %.2f", band.q),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            inputValue = String.format("%.2f", band.q)
-                            editingField = "q"
-                        }
-                        .padding(vertical = 4.dp)
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clickable {
+                                inputValue = String.format("%.2f", band.q)
+                                editingField = "q"
+                            }
+                            .padding(vertical = 4.dp),
                 )
                 CymaticSlider(
                     value = band.q,
                     onValueChange = { onBandChange(band.copy(q = it)) },
-                    valueRange = 0.1f..2f,
-                    modifier = Modifier.fillMaxWidth()
+                    valueRange = limits.q,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -172,9 +200,13 @@ fun EqBandDialog(
                     text = "Remove Band",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .clickable(onClick = onRemove, indication = null, interactionSource = null)
-                        .padding(vertical = 8.dp)
+                    modifier =
+                        Modifier.clickable(
+                                onClick = onRemove,
+                                indication = null,
+                                interactionSource = null,
+                            )
+                            .padding(vertical = 8.dp),
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -183,8 +215,8 @@ fun EqBandDialog(
         buttons = {
             CymaticDialogButton(
                 text = "Done",
-                onClick = onDismiss
+                onClick = onDismiss,
             )
-        }
+        },
     )
 }

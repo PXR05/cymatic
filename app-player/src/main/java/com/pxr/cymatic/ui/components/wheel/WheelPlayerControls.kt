@@ -8,10 +8,11 @@ internal class WheelPlayerControls(
     private val controller: MediaController?,
     private val volume: MusicVolumeState,
     private val durationMs: Long?,
-    private val setupBack: (() -> Unit)? = null
+    private val setupBack: (() -> Unit)? = null,
 ) {
     fun beginMovement() {
-        if (setupBack != null || !state.controlsPlayback) state.wheel.actions?.onMovementStarted?.invoke()
+        if (setupBack != null || !state.controlsPlayback)
+            state.wheel.actions?.onMovementStarted?.invoke()
     }
 
     fun rotate(steps: Int) {
@@ -25,34 +26,39 @@ internal class WheelPlayerControls(
     fun press(button: WheelButton) {
         if (setupBack != null) {
             when (button) {
-                WheelButton.MENU, WheelButton.PREVIOUS ->
+                WheelButton.MENU,
+                WheelButton.PREVIOUS ->
                     state.wheel.overlay?.onDismiss?.invoke() ?: setupBack.invoke()
 
-                WheelButton.SELECT, WheelButton.NEXT -> selectItem()
+                WheelButton.SELECT,
+                WheelButton.NEXT -> selectItem()
                 WheelButton.PLAY -> if (controller?.isPlaying == true) controller.pause()
             }
             return
         }
         when (button) {
             WheelButton.MENU -> state.mainMenu()
-            WheelButton.PREVIOUS -> if (state.controlsPlayback) {
-                controller?.seekToPrevious()
-            } else {
-                state.back()
-            }
+            WheelButton.PREVIOUS ->
+                if (state.controlsPlayback) {
+                    controller?.seekToPrevious()
+                } else {
+                    state.back()
+                }
 
-            WheelButton.NEXT -> if (state.controlsPlayback) {
-                controller?.seekToNext()
-            } else {
-                selectItem()
-            }
+            WheelButton.NEXT ->
+                if (state.controlsPlayback) {
+                    controller?.seekToNext()
+                } else {
+                    selectItem()
+                }
 
-            WheelButton.SELECT -> when {
-                state.wheel.overlay != null -> selectItem()
-                state.isNowPlaying -> state.browse()
-                state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
-                else -> selectItem()
-            }
+            WheelButton.SELECT ->
+                when {
+                    state.wheel.overlay != null -> selectItem()
+                    state.isNowPlaying -> state.browse()
+                    state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
+                    else -> selectItem()
+                }
 
             WheelButton.PLAY -> if (state.controlsPlayback) togglePlay() else state.nowPlaying()
         }
@@ -82,24 +88,24 @@ internal class WheelPlayerControls(
                 }
             }
 
-            WheelButton.SELECT -> if (state.controlsPlayback) {
-                state.trackActions()
-            } else {
-                state.wheel.actions?.onContext?.invoke()
-            }
+            WheelButton.SELECT ->
+                if (state.controlsPlayback) {
+                    state.trackActions()
+                } else {
+                    state.wheel.actions?.onContext?.invoke()
+                }
 
-            WheelButton.PREVIOUS, WheelButton.NEXT -> if (state.controlsPlayback) {
-                state.seekBy(
-                    controller,
-                    durationMs,
-                    if (button == WheelButton.NEXT) 3000L else -3000L
-                )
-            }
+            WheelButton.PREVIOUS,
+            WheelButton.NEXT ->
+                if (state.controlsPlayback) {
+                    state.seekBy(
+                        controller,
+                        durationMs,
+                        if (button == WheelButton.NEXT) 3000L else -3000L,
+                    )
+                }
 
-            WheelButton.PLAY -> {
-                controller?.stop()
-                state.showBrowser()
-            }
+            WheelButton.PLAY -> Unit
         }
     }
 

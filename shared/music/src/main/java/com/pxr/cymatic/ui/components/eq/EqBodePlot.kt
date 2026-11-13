@@ -23,7 +23,8 @@ import kotlin.math.pow
 @Composable
 fun EqBodePlot(
     preset: EqPreset,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    responseDb: FloatArray? = null,
 ) {
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
     val secondaryColor = MaterialTheme.colorScheme.secondary
@@ -42,39 +43,65 @@ fun EqBodePlot(
     val maxDb = 20.0
     val dbRange = maxDb - minDb
 
-    val xTicks = listOf(
-        20.0, 30.0, 40.0, 50.0, 60.0, 80.0,
-        100.0, 150.0, 200.0, 300.0, 400.0, 500.0, 600.0, 800.0,
-        1000.0, 1500.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0, 8000.0,
-        10000.0, 15000.0, 20000.0
-    )
+    val xTicks =
+        listOf(
+            20.0,
+            30.0,
+            40.0,
+            50.0,
+            60.0,
+            80.0,
+            100.0,
+            150.0,
+            200.0,
+            300.0,
+            400.0,
+            500.0,
+            600.0,
+            800.0,
+            1000.0,
+            1500.0,
+            2000.0,
+            3000.0,
+            4000.0,
+            5000.0,
+            6000.0,
+            8000.0,
+            10000.0,
+            15000.0,
+            20000.0,
+        )
 
-    val labeledXTicks = mapOf(
-        50.0 to "50",
-        100.0 to "100",
-        200.0 to "200",
-        500.0 to "500",
-        1000.0 to "1k",
-        2000.0 to "2k",
-        5000.0 to "5k",
-        10000.0 to "10k",
-        15000.0 to "15k"
-    )
+    val labeledXTicks =
+        mapOf(
+            50.0 to "50",
+            100.0 to "100",
+            200.0 to "200",
+            500.0 to "500",
+            1000.0 to "1k",
+            2000.0 to "2k",
+            5000.0 to "5k",
+            10000.0 to "10k",
+            15000.0 to "15k",
+        )
 
     val yTicks = listOf(-20.0, -15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0, 20.0)
-    val labeledYTicks = mapOf(
-        15.0 to "15",
-        10.0 to "10",
-        5.0 to "5",
-        0.0 to "0",
-        -5.0 to "-5",
-        -10.0 to "-10",
-        -15.0 to "-15",
-    )
+    val labeledYTicks =
+        mapOf(
+            15.0 to "15",
+            10.0 to "10",
+            5.0 to "5",
+            0.0 to "0",
+            -5.0 to "-5",
+            -10.0 to "-10",
+            -15.0 to "-15",
+        )
 
-    val biquads = remember(preset.bands) {
-        preset.bands.filter { it.enabled }.map { BiquadCoefficients.from(it, 44100) }
-    }
+    val biquads =
+        remember(preset.bands, responseDb) {
+            if (responseDb != null) emptyList()
+            else preset.bands.filter { it.enabled }.map { BiquadCoefficients.from(it, 44100) }
+        }
 
     val steps = 300
     val frequencies = remember {
@@ -83,22 +110,20 @@ fun EqBodePlot(
             10.0.pow(minLog + fraction * logRange)
         }
     }
-    val magnitudes = remember(preset.preamp, biquads) {
-        FloatArray(steps + 1) { i ->
-            val freq = frequencies[i]
-            var totalDb = preset.preamp.toDouble()
-            for (bq in biquads) {
-                totalDb += bq.evaluateMagnitudeDb(freq, 44100.0)
-            }
-            totalDb.coerceIn(minDb - 10.0, maxDb + 10.0).toFloat()
+    val magnitudes =
+        remember(preset.preamp, biquads, responseDb) {
+            responseDb
+                ?: FloatArray(steps + 1) { i ->
+                    val freq = frequencies[i]
+                    var totalDb = preset.preamp.toDouble()
+                    for (bq in biquads) {
+                        totalDb += bq.evaluateMagnitudeDb(freq, 44100.0)
+                    }
+                    totalDb.coerceIn(minDb - 10.0, maxDb + 10.0).toFloat()
+                }
         }
-    }
 
-    Canvas(
-        modifier = modifier
-            .border(1.dp, secondaryColor)
-            .fillMaxSize()
-    ) {
+    Canvas(modifier = modifier.border(1.dp, secondaryColor).fillMaxSize()) {
         val width = size.width
         val height = size.height
 
@@ -118,28 +143,34 @@ fun EqBodePlot(
                 color = secondaryColor.copy(alpha = if (isLabeled) 0.5f else 0.2f),
                 start = Offset(x, 0f),
                 end = Offset(x, height),
-                strokeWidth = if (isLabeled) with(density) { 1.dp.toPx() } else with(density) { 0.5.dp.toPx() }
+                strokeWidth =
+                    if (isLabeled) with(density) { 1.dp.toPx() }
+                    else with(density) { 0.5.dp.toPx() },
             )
 
             if (isLabeled) {
                 val label = labeledXTicks[tick]!!
-                val textLayoutResult = textMeasurer.measure(
-                    text = label,
-                    style = labelTextStyle.copy(
-                        color = secondaryColor, fontSize = 10.sp
+                val textLayoutResult =
+                    textMeasurer.measure(
+                        text = label,
+                        style =
+                            labelTextStyle.copy(
+                                color = secondaryColor,
+                                fontSize = 10.sp,
+                            ),
                     )
-                )
 
                 val textWidth = textLayoutResult.size.width
-                val startX = when {
-                    x - textWidth / 2f < 0f -> 4f
-                    x + textWidth / 2f > width -> width - textWidth - 4f
-                    else -> x - textWidth / 2f
-                }
+                val startX =
+                    when {
+                        x - textWidth / 2f < 0f -> 4f
+                        x + textWidth / 2f > width -> width - textWidth - 4f
+                        else -> x - textWidth / 2f
+                    }
 
                 drawText(
                     textLayoutResult = textLayoutResult,
-                    topLeft = Offset(startX, height - textLayoutResult.size.height - 4f)
+                    topLeft = Offset(startX, height - textLayoutResult.size.height - 4f),
                 )
             }
         }
@@ -150,25 +181,27 @@ fun EqBodePlot(
             val isZero = tick == 0.0
 
             drawLine(
-                color = if (isZero) onBackgroundColor.copy(alpha = 0.5f) else secondaryColor.copy(
-                    alpha = if (isLabeled) 0.5f else 0.2f
-                ),
+                color =
+                    if (isZero) onBackgroundColor.copy(alpha = 0.5f)
+                    else secondaryColor.copy(alpha = if (isLabeled) 0.5f else 0.2f),
                 start = Offset(0f, y),
                 end = Offset(width, y),
-                strokeWidth = if (isZero) with(density) { 1.dp.toPx() } else if (isLabeled) with(
-                    density
-                ) { 1.dp.toPx() } else with(density) { 0.5.dp.toPx() }
+                strokeWidth =
+                    if (isZero) with(density) { 1.dp.toPx() }
+                    else if (isLabeled) with(density) { 1.dp.toPx() }
+                    else with(density) { 0.5.dp.toPx() },
             )
 
             if (isLabeled && tick != -20.0) {
                 val label = labeledYTicks[tick]!!
-                val textLayoutResult = textMeasurer.measure(
-                    text = label,
-                    style = labelTextStyle.copy(color = secondaryColor, fontSize = 10.sp)
-                )
+                val textLayoutResult =
+                    textMeasurer.measure(
+                        text = label,
+                        style = labelTextStyle.copy(color = secondaryColor, fontSize = 10.sp),
+                    )
                 drawText(
                     textLayoutResult = textLayoutResult,
-                    topLeft = Offset(4f, y - textLayoutResult.size.height - 2f)
+                    topLeft = Offset(4f, y - textLayoutResult.size.height - 2f),
                 )
             }
         }
@@ -190,7 +223,7 @@ fun EqBodePlot(
         drawPath(
             path = path,
             color = onBackgroundColor,
-            style = Stroke(width = with(density) { 1.dp.toPx() })
+            style = Stroke(width = with(density) { 1.dp.toPx() }),
         )
     }
 }

@@ -16,6 +16,7 @@ android {
 
 dependencies {
     implementation(project(":shared:usb"))
+    implementation(project(":shared:peq"))
     implementation(project(":shared:flac"))
     implementation(project(":shared:alac"))
     implementation(project(":shared:dsd"))

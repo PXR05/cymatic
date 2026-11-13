@@ -21,7 +21,8 @@ import com.pxr.cymatic.ui.components.primitives.CymaticDropdownMenuItem
 @Composable
 fun FilterTypeSelector(
     selected: FilterType,
-    onSelect: (FilterType) -> Unit
+    onSelect: (FilterType) -> Unit,
+    types: List<FilterType> = FilterType.entries,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -29,21 +30,24 @@ fun FilterTypeSelector(
         Text(
             text = selected.displayName,
             fontSize = 13.sp,
-            modifier = Modifier
-                .border(1.dp, MaterialTheme.colorScheme.secondary)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-                .clickable(
-                    onClick = { expanded = true },
-                    indication = null,
-                    interactionSource = null
-                )
+            modifier =
+                Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .clickable(
+                        onClick = { expanded = true },
+                        indication = null,
+                        interactionSource = null,
+                    ),
         )
 
         CymaticDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            FilterType.entries.forEach { type ->
+            types.forEach { type ->
                 CymaticDropdownMenuItem(
                     text = type.displayName,
-                    onClick = { onSelect(type); expanded = false }
+                    onClick = {
+                        onSelect(type)
+                        expanded = false
+                    },
                 )
             }
         }

@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.flow.first
 
-/** Android stream volumes use thousandths of the route's maximum; USB uses percent. */
 object DeviceVolumeSettings {
     suspend fun get(device: String, direct: Boolean): Int? =
         DeviceVolumePreferences(SettingsStore.store).get(device, direct)

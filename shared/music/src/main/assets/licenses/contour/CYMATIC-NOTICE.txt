@@ -1,0 +1,16 @@
+Cymatic USB DAC hardware EQ
+
+Contour, Copyright 2026 Chronosaur, Apache License 2.0.
+https://github.com/Chronosauros/contour
+Source commit: 95d592df1f6985991ecfed86470525f3b48b6a79
+
+The shared/peq module vendors Contour's Kotlin device protocols, DSP, device
+records, catalog generator, and Android HID client. No Contour UI is included.
+Modifications: removed unused serialization annotations from Model.kt; omitted
+TextCodecs.kt (Cymatic uses its own preset files); adapted Gradle source and record
+paths; strengthened session guards for disconnect/cancellation and HID selection.
+Cymatic supplies its own device-aware editor, draft storage, permissions, backups
+and reconnect/read-back flow. Unverified upstream features stay disabled.
+
+Supplied NOTICE and THIRD_PARTY_NOTICES.md retain upstream attribution, including
+devicePEQ (0BSD) and FreeDSP-Studio (MIT). Licence texts are supplied with the app.

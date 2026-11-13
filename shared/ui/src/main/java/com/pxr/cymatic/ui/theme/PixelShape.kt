@@ -12,20 +12,19 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-/** Rounded corners built from discrete pixel steps. */
 class PixelCornerShape(
     val cornerRadius: Dp = 24.dp,
     val pixelSize: Dp = 2.dp,
     val topStart: Boolean = true,
     val topEnd: Boolean = true,
     val bottomEnd: Boolean = true,
-    val bottomStart: Boolean = true
+    val bottomStart: Boolean = true,
 ) : Shape {
 
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
-        density: Density
+        density: Density,
     ): Outline {
         val rPx =
             with(density) { cornerRadius.toPx() }.coerceAtMost(minOf(size.width, size.height) / 2f)
@@ -40,16 +39,16 @@ class PixelCornerShape(
         val steps = (rPx / pPx).roundToInt().coerceAtLeast(1)
         val stepSize = rPx / steps
 
-        // r = 0 is at y = 0 (top/bottom boundary), r = steps - 1 is at y = rPx (flush with straight edge)
-        val insets = FloatArray(steps) { r ->
-            val yAtBottom = (r + 1) * stepSize
-            val radSq = rPx * rPx
-            val dy = (rPx - yAtBottom).coerceAtLeast(0f)
-            val dySq = dy * dy
-            val chord = if (radSq >= dySq) sqrt(radSq - dySq) else 0f
-            val rawInset = (rPx - chord).coerceIn(0f, rPx)
-            ((rawInset / stepSize).roundToInt() * stepSize).coerceIn(0f, rPx)
-        }
+        val insets =
+            FloatArray(steps) { r ->
+                val yAtBottom = (r + 1) * stepSize
+                val radSq = rPx * rPx
+                val dy = (rPx - yAtBottom).coerceAtLeast(0f)
+                val dySq = dy * dy
+                val chord = if (radSq >= dySq) sqrt(radSq - dySq) else 0f
+                val rawInset = (rPx - chord).coerceIn(0f, rPx)
+                ((rawInset / stepSize).roundToInt() * stepSize).coerceIn(0f, rPx)
+            }
 
         insets[steps - 1] = 0f
         for (i in steps - 2 downTo 0) {

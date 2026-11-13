@@ -32,6 +32,7 @@ include(
     ":shared:music",
     ":shared:ui",
     ":shared:usb",
+    ":shared:peq",
     ":shared:flac",
     ":shared:alac",
     ":shared:dsd",

@@ -1,0 +1,19 @@
+gradle.projectsEvaluated {
+    def root = gradle.rootProject
+    root.tasks.register('exportLicenseDependencies') {
+        doLast {
+            def rows = [:]
+            [':app-player', ':app-launcher'].each { path ->
+                ['debugRuntimeClasspath', 'releaseRuntimeClasspath'].each { name ->
+                    root.project(path).configurations.getByName(name).incoming.resolutionResult.allComponents.each { component ->
+                        def id = component.id
+                        if (id instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier) {
+                            rows[id.toString()] = [group: id.group, name: id.module, version: id.version]
+                        }
+                    }
+                }
+            }
+            new File(root.projectDir, '.codex-tmp/license-dependencies.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(rows.values().sort { a,b -> a.group <=> b.group ?: a.name <=> b.name }))
+        }
+    }
+}

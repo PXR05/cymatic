@@ -10,12 +10,13 @@ internal fun artistDisplayName(audioFile: AudioFile): String {
 }
 
 internal fun mainArtistDisplayName(rawArtist: String?): String {
-    val artistList = rawArtist
-        ?.trim()
-        ?.split(Regex("[、,]"))
-        ?.map { it.trim() }
-        ?.filter { it.isNotEmpty() }
-        .orEmpty()
+    val artistList =
+        rawArtist
+            ?.trim()
+            ?.split(Regex("[、,]"))
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
 
     return artistList.firstOrNull() ?: UnknownArtist
 }
@@ -42,5 +43,3 @@ internal fun filterByArtistAndAlbum(
         artistDisplayName(it) == artistName && albumDisplayName(it) == albumName
     }
 }
-
-

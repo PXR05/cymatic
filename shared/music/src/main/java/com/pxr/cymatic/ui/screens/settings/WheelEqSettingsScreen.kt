@@ -42,6 +42,7 @@ internal fun WheelEqSettingsScreen(
     viewModel: EqViewModel,
     onImport: () -> Unit,
     onExport: (String) -> Unit,
+    onHardwareEq: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val nav = LocalNavController.current
@@ -52,6 +53,7 @@ internal fun WheelEqSettingsScreen(
     var presetToDelete by remember { mutableStateOf<String?>(null) }
     var showNewPresetDialog by remember { mutableStateOf(false) }
 
+    var showBands by remember { mutableStateOf(false) }
     var bandIndex by remember { mutableIntStateOf(-1) }
     var showFilterTypeMenu by remember { mutableStateOf(false) }
     var number by remember { mutableStateOf<EqNumberEdit?>(null) }
@@ -62,6 +64,13 @@ internal fun WheelEqSettingsScreen(
     BaseScreen(title = "Equalizer", onBackClick = { nav.popBackStack() }, modifier = modifier) {
         NavigationList(
             buildList {
+                add(
+                    NavigationItem(
+                        "EQ target",
+                        "Player",
+                        onClick = onHardwareEq,
+                    )
+                )
                 add(
                     NavigationItem(
                         "Enabled",
@@ -86,26 +95,36 @@ internal fun WheelEqSettingsScreen(
                             )
                     }
                 )
-                preset.bands.forEachIndexed { index, band ->
-                    add(
-                        NavigationItem(
-                            "Band ${index + 1}",
-                            "${band.frequency.toInt()} Hz · ${db(band.gain)}",
-                            key = band.id,
-                        ) {
-                            bandIndex = index
-                        }
-                    )
-                }
-                add(
-                    NavigationItem(
-                        "Add band",
-                        enabled = preset.bands.size < EqViewModel.MAX_BANDS,
-                        onClick = viewModel::addBand,
-                    )
-                )
+                add(NavigationItem("Bands", "${preset.bands.size}") { showBands = true })
             }
         )
+    }
+
+    if (showBands) {
+        WheelSettingsOverlay("Bands", { showBands = false }) {
+            NavigationList(
+                buildList {
+                    preset.bands.forEachIndexed { index, band ->
+                        add(
+                            NavigationItem(
+                                "Band ${index + 1}",
+                                "${band.frequency.toInt()} Hz · ${db(band.gain)}",
+                                key = band.id,
+                            ) {
+                                bandIndex = index
+                            }
+                        )
+                    }
+                    add(
+                        NavigationItem(
+                            "Add band",
+                            enabled = preset.bands.size < EqViewModel.MAX_BANDS,
+                            onClick = viewModel::addBand,
+                        )
+                    )
+                }
+            )
+        }
     }
 
     if (showPresets) {
@@ -118,7 +137,8 @@ internal fun WheelEqSettingsScreen(
                 state.presets.map { choice ->
                     NavigationItem(
                         label = choice.name,
-                        subLabel = if (choice.name == state.selectedPresetName) "Selected" else null,
+                        subLabel =
+                            if (choice.name == state.selectedPresetName) "Selected" else null,
                         checked = choice.name == state.selectedPresetName,
                         onClick = {
                             viewModel.selectPreset(choice.name)
@@ -136,20 +156,21 @@ internal fun WheelEqSettingsScreen(
     selectedPresetForActions?.let { presetName ->
         WheelContextMenu(
             title = presetName,
-            items = listOf(
-                NavigationItem("Rename") {
-                    selectedPresetForActions = null
-                    presetToRename = presetName
-                },
-                NavigationItem("Delete", enabled = state.presets.size > 1) {
-                    selectedPresetForActions = null
-                    presetToDelete = presetName
-                },
-                NavigationItem("Export") {
-                    selectedPresetForActions = null
-                    onExport(presetName)
-                },
-            ),
+            items =
+                listOf(
+                    NavigationItem("Rename") {
+                        selectedPresetForActions = null
+                        presetToRename = presetName
+                    },
+                    NavigationItem("Delete", enabled = state.presets.size > 1) {
+                        selectedPresetForActions = null
+                        presetToDelete = presetName
+                    },
+                    NavigationItem("Export") {
+                        selectedPresetForActions = null
+                        onExport(presetName)
+                    },
+                ),
             onDismiss = { selectedPresetForActions = null },
         )
     }
@@ -157,16 +178,17 @@ internal fun WheelEqSettingsScreen(
     if (showPresetsPageMenu) {
         WheelContextMenu(
             title = "Presets",
-            items = listOf(
-                NavigationItem("New preset") {
-                    showPresetsPageMenu = false
-                    showNewPresetDialog = true
-                },
-                NavigationItem("Import") {
-                    showPresetsPageMenu = false
-                    onImport()
-                },
-            ),
+            items =
+                listOf(
+                    NavigationItem("New preset") {
+                        showPresetsPageMenu = false
+                        showNewPresetDialog = true
+                    },
+                    NavigationItem("Import") {
+                        showPresetsPageMenu = false
+                        onImport()
+                    },
+                ),
             onDismiss = { showPresetsPageMenu = false },
         )
     }
@@ -196,12 +218,13 @@ internal fun WheelEqSettingsScreen(
     presetToDelete?.let { target ->
         WheelContextMenu(
             title = "Delete preset?",
-            items = listOf(
-                NavigationItem("Delete $target") {
-                    viewModel.deletePreset(target)
-                    presetToDelete = null
-                }
-            ),
+            items =
+                listOf(
+                    NavigationItem("Delete $target") {
+                        viewModel.deletePreset(target)
+                        presetToDelete = null
+                    }
+                ),
             onDismiss = { presetToDelete = null },
         )
     }
@@ -270,17 +293,18 @@ internal fun WheelEqSettingsScreen(
     if (showFilterTypeMenu) {
         WheelContextMenu(
             title = "Filter type",
-            items = FilterType.entries.map { type ->
-                NavigationItem(
-                    type.displayName,
-                    checked = preset.bands.getOrNull(bandIndex)?.type == type,
-                ) {
-                    preset.bands.getOrNull(bandIndex)?.let {
-                        viewModel.updateBand(bandIndex, it.copy(type = type))
+            items =
+                FilterType.entries.map { type ->
+                    NavigationItem(
+                        type.displayName,
+                        checked = preset.bands.getOrNull(bandIndex)?.type == type,
+                    ) {
+                        preset.bands.getOrNull(bandIndex)?.let {
+                            viewModel.updateBand(bandIndex, it.copy(type = type))
+                        }
+                        showFilterTypeMenu = false
                     }
-                    showFilterTypeMenu = false
-                }
-            },
+                },
             onDismiss = { showFilterTypeMenu = false },
         )
     }
@@ -300,9 +324,8 @@ internal fun WheelEqSettingsScreen(
     if (graph) {
         WheelReadingPage("Response graph", { graph = false }) {
             EqBodePlot(
-                preset, Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
+                preset,
+                Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             )
         }
     }

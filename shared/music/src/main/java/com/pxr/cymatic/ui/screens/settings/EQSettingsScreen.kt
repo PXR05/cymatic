@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -33,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.design.R
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.eq.EqBandRow
@@ -59,7 +62,7 @@ import com.pxr.cymatic.ui.locals.LocalNavController
 @Composable
 fun EQSettingsScreen(
     modifier: Modifier = Modifier,
-    viewModel: EqViewModel = viewModel()
+    viewModel: EqViewModel = viewModel(),
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
@@ -67,6 +70,15 @@ fun EQSettingsScreen(
     val state by viewModel.uiState.collectAsState()
     val livePreset by viewModel.livePreset.collectAsState()
     val activePreset = livePreset ?: state.activePreset
+    var hardwareEq by rememberSaveable { mutableStateOf(false) }
+    if (hardwareEq) {
+        HardwareEqSettingsScreen(
+            presets = state.presets,
+            onPlayer = { hardwareEq = false },
+            modifier = modifier,
+        )
+        return
+    }
 
     var showPresetMenu by remember { mutableStateOf(false) }
     var showPresetDropdown by remember { mutableStateOf(false) }
@@ -75,55 +87,64 @@ fun EQSettingsScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     var dialogInput by remember { mutableStateOf("") }
-    var expandedBandIndex by remember { mutableIntStateOf(-1) }
+    var showBands by remember { mutableStateOf(false) }
     var presetToExport by remember { mutableStateOf<String?>(null) }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                val presetName = presetToExport ?: state.selectedPresetName
-                viewModel.exportPreset(context, presetName, uri)
-                presetToExport = null
+    val exportLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result
+            ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    val presetName = presetToExport ?: state.selectedPresetName
+                    viewModel.exportPreset(context, presetName, uri)
+                    presetToExport = null
+                }
             }
         }
-    }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                val fileName = getFileNameFromUri(context, uri)
-                    ?.removeSuffix(".txt")
-                    ?: "Imported"
-                viewModel.importPreset(context, uri, fileName)
+    val importLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result
+            ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    val fileName =
+                        getFileNameFromUri(context, uri)?.removeSuffix(".txt") ?: "Imported"
+                    viewModel.importPreset(context, uri, fileName)
+                }
             }
         }
-    }
 
     if (LocalWheelNavigation.current != null) {
         WheelEqSettingsScreen(
             state = state,
             preset = activePreset,
             viewModel = viewModel,
+            onHardwareEq = { hardwareEq = true },
             onImport = {
-                importLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "*/*"
-                })
+                importLauncher.launch(
+                    Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                    }
+                )
             },
             onExport = { presetName ->
                 presetToExport = presetName
-                exportLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TITLE, "$presetName.txt")
-                })
+                exportLauncher.launch(
+                    Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TITLE, "$presetName.txt")
+                    }
+                )
             },
-            modifier = modifier
+            modifier = modifier,
         )
+        return
+    }
+
+    if (showBands) {
+        PlayerEqBandsScreen(activePreset, viewModel, { showBands = false }, modifier)
         return
     }
 
@@ -138,7 +159,10 @@ fun EQSettingsScreen(
                 dialogInput = ""
                 showAddDialog = false
             },
-            onDismiss = { dialogInput = ""; showAddDialog = false }
+            onDismiss = {
+                dialogInput = ""
+                showAddDialog = false
+            },
         )
     }
 
@@ -153,7 +177,10 @@ fun EQSettingsScreen(
                 dialogInput = ""
                 showRenameDialog = false
             },
-            onDismiss = { dialogInput = ""; showRenameDialog = false }
+            onDismiss = {
+                dialogInput = ""
+                showRenameDialog = false
+            },
         )
     }
 
@@ -164,61 +191,68 @@ fun EQSettingsScreen(
                 viewModel.deletePreset(state.selectedPresetName)
                 showDeleteConfirm = false
             },
-            onDismiss = { showDeleteConfirm = false }
+            onDismiss = { showDeleteConfirm = false },
         )
     }
 
     BaseScreen(
         title = "Equalizer",
         onBackClick = { navController.popBackStack() },
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize()
-                .padding(24.dp, 16.dp)
+            modifier =
+                Modifier.verticalScroll(rememberScrollState()).fillMaxSize().padding(24.dp, 16.dp)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
+            Text(
+                text = "EQ target: Player",
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clickable { hardwareEq = true }
+                        .padding(vertical = 16.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     text = if (state.eqEnabled) "I" else "O",
                     fontSize = 14.sp,
-                    color = if (state.eqEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .background(if (state.eqEnabled) MaterialTheme.colorScheme.onBackground else Color.Transparent)
-                        .padding(24.dp, 16.dp)
-                        .clickable(
-                            onClick = { viewModel.setEnabled(!state.eqEnabled) },
-                            indication = null,
-                            interactionSource = null
-                        )
+                    color =
+                        if (state.eqEnabled) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.onBackground,
+                    modifier =
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
+                            .background(
+                                if (state.eqEnabled) MaterialTheme.colorScheme.onBackground
+                                else Color.Transparent
+                            )
+                            .padding(24.dp, 16.dp)
+                            .clickable(
+                                onClick = { viewModel.setEnabled(!state.eqEnabled) },
+                                indication = null,
+                                interactionSource = null,
+                            ),
                 )
 
                 Box(
-                    modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.secondary)
-                        .weight(1f)
+                    modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.secondary).weight(1f)
                 ) {
                     Text(
                         text = state.selectedPresetName,
                         fontSize = 16.sp,
                         maxLines = 1,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable(
-                                onClick = { showPresetDropdown = true },
-                                indication = null,
-                                interactionSource = null
-                            )
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(16.dp)
+                                .clickable(
+                                    onClick = { showPresetDropdown = true },
+                                    indication = null,
+                                    interactionSource = null,
+                                ),
                     )
 
                     CymaticDropdownMenu(
                         expanded = showPresetDropdown,
-                        onDismissRequest = { showPresetDropdown = false }
+                        onDismissRequest = { showPresetDropdown = false },
                     ) {
                         state.presets.forEach { preset ->
                             CymaticDropdownMenuItem(
@@ -226,7 +260,7 @@ fun EQSettingsScreen(
                                 onClick = {
                                     viewModel.selectPreset(preset.name)
                                     showPresetDropdown = false
-                                }
+                                },
                             )
                         }
                     }
@@ -236,19 +270,19 @@ fun EQSettingsScreen(
                     Text(
                         text = ":",
                         fontSize = 16.sp,
-                        modifier = Modifier
-                            .border(1.dp, MaterialTheme.colorScheme.secondary)
-                            .padding(22.dp, 16.dp)
-                            .clickable(
-                                onClick = { showPresetMenu = true },
-                                indication = null,
-                                interactionSource = null
-                            )
+                        modifier =
+                            Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
+                                .padding(22.dp, 16.dp)
+                                .clickable(
+                                    onClick = { showPresetMenu = true },
+                                    indication = null,
+                                    interactionSource = null,
+                                ),
                     )
 
                     CymaticDropdownMenu(
                         expanded = showPresetMenu,
-                        onDismissRequest = { showPresetMenu = false }
+                        onDismissRequest = { showPresetMenu = false },
                     ) {
                         CymaticDropdownMenuItem(
                             text = "New",
@@ -257,14 +291,14 @@ fun EQSettingsScreen(
                                     painter = painterResource(R.drawable.ic_pixel_plus),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = ""
                                 showAddDialog = true
-                            }
+                            },
                         )
                         CymaticDropdownMenuItem(
                             text = "Rename",
@@ -273,14 +307,14 @@ fun EQSettingsScreen(
                                     painter = painterResource(R.drawable.ic_pixel_edit),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             onClick = {
                                 showPresetMenu = false
                                 dialogInput = state.selectedPresetName
                                 showRenameDialog = true
-                            }
+                            },
                         )
                         CymaticDropdownMenuItem(
                             text = "Delete",
@@ -289,13 +323,13 @@ fun EQSettingsScreen(
                                     painter = painterResource(R.drawable.ic_pixel_trash),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             onClick = {
                                 showPresetMenu = false
                                 showDeleteConfirm = true
-                            }
+                            },
                         )
                         CymaticDropdownMenuItem(
                             text = "Import",
@@ -304,17 +338,18 @@ fun EQSettingsScreen(
                                     painter = painterResource(R.drawable.ic_pixel_arrow_down),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             onClick = {
                                 showPresetMenu = false
-                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                    addCategory(Intent.CATEGORY_OPENABLE)
-                                    type = "*/*"
-                                }
+                                val intent =
+                                    Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                        addCategory(Intent.CATEGORY_OPENABLE)
+                                        type = "*/*"
+                                    }
                                 importLauncher.launch(intent)
-                            }
+                            },
                         )
                         CymaticDropdownMenuItem(
                             text = "Export",
@@ -323,22 +358,23 @@ fun EQSettingsScreen(
                                     painter = painterResource(R.drawable.ic_pixel_arrow_up),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             onClick = {
                                 showPresetMenu = false
                                 presetToExport = state.selectedPresetName
-                                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                                    addCategory(Intent.CATEGORY_OPENABLE)
-                                    type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_TITLE,
-                                        "${state.selectedPresetName}.txt"
-                                    )
-                                }
+                                val intent =
+                                    Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                                        addCategory(Intent.CATEGORY_OPENABLE)
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TITLE,
+                                            "${state.selectedPresetName}.txt",
+                                        )
+                                    }
                                 exportLauncher.launch(intent)
-                            }
+                            },
                         )
                     }
                 }
@@ -356,9 +392,7 @@ fun EQSettingsScreen(
 
             EqBodePlot(
                 preset = activePreset,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16 / 9f)
+                modifier = Modifier.fillMaxWidth().aspectRatio(16 / 9f),
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -366,7 +400,7 @@ fun EQSettingsScreen(
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = "Pre-amp",
@@ -386,25 +420,39 @@ fun EQSettingsScreen(
                 value = activePreset.preamp,
                 onValueChange = { viewModel.updatePreamp(it) },
                 valueRange = -12f..12f,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Bands",
+                text = "Bands · ${activePreset.bands.size}",
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.onBackground,
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clickable { showBands = true }
+                        .padding(vertical = 16.dp),
             )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+@Composable
+private fun PlayerEqBandsScreen(
+    preset: EqPreset,
+    viewModel: EqViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier,
+) {
+    var expandedBandIndex by remember { mutableIntStateOf(-1) }
+    BackHandler(onBack = onBack)
+    BaseScreen("Bands", onBack, modifier = modifier) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp, 16.dp)) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.secondary)
+                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
-                activePreset.bands.forEachIndexed { index, band ->
+                preset.bands.forEachIndexed { index, band ->
                     EqBandRow(
                         index = index,
                         band = band,
@@ -416,28 +464,28 @@ fun EQSettingsScreen(
                             viewModel.updateBand(index, band.copy(enabled = !band.enabled))
                         },
                         onBandChange = { updated -> viewModel.updateBand(index, updated) },
-                        onRemove = { viewModel.removeBand(index) }
+                        onRemove = { viewModel.removeBand(index) },
                     )
 
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.secondary)
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .height(1.dp)
+                                .border(1.dp, MaterialTheme.colorScheme.secondary)
                     )
                 }
 
-                if (activePreset.bands.size < EqViewModel.MAX_BANDS) {
+                if (preset.bands.size < EqViewModel.MAX_BANDS) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable(
-                                onClick = { viewModel.addBand() },
-                                indication = null,
-                                interactionSource = null
-                            ),
-                        horizontalArrangement = Arrangement.Center
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(16.dp)
+                                .clickable(
+                                    onClick = { viewModel.addBand() },
+                                    indication = null,
+                                    interactionSource = null,
+                                ),
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         Text(
                             text = "+ Add Band",

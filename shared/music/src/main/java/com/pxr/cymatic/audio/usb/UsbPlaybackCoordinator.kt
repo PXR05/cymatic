@@ -18,8 +18,8 @@ import com.pxr.cymatic.audio.dsd.DsdOutput
 import com.pxr.cymatic.playback.FadingPlayer
 import com.pxr.cymatic.playback.OutputInfoState
 import com.pxr.cymatic.playback.toAudioMetadata
-import org.json.JSONObject
 import java.io.Closeable
+import org.json.JSONObject
 
 @UnstableApi
 internal class UsbPlaybackCoordinator(
@@ -65,10 +65,10 @@ internal class UsbPlaybackCoordinator(
                 val supported =
                     tracks.groups.any { group ->
                         group.type == C.TRACK_TYPE_AUDIO &&
-                                (0 until group.length).any { index ->
-                                    DirectUsbSourcePolicy.canDecode(group.getTrackFormat(index)) &&
-                                            group.isTrackSupported(index)
-                                }
+                            (0 until group.length).any { index ->
+                                DirectUsbSourcePolicy.canDecode(group.getTrackFormat(index)) &&
+                                    group.isTrackSupported(index)
+                            }
                     }
                 if (!supported) fallback("Track format is not supported by direct USB")
             }
@@ -117,8 +117,8 @@ internal class UsbPlaybackCoordinator(
         devices.refreshDsdOutput()
         if (
             UsbPlaybackState.enabled &&
-            devices.ready &&
-            player.currentMediaItem?.toAudioMetadata()?.format == DSD_MIME_TYPE
+                devices.ready &&
+                player.currentMediaItem?.toAudioMetadata()?.format == DSD_MIME_TYPE
         ) {
             trackKey()?.let(failedTracks::remove)
             if (UsbPlaybackState.routeToUsb) switchRoute(true) else refreshRoute()
@@ -138,9 +138,9 @@ internal class UsbPlaybackCoordinator(
 
     private fun preferredRoute(): Boolean =
         UsbPlaybackState.enabled &&
-                devices.ready &&
-                supportedSource() &&
-                trackKey() !in failedTracks
+            devices.ready &&
+            supportedSource() &&
+            trackKey() !in failedTracks
 
     private fun fallback(reason: String) {
         OutputInfoState.event("Direct USB fallback to Android: $reason")
@@ -152,22 +152,22 @@ internal class UsbPlaybackCoordinator(
         pendingRoute?.let(handler::removeCallbacks)
         pendingRoute =
             Runnable {
-                pendingRoute = null
-                val direct = preferredRoute()
-                if (direct != UsbPlaybackState.routeToUsb) switchRoute(direct)
-                if (!direct) {
-                    val reason =
-                        when {
-                            !UsbPlaybackState.enabled -> null
-                            !devices.ready -> unavailableReason
-                            !supportedSource() -> "Track format is not supported by direct USB"
-                            else -> failedTracks[trackKey()]
-                        }
-                    UsbPlaybackState.update(
-                        if (reason == null) "Off" else "Normal playback · $reason"
-                    )
+                    pendingRoute = null
+                    val direct = preferredRoute()
+                    if (direct != UsbPlaybackState.routeToUsb) switchRoute(direct)
+                    if (!direct) {
+                        val reason =
+                            when {
+                                !UsbPlaybackState.enabled -> null
+                                !devices.ready -> unavailableReason
+                                !supportedSource() -> "Track format is not supported by direct USB"
+                                else -> failedTracks[trackKey()]
+                            }
+                        UsbPlaybackState.update(
+                            if (reason == null) "Off" else "Normal playback · $reason"
+                        )
+                    }
                 }
-            }
                 .also(handler::post)
     }
 
@@ -204,12 +204,6 @@ internal class UsbPlaybackCoordinator(
         UsbPlaybackState.routeToUsb = false
     }
 
-    /**
-     * Direct USB bypasses AudioTrack, so ExoPlayer's automatic pauses for audio focus and for
-     * audio-becoming-noisy (speaker fallback on route changes, e.g. when another app comes to
-     * the foreground) must both stay off. Otherwise backgrounding the app pauses a healthy
-     * USB stream even though there is no speaker output to protect.
-     */
     private fun applyBackgroundPlaybackPolicy(direct: Boolean) {
         handleBecomingNoisy = !direct
         player.setHandleAudioBecomingNoisy(!direct)
@@ -235,7 +229,6 @@ internal class UsbPlaybackCoordinator(
             .put(
                 "audioBecomingNoisy",
                 if (UsbPlaybackState.routeToUsb) "Ignored for direct USB"
-                else if (handleBecomingNoisy) "Pauses playback"
-                else "Ignored",
+                else if (handleBecomingNoisy) "Pauses playback" else "Ignored",
             )
 }
