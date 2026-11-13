@@ -189,17 +189,15 @@ internal fun SyncStatusPage(
                 )
             } else {
                 NavigationItem(
-                    label =
-                        if (
-                            state.nextStep == SyncSetupStep.MUSIC &&
-                                state.contentMode == com.pxr.cymatic.sync.SyncContentMode.NONE
-                        )
-                            "Choose music in library"
-                        else "Download now",
+                    label = "Sync now",
                     subLabel =
-                        if (state.nextStep == null) "Download ${state.musicLabel.lowercase()}"
-                        else "Choose music to keep offline",
-                    enabled = state.canEdit,
+                        when {
+                            !state.hasOfflineSelection -> "No music selected to keep offline"
+                            state.nextStep == SyncSetupStep.FOLDER ->
+                                "Restore access to your custom folder"
+                            else -> "Download ${state.musicLabel.lowercase()}"
+                        },
+                    enabled = state.canEdit && state.hasOfflineSelection,
                     showIndicator = true,
                     key = "sync_action",
                     onClick = onStart,

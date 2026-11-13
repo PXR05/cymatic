@@ -75,16 +75,20 @@ internal data class LibrarySyncSettingsState(
                 )
             } ?: selectedPlaylists
 
+    val hasOfflineSelection: Boolean
+        get() =
+            when (contentMode) {
+                SyncContentMode.NONE -> hasPinnedMusic
+                SyncContentMode.ALL -> true
+                SyncContentMode.SELECTED_PLAYLISTS -> selection.isNotEmpty() || hasPinnedMusic
+            }
+
     val nextStep: SyncSetupStep?
         get() =
             when {
                 !connected -> SyncSetupStep.CONNECTION
                 directory.isNotBlank() && !folderAccessible -> SyncSetupStep.FOLDER
-                contentMode == SyncContentMode.NONE && !hasPinnedMusic -> SyncSetupStep.MUSIC
-                contentMode == SyncContentMode.SELECTED_PLAYLISTS &&
-                    selection.isEmpty() &&
-                    !hasPinnedMusic -> SyncSetupStep.MUSIC
-
+                !hasOfflineSelection -> SyncSetupStep.MUSIC
                 else -> null
             }
 
