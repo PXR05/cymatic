@@ -12,18 +12,12 @@ import com.pxr.cymatic.ui.navigation.Screen
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     additionalItems: List<NavigationItem> = emptyList(),
-    showBackButton: Boolean = true,
 ) {
     val navController = LocalNavController.current
 
     BaseScreen(
         title = "Settings",
-        onBackClick =
-            if (showBackButton) {
-                { navController.popBackStack() }
-            } else {
-                null
-            },
+        onBackClick = { navController.popBackStack() },
         modifier = modifier,
     ) {
         NavigationList(

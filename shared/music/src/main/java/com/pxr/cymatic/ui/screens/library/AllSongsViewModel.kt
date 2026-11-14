@@ -2,13 +2,11 @@ package com.pxr.cymatic.ui.screens.library
 
 import android.app.Application
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.library.libraryRefreshEvents
 import com.pxr.cymatic.data.media.AudioRepository
-import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.LibraryFilterStore
 
 class AllSongsViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,8 +32,7 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
     val isSearchActive
         get() = collection.search.value.active
 
-    var contextMenuFile by mutableStateOf<AudioFile?>(null)
-    var infoDialogId by mutableStateOf<Long?>(null)
+    internal val listState = SongListState()
 
     val uiState = collection.state
 

@@ -24,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -44,7 +43,6 @@ fun ListItem(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
-    val compact = LocalWheelNavigation.current != null
     val cjkRegex = Regex("[\\u4E00-\\u9FFF|\\u3040-\\u309F\\u30A0-\\u30FF\\uAC00-\\uD7AF]")
     val isLabelCJK = label.contains(cjkRegex)
     val isSubLabelCJK = subLabel?.contains(cjkRegex) ?: false
@@ -65,14 +63,14 @@ fun ListItem(
         MaterialTheme.typography.bodyLarge
             .merge(labelStyle)
             .copy(
-                fontSize = if (compact) 16.sp else 20.sp,
+                fontSize = 16.sp,
                 letterSpacing = if (isLabelCJK) 2.sp else 0.sp,
             )
     val subLabelFontStyle =
         MaterialTheme.typography.bodyMedium
             .merge(subLabelStyle)
             .copy(
-                fontSize = if (compact) 12.sp else 14.sp,
+                fontSize = 12.sp,
                 letterSpacing = if (isSubLabelCJK) 1.5.sp else 0.sp,
             )
     val trailingFontStyle =
@@ -102,7 +100,7 @@ fun ListItem(
                     indication = null,
                     interactionSource = null,
                 )
-                .padding(horizontal = 24.dp, vertical = if (compact) 12.dp else 16.dp),
+                .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {

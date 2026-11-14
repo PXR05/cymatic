@@ -28,8 +28,6 @@ import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.rememberWheelSelection
-import com.pxr.cymatic.ui.locals.LocalMediaController
-import com.pxr.cymatic.ui.state.rememberPlaybackState
 
 @Composable
 fun AudioFileList(
@@ -39,20 +37,20 @@ fun AudioFileList(
     onItemClick: (AudioFile) -> Unit,
     onItemLongClick: (AudioFile) -> Unit = {},
     topOffset: Dp = 0.dp,
-    bottomOffset: Dp = 0.dp
+    bottomOffset: Dp = 0.dp,
 ) {
-    val mediaController = LocalMediaController.current
-    val playbackState = rememberPlaybackState(mediaController)
     val listState = rememberLazyListState()
     val wheel = LocalWheelNavigation.current
-    val selectedIndex = rememberWheelSelection(
-        audioFiles.size, listState,
-        onSelect = {
-            onItemClick(audioFiles[it])
-            wheel?.onPlaybackRequested?.invoke()
-        },
-        onContext = { onItemLongClick(audioFiles[it]) }
-    )
+    val selectedIndex =
+        rememberWheelSelection(
+            audioFiles.size,
+            listState,
+            onSelect = {
+                onItemClick(audioFiles[it])
+                wheel?.onPlaybackRequested?.invoke()
+            },
+            onContext = { onItemLongClick(audioFiles[it]) },
+        )
 
     LaunchedEffect(scrollTargetId) {
         if (scrollTargetId != null) {
@@ -65,15 +63,14 @@ fun AudioFileList(
 
     LazyColumn(
         state = listState,
-        modifier = modifier
+        modifier = modifier,
     ) {
         items(
             count = audioFiles.size,
-            key = { i -> audioFiles[i].id }
+            key = { i -> audioFiles[i].id },
         ) { i ->
             val audioFile = audioFiles[i]
-            val isCurrent = if (wheel != null) i == selectedIndex
-            else playbackState.currentMediaId == audioFile.id.toString()
+            val isCurrent = i == selectedIndex
             if (i == 0 && topOffset > 0.dp) {
                 Box(modifier = Modifier.height(topOffset))
             }
@@ -85,7 +82,7 @@ fun AudioFileList(
                     wheel?.onPlaybackRequested?.invoke()
                 },
                 onLongClick = { onItemLongClick(audioFile) },
-                modifier = Modifier.heightIn(min = if (wheel != null) 64.dp else 76.dp)
+                modifier = Modifier.heightIn(min = 64.dp),
             )
             if (i == audioFiles.size - 1 && bottomOffset > 0.dp) {
                 Box(modifier = Modifier.height(bottomOffset))
@@ -104,10 +101,11 @@ fun AudioFileItem(
 ) {
     val metadata = audioFile.metadata
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
-    val busy = audioFile.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
+    val busy =
+        audioFile.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
             com.pxr.cymatic.sync.RemoteLibraryItemKey(
                 audioFile.sourceId.orEmpty(),
-                audioFile.remoteId.orEmpty()
+                audioFile.remoteId.orEmpty(),
             ) in work.tracks
 
     @SuppressLint("DefaultLocale")
@@ -126,7 +124,7 @@ fun AudioFileItem(
         trailingContent = { color ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 LibraryAvailabilityIcon(audioFile.availability, color, busy = busy)
                 Text(parseDuration(metadata.duration), color = color, fontSize = 12.sp)
@@ -135,112 +133,105 @@ fun AudioFileItem(
         isActive = isCurrent,
         onClick = onClick,
         onLongClick = onLongClick,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 @Preview(showBackground = true)
 @Composable
 fun AudioFileItemPreview() {
-    val sampleAudioFile = AudioFile(
-        id = 1L,
-        uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
-        metadata = AudioMetadata(
-            title = "Song Title",
-            artist = "Artist A",
-            album = "Album X",
-            duration = 210000L,
-            format = "audio/mpeg",
-            bitRate = 320000L,
-            sampleRate = 44100L,
-            artworkUri = null
-        ),
-        size = 5120000
-    )
-    val sampleAudioFileCJK = AudioFile(
-        id = 1L,
-        uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
-        metadata = AudioMetadata(
-            title = "ささやくように",
-            artist = "恋を唄う - 3:30",
-            album = "Album X",
-            duration = 210000L,
-            format = "audio/mpeg",
-            bitRate = 320000L,
-            sampleRate = 44100L,
-            artworkUri = null
-        ),
-        size = 5120000
-    )
-    val sampleAudioFileCB1 = AudioFile(
-        id = 1L,
-        uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
-        metadata = AudioMetadata(
-            title = "ささやくように",
-            artist = "Artist",
-            album = "Album X",
-            duration = 210000L,
-            format = "audio/mpeg",
-            bitRate = 320000L,
-            sampleRate = 44100L,
-            artworkUri = null
-        ),
-        size = 5120000
-    )
-    val sampleAudioFileCB2 = AudioFile(
-        id = 1L,
-        uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
-        metadata = AudioMetadata(
-            title = "Song Title",
-            artist = "恋を唄う - 3:30",
-            album = "Album X",
-            duration = 210000L,
-            format = "audio/mpeg",
-            bitRate = 320000L,
-            sampleRate = 44100L,
-            artworkUri = null
-        ),
-        size = 5120000
-    )
+    val sampleAudioFile =
+        AudioFile(
+            id = 1L,
+            uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
+            metadata =
+                AudioMetadata(
+                    title = "Song Title",
+                    artist = "Artist A",
+                    album = "Album X",
+                    duration = 210000L,
+                    format = "audio/mpeg",
+                    bitRate = 320000L,
+                    sampleRate = 44100L,
+                    artworkUri = null,
+                ),
+            size = 5120000,
+        )
+    val sampleAudioFileCJK =
+        AudioFile(
+            id = 1L,
+            uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
+            metadata =
+                AudioMetadata(
+                    title = "ささやくように",
+                    artist = "恋を唄う - 3:30",
+                    album = "Album X",
+                    duration = 210000L,
+                    format = "audio/mpeg",
+                    bitRate = 320000L,
+                    sampleRate = 44100L,
+                    artworkUri = null,
+                ),
+            size = 5120000,
+        )
+    val sampleAudioFileCB1 =
+        AudioFile(
+            id = 1L,
+            uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
+            metadata =
+                AudioMetadata(
+                    title = "ささやくように",
+                    artist = "Artist",
+                    album = "Album X",
+                    duration = 210000L,
+                    format = "audio/mpeg",
+                    bitRate = 320000L,
+                    sampleRate = 44100L,
+                    artworkUri = null,
+                ),
+            size = 5120000,
+        )
+    val sampleAudioFileCB2 =
+        AudioFile(
+            id = 1L,
+            uri = "file:///storage/emulated/0/Music/song1.mp3".toUri(),
+            metadata =
+                AudioMetadata(
+                    title = "Song Title",
+                    artist = "恋を唄う - 3:30",
+                    album = "Album X",
+                    duration = 210000L,
+                    format = "audio/mpeg",
+                    bitRate = 320000L,
+                    sampleRate = 44100L,
+                    artworkUri = null,
+                ),
+            size = 5120000,
+        )
     Column {
         AudioFileItem(
             audioFile = sampleAudioFile,
             isCurrent = false,
-            onClick = {}
+            onClick = {},
         )
-        Box(
-            modifier = Modifier
-                .height(1.dp)
-                .background(Color.Gray)
-                .fillMaxWidth()
-        )
+        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCJK,
             isCurrent = false,
             onClick = {},
-            modifier = Modifier.heightIn(min = 76.dp)
+            modifier = Modifier.heightIn(min = 76.dp),
         )
-        Box(
-            modifier = Modifier
-                .height(1.dp)
-                .background(Color.Gray)
-                .fillMaxWidth()
-        )
+        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCB1,
             isCurrent = false,
-            onClick = {}
+            onClick = {},
         )
-        Box(
-            modifier = Modifier
-                .height(1.dp)
-                .background(Color.Gray)
-                .fillMaxWidth()
-        )
+        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCB2,
             isCurrent = false,
-            onClick = {}
+            onClick = {},
         )
     }
 }

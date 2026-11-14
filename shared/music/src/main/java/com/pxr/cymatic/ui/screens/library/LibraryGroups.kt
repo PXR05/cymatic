@@ -21,8 +21,12 @@ import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.list.LibraryAvailabilityIcon
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal data class LibraryGroup(val songs: List<AudioFile>) {
@@ -42,18 +46,45 @@ internal class LibraryGroups(songs: List<AudioFile>) {
     val artists = songs.groupBy(::artistDisplayName).mapValues { LibraryGroup(it.value) }
 }
 
+private object LibraryGroupsCache {
+    private val mutex = Mutex()
+    @Volatile private var snapshot: Pair<List<AudioFile>, LibraryGroups>? = null
+    val empty = LibraryGroups(emptyList())
+
+    fun cached(songs: List<AudioFile>?): LibraryGroups? =
+        snapshot?.takeIf { it.first === songs }?.second
+
+    suspend fun groups(songs: List<AudioFile>): LibraryGroups = mutex.withLock {
+        cached(songs)
+            ?: withContext(Dispatchers.Default) { LibraryGroups(songs) }
+                .also {
+                    snapshot = songs to it
+                }
+    }
+}
+
 @Composable
 internal fun rememberLibraryGroups(): LibraryGroups {
     val context = LocalContext.current.applicationContext
     val repository = remember(context) { AudioRepository.getInstance(context) }
-    val songs by
-        produceState(repository.getCachedAudio().orEmpty(), repository) {
-            merge(LibraryChanges.version, SettingsStore.lastScanTimeMsFlow).collect {
-                runCatching { withContext(Dispatchers.IO) { repository.getAllAudio() } }
-                    .onSuccess { value = it }
+    val groups by
+        produceState(
+            LibraryGroupsCache.cached(repository.getCachedAudio()) ?: LibraryGroupsCache.empty,
+            repository,
+        ) {
+            merge(LibraryChanges.version, SettingsStore.lastScanTimeMsFlow).collectLatest {
+                try {
+                    val songs = withContext(Dispatchers.IO) { repository.getAllAudio() }
+                    value = LibraryGroupsCache.groups(songs)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    // The screen's loader presents data errors; retain the last available
+                    // indicators.
+                }
             }
         }
-    return remember(songs) { LibraryGroups(songs) }
+    return groups
 }
 
 @Composable

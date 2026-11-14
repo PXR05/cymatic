@@ -27,7 +27,6 @@ object SettingsStore {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _prefs = MutableStateFlow<Preferences?>(null)
 
-    private const val DEFAULT_LOCKED = false
     private const val DEFAULT_LAST_SCAN_TIME_MS = 0L
     private const val DEFAULT_LAST_SCAN_COUNT = 0L
     private const val DEFAULT_LAST_SCAN_DURATION_MS = 0L
@@ -36,7 +35,6 @@ object SettingsStore {
     private const val DEFAULT_FADE_ENABLED = true
     private const val DEFAULT_RESUME_ON_BLUETOOTH_RECONNECT = false
     private const val DEFAULT_WHEEL_SENSITIVITY = 1f
-    private val LOCKED_KEY = booleanPreferencesKey("LOCKED")
     private val FADE_ENABLED_KEY = booleanPreferencesKey("FADE_ENABLED")
     private val WHEEL_SENSITIVITY_KEY = floatPreferencesKey("WHEEL_SENSITIVITY")
     private val LAST_SCAN_TIME_MS_KEY = longPreferencesKey("LAST_SCAN_TIME_MS")
@@ -76,12 +74,6 @@ object SettingsStore {
             requireInit()
             return dataStore
         }
-
-    val lockedFlow: Flow<Boolean>
-        get() =
-            store.data.map { prefs ->
-                prefs[LOCKED_KEY] ?: DEFAULT_LOCKED
-            }
 
     val hideArtworkFlow: Flow<Boolean>
         get() =
@@ -140,9 +132,6 @@ object SettingsStore {
                 )
             }
 
-    val currentLocked: Boolean
-        get() = _prefs.value?.get(LOCKED_KEY) ?: DEFAULT_LOCKED
-
     val currentHideArtwork: Boolean
         get() = _prefs.value?.get(HIDE_ARTWORK_KEY) ?: DEFAULT_HIDE_ARTWORK
 
@@ -179,8 +168,6 @@ object SettingsStore {
     val currentFadeEnabled: Boolean
         get() = _prefs.value?.get(FADE_ENABLED_KEY) ?: DEFAULT_FADE_ENABLED
 
-    suspend fun isLocked(): Boolean = lockedFlow.first()
-
     suspend fun getHideArtwork(): Boolean = hideArtworkFlow.first()
 
     suspend fun getLastScanTimeMs(): Long = lastScanTimeMsFlow.first()
@@ -192,12 +179,6 @@ object SettingsStore {
     suspend fun getScanDirectories(): List<String> = scanDirectoriesFlow.first()
 
     suspend fun getScanAllMedia(): Boolean = scanAllMediaFlow.first()
-
-    suspend fun setLocked(value: Boolean) {
-        store.edit { prefs ->
-            prefs[LOCKED_KEY] = value
-        }
-    }
 
     suspend fun setHideArtwork(value: Boolean) {
         store.edit { prefs ->

@@ -51,3 +51,17 @@ fun WheelContextMenu(
         onDispose { wheel.removeOverlay(overlay) }
     }
 }
+
+@Composable
+fun WheelConfirmationMenu(
+    title: String,
+    text: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    WheelContextMenu(
+        title,
+        listOf(NavigationItem("Confirm", text, subLabelMaxLines = 8, onClick = onConfirm)),
+        onDismiss,
+    )
+}

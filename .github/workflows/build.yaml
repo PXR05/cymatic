@@ -115,13 +115,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build APK
-        run: ./gradlew :app-player:assembleRelease
+        run: ./gradlew :app:assembleRelease
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: app-player/build/outputs/apk/release
+          releaseDirectory: app/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}

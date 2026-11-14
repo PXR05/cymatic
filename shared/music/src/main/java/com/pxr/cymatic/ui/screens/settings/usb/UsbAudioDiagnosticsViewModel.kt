@@ -17,6 +17,9 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.audio.usb.UsbAudioDiagnostics
 import com.pxr.cymatic.audio.usb.UsbConnectionManager
@@ -102,6 +105,21 @@ internal class UsbAudioDiagnosticsViewModel(application: Application) :
 
             override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) = refresh()
         }
+
+    private var graphLifecycle: Lifecycle? = null
+    private val graphObserver =
+        object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) = start()
+
+            override fun onStop(owner: LifecycleOwner) = stop()
+        }
+
+    fun bindGraphLifecycle(lifecycle: Lifecycle) {
+        if (graphLifecycle === lifecycle) return
+        graphLifecycle?.removeObserver(graphObserver)
+        graphLifecycle = lifecycle
+        lifecycle.addObserver(graphObserver)
+    }
 
     fun start() {
         if (started) return
@@ -309,6 +327,8 @@ internal class UsbAudioDiagnosticsViewModel(application: Application) :
     }
 
     override fun onCleared() {
+        graphLifecycle?.removeObserver(graphObserver)
+        graphLifecycle = null
         stop()
         super.onCleared()
     }

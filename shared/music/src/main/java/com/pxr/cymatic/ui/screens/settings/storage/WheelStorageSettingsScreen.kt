@@ -16,12 +16,11 @@ import androidx.compose.ui.platform.LocalContext
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
-import com.pxr.cymatic.ui.components.common.WheelReadingPage
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
-import com.pxr.cymatic.ui.components.storage.StatusBento
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,7 +40,6 @@ internal fun WheelStorageSettingsScreen(
     var scanning by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var removeDirectory by remember { mutableStateOf<String?>(null) }
-    var showStatus by remember { mutableStateOf(false) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             if (uri != null)
@@ -62,7 +60,7 @@ internal fun WheelStorageSettingsScreen(
                         "Scan status",
                         result ?: if (scanning) "Scanning" else "Last scan details",
                     ) {
-                        showStatus = true
+                        nav.navigate(Screen.ScanStatus.route)
                     }
                 )
                 if (!hasPermission)
@@ -127,7 +125,6 @@ internal fun WheelStorageSettingsScreen(
             }
         )
     }
-    if (showStatus) WheelReadingPage("Scan status", { showStatus = false }) { StatusBento() }
     removeDirectory?.let { directory ->
         WheelContextMenu(
             "Remove directory?",

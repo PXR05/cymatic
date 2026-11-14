@@ -6,7 +6,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.store.PlaybackStore
-import com.pxr.cymatic.data.store.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,12 +49,7 @@ internal class PlaybackStatePersistence(
 
         val currentId = stored.queueIds.getOrNull(stored.currentIndex)
         val audioFiles = audioRepository.getAudioByIds(stored.queueIds)
-        if (audioFiles.isEmpty()) {
-            if (currentId != null) {
-                SettingsStore.setLocked(false)
-            }
-            return
-        }
+        if (audioFiles.isEmpty()) return
 
         val mediaItems = audioFiles.map { createMediaItem(it, stored.queueSource) }
         val targetIndex =
@@ -66,7 +60,6 @@ internal class PlaybackStatePersistence(
             }
 
         if (currentId != null && targetIndex < 0) {
-            SettingsStore.setLocked(false)
             Log.w(TAG, "Current audio file not found in database, cannot restore playback state")
         }
 

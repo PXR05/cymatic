@@ -7,223 +7,180 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncProgress
+import com.pxr.cymatic.ui.components.common.ScreenBackHandler
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
-private enum class SyncPage {
-    LIBRARY,
-    BULK_DOWNLOADS,
-    ADVANCED,
-    SCHEDULE,
-    STATUS,
-    HELP,
-}
-
 @Composable
-fun LibrarySyncSettingsScreen(modifier: Modifier = Modifier) {
-    val model: LibrarySyncSettingsViewModel = viewModel()
+internal fun LibrarySyncSettingsScreen(
+    model: LibrarySyncSettingsViewModel,
+    pageRoute: String = Screen.LibrarySyncSettings.route,
+    modifier: Modifier = Modifier,
+) {
     val state by model.state.collectAsState()
     val nav = LocalNavController.current
-    var page by rememberSaveable { mutableStateOf<SyncPage?>(null) }
-    var bulkReturnPage by rememberSaveable { mutableStateOf(SyncPage.ADVANCED) }
-    var scheduleReturnPage by rememberSaveable { mutableStateOf(SyncPage.ADVANCED) }
-    var showConnection by remember { mutableStateOf(false) }
-    var showPlaylists by remember { mutableStateOf(false) }
-    var refreshAfterSave by remember { mutableStateOf(false) }
-    var shownError by remember { mutableStateOf<String?>(null) }
-    var lastError by remember { mutableStateOf<String?>(null) }
     val error = state.message ?: (state.progress as? SyncProgress.Failed)?.message
     val folderPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
             it?.let(model::setDirectory)
         }
-    LaunchedEffect(refreshAfterSave, state.saving) {
-        if (refreshAfterSave && !state.saving) {
-            refreshAfterSave = false
-            model.refreshLibrary()
-        }
+    fun open(route: String) {
+        nav.navigate(route) { launchSingleTop = true }
     }
-    LaunchedEffect(state.loading, error) {
-        if (!state.loading) {
-            if (error != null && error != lastError) shownError = error
-            lastError = error
+    fun close() {
+        if (pageRoute == Screen.SyncConnection.route || pageRoute == Screen.SyncPlaylists.route) {
+            if (state.saving) return
+            if (pageRoute == Screen.SyncPlaylists.route) model.commitPlaylists()
+            else model.connectionPassword = ""
         }
+        nav.popBackStack()
+    }
+    ScreenBackHandler(onBack = ::close)
+    LaunchedEffect(state.loading, error) {
+        if (!state.loading && error != null && error != model.lastPresentedError) {
+            model.lastPresentedError = error
+            model.errorDetails = error
+            if (pageRoute != Screen.SyncError.route) open(Screen.SyncError.route)
+        }
+        if (error == null) model.lastPresentedError = null
     }
     fun chooseFolder() {
-        folderPicker.launch(state.directory.takeIf { it.isNotBlank() }?.let(Uri::parse))
+        folderPicker.launch(state.directory.takeIf(String::isNotBlank)?.let(Uri::parse))
     }
-
     fun openBulkDownloads() {
-        if (page != SyncPage.BULK_DOWNLOADS) bulkReturnPage = page ?: SyncPage.ADVANCED
-        page = SyncPage.BULK_DOWNLOADS
+        open(Screen.SyncBulkDownloads.route)
         if (state.catalog == null) model.refreshLibrary()
     }
-
     fun download() {
         when (state.nextStep) {
-            SyncSetupStep.CONNECTION -> showConnection = true
+            SyncSetupStep.CONNECTION -> open(Screen.SyncConnection.route)
             SyncSetupStep.FOLDER -> chooseFolder()
             SyncSetupStep.MUSIC ->
-                if (state.contentMode == SyncContentMode.NONE) {
-                    nav.navigate(Screen.AllSongs.createRoute())
-                } else openBulkDownloads()
-
+                if (state.contentMode == SyncContentMode.NONE) open(Screen.AllSongs.createRoute())
+                else openBulkDownloads()
             null -> model.startSync()
         }
     }
-
-    BaseScreen("Remote library", { nav.popBackStack() }, modifier = modifier) {
-        SyncSettingsList(
-            buildList {
-                if (state.loading) add(SyncSetting("Loading…", enabled = false))
-                else {
-                    add(
-                        SyncSetting(
-                            if (state.connected) "Connection" else "Connect to AudioStream",
-                            if (state.connected) "${state.username} · ${syncHostLabel(state.url)}"
-                            else "Sign in to load your library",
-                            enabled = state.canEdit,
-                            onClick = { showConnection = true },
-                        )
-                    )
-                    if (state.connected) {
-                        add(
-                            SyncSetting(
-                                "Library",
-                                if (state.refreshingCatalog) "Refreshing…"
-                                else
-                                    state.catalog?.let {
-                                        "${it.tracks.size} songs · ${it.playlists.size} playlists"
-                                    } ?: "Load songs and playlists",
-                                enabled = !state.saving,
-                                onClick = {
-                                    page = SyncPage.LIBRARY
-                                    if (state.catalog == null) model.refreshLibrary()
-                                },
+    when (pageRoute) {
+        Screen.LibrarySyncSettings.route -> {
+            BaseScreen("Remote library", { nav.popBackStack() }, modifier = modifier) {
+                SyncSettingsList(
+                    buildList {
+                        if (state.loading) add(SyncSetting("Loading…", enabled = false))
+                        else {
+                            add(
+                                SyncSetting(
+                                    if (state.connected) "Connection" else "Connect to AudioStream",
+                                    if (state.connected)
+                                        "${state.username} · ${syncHostLabel(state.url)}"
+                                    else "Sign in to load your library",
+                                    enabled = state.canEdit,
+                                    onClick = { open(Screen.SyncConnection.route) },
+                                )
                             )
-                        )
-                        add(
-                            SyncSetting(
-                                "Downloads",
-                                state.statusSummary,
-                                onClick = { page = SyncPage.STATUS },
-                            )
-                        )
-                        add(
-                            SyncSetting(
-                                "Advanced",
-                                "Storage, bulk downloads and scheduling",
-                                state.canEdit,
-                                onClick = { page = SyncPage.ADVANCED },
-                            )
-                        )
+                            if (state.connected) {
+                                add(
+                                    SyncSetting(
+                                        "Library",
+                                        if (state.refreshingCatalog) "Refreshing…"
+                                        else
+                                            state.catalog?.let {
+                                                "${it.tracks.size} songs · ${it.playlists.size} playlists"
+                                            } ?: "Load songs and playlists",
+                                        enabled = !state.saving,
+                                        onClick = {
+                                            open(Screen.SyncLibrary.route)
+                                            if (state.catalog == null) model.refreshLibrary()
+                                        },
+                                    )
+                                )
+                                add(
+                                    SyncSetting(
+                                        "Downloads",
+                                        state.statusSummary,
+                                        onClick = { open(Screen.SyncStatus.route) },
+                                    )
+                                )
+                                add(
+                                    SyncSetting(
+                                        "Advanced",
+                                        "Storage, bulk downloads and scheduling",
+                                        state.canEdit,
+                                        onClick = { open(Screen.SyncAdvanced.route) },
+                                    )
+                                )
+                            }
+                            add(SyncSetting("Help", onClick = { open(Screen.SyncHelp.route) }))
+                        }
                     }
-                    add(SyncSetting("Help", onClick = { page = SyncPage.HELP }))
-                }
+                )
             }
-        )
-    }
-    when (page) {
-        SyncPage.LIBRARY ->
-            SyncRemoteLibraryPage(
-                state,
-                { page = null },
-                model::refreshLibrary,
-                model::cancel,
-            )
-
-        SyncPage.BULK_DOWNLOADS ->
+        }
+        Screen.SyncLibrary.route ->
+            SyncRemoteLibraryPage(state, ::close, model::refreshLibrary, model::cancel)
+        Screen.SyncBulkDownloads.route ->
             SyncBulkDownloadsPage(
                 state,
-                { page = bulkReturnPage },
-                onMode = { mode ->
-                    model.setContentMode(mode)
-                    if (mode == SyncContentMode.SELECTED_PLAYLISTS && state.catalog == null)
-                        refreshAfterSave = true
-                },
+                ::close,
+                model::setContentMode,
                 onPlaylists = {
-                    showPlaylists = true
+                    open(Screen.SyncPlaylists.route)
                     if (state.catalog == null) model.refreshLibrary()
                 },
                 onDownload = ::download,
-                onSchedule = {
-                    scheduleReturnPage = SyncPage.BULK_DOWNLOADS
-                    page = SyncPage.SCHEDULE
-                },
+                onSchedule = { open(Screen.SyncSchedule.route) },
             )
-
-        SyncPage.ADVANCED ->
+        Screen.SyncAdvanced.route ->
             SyncAdvancedPage(
                 state,
-                { page = null },
+                ::close,
                 ::chooseFolder,
                 model::useManagedStorage,
                 model::setLayout,
                 ::openBulkDownloads,
-                {
-                    scheduleReturnPage = SyncPage.ADVANCED
-                    page = SyncPage.SCHEDULE
-                },
+                { open(Screen.SyncSchedule.route) },
             )
-
-        SyncPage.SCHEDULE ->
-            SyncSchedulePage(
-                state,
-                { page = scheduleReturnPage },
-                ::download,
-                model::setNetwork,
-                model::setInterval,
-            )
-
-        SyncPage.STATUS ->
+        Screen.SyncSchedule.route ->
+            SyncSchedulePage(state, ::close, ::download, model::setNetwork, model::setInterval)
+        Screen.SyncStatus.route ->
             SyncStatusPage(
                 state,
-                { page = null },
+                ::close,
                 ::download,
                 model::cancel,
                 onOfflineLibrary = {
                     LibraryFilterStore.select(LibraryFilter.OFFLINE)
-                    nav.navigate(Screen.AllSongs.createRoute())
+                    open(Screen.AllSongs.createRoute())
                 },
             )
-
-        SyncPage.HELP -> SyncHelpPage { page = null }
-        null -> Unit
+        Screen.SyncHelp.route -> SyncHelpPage(::close)
+        Screen.SyncError.route ->
+            SyncErrorPage(
+                model.errorDetails ?: error ?: "No error details available",
+                ::close,
+            )
+        Screen.SyncConnection.route ->
+            SyncConnectionPage(
+                state,
+                ::close,
+                onSave = { url, username, password ->
+                    model.saveConnection(url, username, password) {
+                        if (nav.currentDestination?.route == Screen.SyncConnection.route)
+                            nav.popBackStack()
+                    }
+                },
+                onCheck = model::refreshLibrary,
+                password = model.connectionPassword,
+                onPasswordChange = { model.connectionPassword = it },
+            )
+        Screen.SyncPlaylists.route ->
+            SyncPlaylistsPage(state, ::close, model::setPlaylists, model::refreshLibrary)
     }
-    if (showConnection)
-        SyncConnectionPage(
-            state,
-            onDismiss = { if (!state.saving) showConnection = false },
-            onSave = { url, username, password ->
-                model.saveConnection(url, username, password) {
-                    showConnection = false
-                    refreshAfterSave = true
-                }
-            },
-            onCheck = model::refreshLibrary,
-        )
-    if (showPlaylists)
-        SyncPlaylistsPage(
-            state,
-            onDismiss = {
-                if (!state.saving) {
-                    showPlaylists = false
-                    model.commitPlaylists()
-                }
-            },
-            onChange = model::setPlaylists,
-            onRefresh = model::refreshLibrary,
-        )
-    shownError?.let { SyncErrorPage(it) { shownError = null } }
 }

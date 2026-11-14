@@ -322,62 +322,6 @@
     ]
   },
   {
-    "title": "material-icons-core 1.7.8",
-    "coordinate": "androidx.compose.material:material-icons-core:1.7.8",
-    "project": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.7.8",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ],
-    "documents": [
-      "licenses/contour/LICENSE"
-    ]
-  },
-  {
-    "title": "material-icons-core-android 1.7.8",
-    "coordinate": "androidx.compose.material:material-icons-core-android:1.7.8",
-    "project": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.7.8",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ],
-    "documents": [
-      "licenses/contour/LICENSE"
-    ]
-  },
-  {
-    "title": "material-icons-extended 1.7.8",
-    "coordinate": "androidx.compose.material:material-icons-extended:1.7.8",
-    "project": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.7.8",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ],
-    "documents": [
-      "licenses/contour/LICENSE"
-    ]
-  },
-  {
-    "title": "material-icons-extended-android 1.7.8",
-    "coordinate": "androidx.compose.material:material-icons-extended-android:1.7.8",
-    "project": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.7.8",
-    "licenses": [
-      {
-        "name": "The Apache Software License, Version 2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ],
-    "documents": [
-      "licenses/contour/LICENSE"
-    ]
-  },
-  {
     "title": "material-ripple 1.11.1",
     "coordinate": "androidx.compose.material:material-ripple:1.11.1",
     "project": "https://developer.android.com/jetpack/androidx/releases/compose-material#1.11.1",
@@ -2494,20 +2438,6 @@
   {
     "title": "kotlin-stdlib 2.3.21",
     "coordinate": "org.jetbrains.kotlin:kotlin-stdlib:2.3.21",
-    "project": "https://kotlinlang.org/",
-    "licenses": [
-      {
-        "name": "Apache-2.0",
-        "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
-      }
-    ],
-    "documents": [
-      "licenses/contour/LICENSE"
-    ]
-  },
-  {
-    "title": "kotlin-stdlib-common 2.3.21",
-    "coordinate": "org.jetbrains.kotlin:kotlin-stdlib-common:2.3.21",
     "project": "https://kotlinlang.org/",
     "licenses": [
       {

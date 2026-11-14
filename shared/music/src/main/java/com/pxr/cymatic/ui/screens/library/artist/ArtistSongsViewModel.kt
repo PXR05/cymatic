@@ -1,10 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
 import android.app.Application
-import android.net.Uri
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -14,12 +10,13 @@ import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.ui.screens.library.LibraryCollectionLoader
+import com.pxr.cymatic.ui.screens.library.SongListState
 
 class ArtistSongsViewModel(application: Application, savedStateHandle: SavedStateHandle) :
     AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private var artistName = Uri.decode(savedStateHandle.get<String>("artistName").orEmpty())
+    private var artistName = savedStateHandle.get<String>("artistName").orEmpty()
 
     private val loader =
         LibraryCollectionLoader(
@@ -33,8 +30,7 @@ class ArtistSongsViewModel(application: Application, savedStateHandle: SavedStat
     val isLoading = loader.isLoading
     val errorMessage = loader.errorMessage
 
-    var contextMenuFile by mutableStateOf<AudioFile?>(null)
-    var infoDialogId by mutableStateOf<Long?>(null)
+    internal val listState = SongListState()
 
     fun loadArtistSongs(artistName: String) {
         this.artistName = artistName

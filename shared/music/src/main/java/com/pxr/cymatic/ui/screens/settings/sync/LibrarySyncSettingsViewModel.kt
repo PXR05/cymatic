@@ -3,6 +3,9 @@ package com.pxr.cymatic.ui.screens.settings.sync
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.store.LibrarySyncSettings
@@ -189,9 +192,19 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         }
     }
 
+    internal var connectionPassword by mutableStateOf("")
+    internal var lastPresentedError: String? = null
+    internal var errorDetails by mutableStateOf<String?>(null)
+
     fun saveConnection(url: String, username: String, password: String, onSaved: () -> Unit) {
         if (state.value.running) return
-        save {
+        save(
+            onSaved = {
+                connectionPassword = ""
+                onSaved()
+                refreshLibrary()
+            }
+        ) {
             val previous = RemoteLibraries.currentSource()
             val source =
                 try {
@@ -228,24 +241,29 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                             .isEmpty,
                 )
             }
-            onSaved()
         }
     }
 
-    fun setContentMode(mode: SyncContentMode) = save {
-        val network =
-            if (!state.value.musicConfigured && mode != SyncContentMode.NONE) SyncNetwork.WIFI
-            else state.value.network
-        LibrarySyncSettings.setSyncContentMode(mode.value)
-        LibrarySyncSettings.setSyncNetwork(network.value)
-        mutableState.update {
-            it.copy(
-                contentMode = mode,
-                musicConfigured = it.musicConfigured || mode != SyncContentMode.NONE,
-                network = network,
-            )
+    fun setContentMode(mode: SyncContentMode) =
+        save(
+            onSaved = {
+                if (mode == SyncContentMode.SELECTED_PLAYLISTS && state.value.catalog == null)
+                    refreshLibrary()
+            }
+        ) {
+            val network =
+                if (!state.value.musicConfigured && mode != SyncContentMode.NONE) SyncNetwork.WIFI
+                else state.value.network
+            LibrarySyncSettings.setSyncContentMode(mode.value)
+            LibrarySyncSettings.setSyncNetwork(network.value)
+            mutableState.update {
+                it.copy(
+                    contentMode = mode,
+                    musicConfigured = it.musicConfigured || mode != SyncContentMode.NONE,
+                    network = network,
+                )
+            }
         }
-    }
 
     fun setPlaylists(selection: Set<String>) {
         if (selection == state.value.selectedPlaylists) return
@@ -287,10 +305,15 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         mutableState.update { it.copy(interval = interval) }
     }
 
-    private fun save(reschedule: Boolean = true, action: suspend () -> Unit) {
+    private fun save(
+        reschedule: Boolean = true,
+        onSaved: () -> Unit = {},
+        action: suspend () -> Unit,
+    ) {
         if (!state.value.canEdit) return
         mutableState.update { it.copy(saving = true, message = null) }
         viewModelScope.launch {
+            var succeeded = false
             try {
                 withContext(NonCancellable) {
                     action()
@@ -299,6 +322,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                         LibrarySyncJobService.reschedule(context)
                     }
                 }
+                succeeded = true
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -306,6 +330,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             } finally {
                 mutableState.update { it.copy(saving = false) }
             }
+            if (succeeded) onSaved()
         }
     }
 

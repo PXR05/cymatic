@@ -16,14 +16,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
-import com.pxr.cymatic.playback.createMediaItem
+import com.pxr.cymatic.playback.enqueueAudio
+import com.pxr.cymatic.playback.playAudioQueue
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LibraryContextMenu
 import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
 import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PlaylistContextMenu
-import com.pxr.cymatic.ui.components.common.PlaylistsPageContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
@@ -87,7 +88,6 @@ fun PlaylistsScreen(
         isSearchActive = viewModel.isSearchActive,
         onSearchActiveChange = viewModel::onSearchActiveChange,
         showSearchAction = false,
-        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         if (uiState.errorMessage != null) {
@@ -125,7 +125,9 @@ fun PlaylistsScreen(
     }
 
     if (showPageMenu) {
-        PlaylistsPageContextMenu(
+        LibraryContextMenu(
+            title = "Playlists",
+            showLibraryFilter = true,
             onDismiss = { showPageMenu = false },
             onCreatePlaylist = {
                 showPageMenu = false
@@ -163,49 +165,31 @@ fun PlaylistsScreen(
             onPlay = {
                 mediaController?.let { controller ->
                     viewModel.getPlaylistSongs(playlist.id) { songs ->
-                        if (songs.isNotEmpty()) {
-                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
-                            val mediaItems = songs.map { createMediaItem(it, route) }
-                            controller.setMediaItems(mediaItems, 0, 0L)
-                            controller.prepare()
-                            controller.play()
-                        }
+                        controller.playAudioQueue(
+                            songs,
+                            Screen.PlaylistSongs.createRoute(playlist.id),
+                        )
                     }
                 }
             },
             onPlayNext = {
                 mediaController?.let { controller ->
                     viewModel.getPlaylistSongs(playlist.id) { songs ->
-                        if (songs.isNotEmpty()) {
-                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
-                            val mediaItems = songs.map { createMediaItem(it, route) }
-                            val currentIndex = controller.currentMediaItemIndex
-                            val targetIndex = if (currentIndex >= 0) currentIndex + 1 else 0
-                            if (controller.mediaItemCount == 0) {
-                                controller.setMediaItems(mediaItems)
-                                controller.prepare()
-                                controller.play()
-                            } else {
-                                controller.addMediaItems(targetIndex, mediaItems)
-                            }
-                        }
+                        controller.enqueueAudio(
+                            songs,
+                            Screen.PlaylistSongs.createRoute(playlist.id),
+                            next = true,
+                        )
                     }
                 }
             },
             onAddToQueue = {
                 mediaController?.let { controller ->
                     viewModel.getPlaylistSongs(playlist.id) { songs ->
-                        if (songs.isNotEmpty()) {
-                            val route = Screen.PlaylistSongs.createRoute(playlist.id)
-                            val mediaItems = songs.map { createMediaItem(it, route) }
-                            if (controller.mediaItemCount == 0) {
-                                controller.setMediaItems(mediaItems)
-                                controller.prepare()
-                                controller.play()
-                            } else {
-                                controller.addMediaItems(mediaItems)
-                            }
-                        }
+                        controller.enqueueAudio(
+                            songs,
+                            Screen.PlaylistSongs.createRoute(playlist.id),
+                        )
                     }
                 }
             },

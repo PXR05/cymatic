@@ -74,7 +74,9 @@ fun WheelSettingsOverlay(
                         title = currentTitle,
                         onBackClick = { dismiss() },
                         onMenuLongClick = currentMenuLongClick,
-                    ) { body() }
+                    ) {
+                        body()
+                    }
                 },
                 { dismiss() },
             )
@@ -166,18 +168,17 @@ fun WheelNumberEditor(
             onDispose { wheel?.unregister(actions) }
         }
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+            Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val formatted = format(draft)
             val number = remember(formatted) { Regex("[+-]?[0-9]+(?:[.,][0-9]+)?").find(formatted) }
-            val textStyle = LocalTextStyle.current.copy(
-                fontSize = 32.sp,
-                color = LocalContentColor.current,
-            )
+            val textStyle =
+                LocalTextStyle.current.copy(
+                    fontSize = 32.sp,
+                    color = LocalContentColor.current,
+                )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatted.substring(0, number?.range?.first ?: 0), style = textStyle)
                 BasicTextField(
@@ -186,23 +187,30 @@ fun WheelNumberEditor(
                         input = it
                         error = null
                     },
-                    modifier = Modifier
-                        .width(IntrinsicSize.Min)
-                        .onFocusChanged { if (!it.isFocused && input != null) commit() }
-                        .semantics { contentDescription = title },
+                    modifier =
+                        Modifier.width(IntrinsicSize.Min)
+                            .onFocusChanged { if (!it.isFocused && input != null) commit() }
+                            .semantics { contentDescription = title },
                     enabled = !saving,
                     textStyle = textStyle,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        if (commit() != null) focus.clearFocus()
-                    }),
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onDone = {
+                                if (commit() != null) focus.clearFocus()
+                            }
+                        ),
                 )
-                Text(formatted.substring(number?.range?.last?.plus(1) ?: formatted.length), style = textStyle)
+                Text(
+                    formatted.substring(number?.range?.last?.plus(1) ?: formatted.length),
+                    style = textStyle,
+                )
             }
             CymaticSlider(
                 value = draft,
@@ -251,10 +259,7 @@ fun WheelTextEditor(
                 value = draft,
                 placeholder = { if (hint != null) Text(hint) },
                 onValueChange = { draft = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .focusRequester(requester),
+                modifier = Modifier.fillMaxWidth().padding(24.dp).focusRequester(requester),
                 singleLine = true,
                 visualTransformation =
                     if (password) PasswordVisualTransformation() else VisualTransformation.None,
@@ -291,30 +296,28 @@ fun WheelTextEditor(
 }
 
 @Composable
-fun WheelReadingPage(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    WheelSettingsOverlay(title, onDismiss) {
-        val wheel = LocalWheelNavigation.current
-        val overlay = LocalWheelOverlay.current
-        val scroll = rememberScrollState()
-        val scope = rememberCoroutineScope()
-        val distance = with(LocalDensity.current) { 48.dp.toPx().toInt() }
-        val dismiss by rememberUpdatedState(onDismiss)
-        val actions =
-            remember(wheel, scroll, distance) {
-                WheelActions(
-                    { steps -> scope.launch { scroll.scrollTo(scroll.value + steps * distance) } },
-                    { dismiss() },
-                )
-            }
-        DisposableEffect(wheel, actions, overlay) {
-            wheel?.register(actions, overlay)
-            onDispose { wheel?.unregister(actions) }
+fun ReadingScreen(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+    BaseScreen(title, onBack) { ReadingContent(onBack, content) }
+}
+
+@Composable
+private fun ReadingContent(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    val wheel = LocalWheelNavigation.current
+    val overlay = LocalWheelOverlay.current
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val distance = with(LocalDensity.current) { 48.dp.toPx().toInt() }
+    val dismiss by rememberUpdatedState(onDismiss)
+    val actions =
+        remember(wheel, scroll, distance) {
+            WheelActions(
+                { steps -> scope.launch { scroll.scrollTo(scroll.value + steps * distance) } },
+                { dismiss() },
+            )
         }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(scroll)
-                .padding(24.dp)
-        ) { content() }
+    DisposableEffect(wheel, actions, overlay) {
+        wheel?.register(actions, overlay)
+        onDispose { wheel?.unregister(actions) }
     }
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp)) { content() }
 }

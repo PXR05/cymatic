@@ -1,26 +1,23 @@
 package com.pxr.cymatic.ui.components.screen
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.LocalWheelOverlay
 
-val LocalScreenBackdrop = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 val LocalScreenNotice = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
 @Composable
@@ -36,13 +33,11 @@ fun BaseScreen(
     isSearchActive: Boolean = false,
     onSearchActiveChange: ((Boolean) -> Unit)? = null,
     showSearchAction: Boolean = true,
-    showWallpaperBackdrop: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val wheel = LocalWheelNavigation.current
     val overlay = LocalWheelOverlay.current
     val back = if (onBackClick != null) wheel?.onBackRequested ?: onBackClick else null
-    val backdrop = if (showWallpaperBackdrop) LocalScreenBackdrop.current else null
 
     val menuHold = onMenuLongClick ?: onTitleClick
     if (menuHold != null && wheel != null) {
@@ -56,45 +51,31 @@ fun BaseScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        backdrop?.invoke()
-
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            contentWindowInsets = if (LocalWheelNavigation.current != null) WindowInsets(0, 0, 0, 0)
-            else ScaffoldDefaults.contentWindowInsets,
-            containerColor = if (backdrop != null) Color.Transparent else MaterialTheme.colorScheme.background
-        ) { innerPadding ->
-            val topPadding = innerPadding.calculateTopPadding()
-            Column(
-                modifier = Modifier
-                    .padding(top = topPadding)
+    val background = MaterialTheme.colorScheme.background
+    CompositionLocalProvider(LocalContentColor provides contentColorFor(background)) {
+        Column(modifier.fillMaxSize().background(background)) {
+            if (
+                searchQuery != null && onSearchQueryChange != null && onSearchActiveChange != null
             ) {
-                if (searchQuery != null && onSearchQueryChange != null && onSearchActiveChange != null) {
-                    SearchableScreenHeader(
-                        title = title,
-                        onBackClick = back,
-                        onTitleClick = onTitleClick,
-                        onMenuLongClick = onMenuLongClick,
-                        isSearchActive = isSearchActive,
-                        onSearchActiveChange = onSearchActiveChange,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = onSearchQueryChange,
-                        actions = actions,
-                        showSearchAction = showSearchAction
-                    )
-                } else {
-                    ScreenHeader(
-                        title = title,
-                        onBackClick = back,
-                        onTitleClick = onTitleClick,
-                        onMenuLongClick = onMenuLongClick,
-                        actions = actions
-                    )
-                }
-                LocalScreenNotice.current?.invoke()
-                content()
+                WheelSearchableScreenHeader(
+                    onBackClick = back ?: onTitleClick,
+                    onMenuLongClick = onMenuLongClick,
+                    isSearchActive = isSearchActive,
+                    onSearchActiveChange = onSearchActiveChange,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    actions = actions,
+                    showSearchAction = showSearchAction,
+                )
+            } else {
+                WheelScreenHeader(
+                    onBackClick = back ?: onTitleClick,
+                    onMenuLongClick = onMenuLongClick,
+                    actions = actions,
+                )
             }
+            LocalScreenNotice.current?.invoke()
+            content()
         }
     }
 }

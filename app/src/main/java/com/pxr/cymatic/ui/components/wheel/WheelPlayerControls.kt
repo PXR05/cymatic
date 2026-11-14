@@ -1,0 +1,124 @@
+package com.pxr.cymatic.ui.components.wheel
+
+import androidx.media3.session.MediaController
+import com.pxr.cymatic.playback.togglePlayback
+import com.pxr.cymatic.ui.components.MusicVolumeState
+
+internal class WheelPlayerControls(
+    private val state: WheelPlayerState,
+    private val controller: MediaController?,
+    private val volume: MusicVolumeState,
+    private val durationMs: Long?,
+    private val setupBack: (() -> Unit)? = null,
+) {
+    fun beginMovement() {
+        if (setupBack != null || !state.controlsPlayback)
+            state.wheel.actions?.onMovementStarted?.invoke()
+    }
+
+    fun rotate(steps: Int) {
+        if (setupBack == null && state.controlsPlayback) {
+            volume.adjust(steps)
+        } else {
+            state.wheel.actions?.onRotate?.invoke(steps)
+        }
+    }
+
+    fun press(button: WheelButton) {
+        if (setupBack != null) {
+            when (button) {
+                WheelButton.MENU,
+                WheelButton.PREVIOUS ->
+                    state.wheel.overlay?.onDismiss?.invoke() ?: setupBack.invoke()
+
+                WheelButton.SELECT,
+                WheelButton.NEXT -> selectItem()
+                WheelButton.PLAY -> if (controller?.isPlaying == true) controller.pause()
+            }
+            return
+        }
+        when (button) {
+            WheelButton.MENU -> state.mainMenu()
+            WheelButton.PREVIOUS ->
+                if (state.controlsPlayback) {
+                    controller?.seekToPrevious()
+                } else {
+                    state.back()
+                }
+
+            WheelButton.NEXT ->
+                if (state.controlsPlayback) {
+                    controller?.seekToNext()
+                } else {
+                    selectItem()
+                }
+
+            WheelButton.SELECT ->
+                when {
+                    state.wheel.overlay != null -> selectItem()
+                    state.isNowPlaying -> state.browse()
+                    state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
+                    else -> selectItem()
+                }
+
+            WheelButton.PLAY ->
+                if (state.controlsPlayback) controller?.togglePlayback() else state.nowPlaying()
+        }
+    }
+
+    fun hold(button: WheelButton) {
+        if (setupBack != null) return
+        when (button) {
+            WheelButton.MENU -> {
+                val menuHold =
+                    if (state.panel == WheelPanel.BROWSER || state.wheel.overlay != null) {
+                        state.wheel.onMenuHold
+                    } else {
+                        null
+                    }
+                if (menuHold != null) {
+                    menuHold()
+                } else if (state.wheel.overlay == null) {
+                    if (
+                        state.panel == WheelPanel.QUICK_SETTINGS ||
+                            state.panel == WheelPanel.TRACK_ACTIONS
+                    ) {
+                        state.back()
+                    } else {
+                        state.quickSettings()
+                    }
+                }
+            }
+
+            WheelButton.SELECT ->
+                if (state.controlsPlayback) {
+                    state.trackActions()
+                } else {
+                    state.wheel.actions?.onContext?.invoke()
+                }
+
+            WheelButton.PREVIOUS,
+            WheelButton.NEXT ->
+                if (state.controlsPlayback) {
+                    state.seekBy(
+                        controller,
+                        durationMs,
+                        if (button == WheelButton.NEXT) 3000L else -3000L,
+                    )
+                }
+
+            WheelButton.PLAY -> Unit
+        }
+    }
+
+    fun endHold(button: WheelButton) {
+        if (setupBack != null) return
+        if (button == WheelButton.PREVIOUS || button == WheelButton.NEXT) {
+            state.endSeek(controller)
+        }
+    }
+
+    private fun selectItem() {
+        state.wheel.actions?.onSelect?.invoke()
+    }
+}

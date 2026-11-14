@@ -6,10 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pxr.cymatic.data.model.EqBand
-import com.pxr.cymatic.ui.components.common.SettingsChoicesDialog
-import com.pxr.cymatic.ui.components.common.WheelSettingsOverlay
+import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.screen.BaseScreen
 import java.util.Locale
 import kotlin.math.exp
 import kotlin.math.ln
@@ -27,7 +27,7 @@ internal fun WheelEqBandEditor(
 ) {
     var types by remember { mutableStateOf(false) }
     var number by remember { mutableStateOf<EqNumberEdit?>(null) }
-    WheelSettingsOverlay(title, onDismiss) {
+    BaseScreen(title, onDismiss) {
         NavigationList(
             buildList {
                 add(
@@ -50,7 +50,9 @@ internal fun WheelEqBandEditor(
                                 0.025f,
                                 { "${exp(it).roundToInt()} Hz" },
                                 inputToValue = { ln(it) },
-                                save = { onChange(band.copy(frequency = exp(it).roundToInt().toFloat())) },
+                                save = {
+                                    onChange(band.copy(frequency = exp(it).roundToInt().toFloat()))
+                                },
                             )
                     }
                 )
@@ -88,15 +90,16 @@ internal fun WheelEqBandEditor(
         )
     }
     if (types)
-        SettingsChoicesDialog(
-            "Filter type",
-            { types = false },
-            limits.types.map { type ->
-                NavigationItem(type.displayName, checked = type == band.type) {
-                    onChange(band.copy(type = type))
-                    types = false
-                }
-            },
+        WheelContextMenu(
+            title = "Filter type",
+            onDismiss = { types = false },
+            items =
+                limits.types.map { type ->
+                    NavigationItem(type.displayName, checked = type == band.type) {
+                        onChange(band.copy(type = type))
+                        types = false
+                    }
+                },
         )
     number?.let { EqNumberEditor(it) { number = null } }
 }

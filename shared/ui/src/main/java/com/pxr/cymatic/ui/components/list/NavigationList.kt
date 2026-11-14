@@ -24,7 +24,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.rememberWheelSelection
 
 data class NavigationItem(
@@ -47,7 +46,6 @@ fun NavigationList(
     modifier: Modifier = Modifier,
     separator: (@Composable () -> Unit)? = null,
 ) {
-    val wheel = LocalWheelNavigation.current
     val listState = rememberLazyListState()
     val selectedIndex =
         rememberWheelSelection(
@@ -74,29 +72,30 @@ fun NavigationList(
                         ?: if (item.enabled && item.showIndicator && item.checked != null) {
                             { color ->
                                 Canvas(Modifier.size(20.dp)) {
-                                    val pixels = if (item.checked) {
-                                        listOf(
-                                            "00111100",
-                                            "01111110",
-                                            "11111111",
-                                            "11111111",
-                                            "11111111",
-                                            "11111111",
-                                            "01111110",
-                                            "00111100",
-                                        )
-                                    } else {
-                                        listOf(
-                                            "00111100",
-                                            "01000010",
-                                            "10000001",
-                                            "10000001",
-                                            "10000001",
-                                            "10000001",
-                                            "01000010",
-                                            "00111100",
-                                        )
-                                    }
+                                    val pixels =
+                                        if (item.checked) {
+                                            listOf(
+                                                "00111100",
+                                                "01111110",
+                                                "11111111",
+                                                "11111111",
+                                                "11111111",
+                                                "11111111",
+                                                "01111110",
+                                                "00111100",
+                                            )
+                                        } else {
+                                            listOf(
+                                                "00111100",
+                                                "01000010",
+                                                "10000001",
+                                                "10000001",
+                                                "10000001",
+                                                "10000001",
+                                                "01000010",
+                                                "00111100",
+                                            )
+                                        }
 
                                     val pixel = 1.5.dp.toPx().toInt().coerceAtLeast(1).toFloat()
                                     val left = (size.width - 8 * pixel) / 2
@@ -107,10 +106,11 @@ fun NavigationList(
                                             if (value == '1') {
                                                 drawRect(
                                                     color = color,
-                                                    topLeft = Offset(
-                                                        left + x * pixel,
-                                                        top + y * pixel
-                                                    ),
+                                                    topLeft =
+                                                        Offset(
+                                                            left + x * pixel,
+                                                            top + y * pixel,
+                                                        ),
                                                     size = Size(pixel, pixel),
                                                 )
                                             }
@@ -129,20 +129,14 @@ fun NavigationList(
                 isActive = index == selectedIndex,
                 enabled = item.enabled,
                 modifier =
-                    Modifier
-                        .semantics {
+                    Modifier.semantics {
                             if (item.checked != null) {
                                 role = Role.Checkbox
                                 toggleableState =
                                     if (item.checked) ToggleableState.On else ToggleableState.Off
                             }
                         }
-                        .heightIn(
-                            min =
-                                if (wheel != null) {
-                                    if (item.subLabel != null) 64.dp else 52.dp
-                                } else if (item.subLabel != null) 76.dp else 64.dp
-                        ),
+                        .heightIn(min = if (item.subLabel != null) 64.dp else 52.dp),
             )
             if (separator != null && index < items.size - 1) {
                 separator()
@@ -168,8 +162,7 @@ fun NavigationListPreview() {
         separator = {
             Box(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
+                    Modifier.fillMaxWidth()
                         .height(1.dp)
                         .background(MaterialTheme.colorScheme.onSurface)
             )

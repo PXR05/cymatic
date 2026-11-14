@@ -13,20 +13,6 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -36,12 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -49,7 +31,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.store.EqSettingsStore
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -190,212 +171,38 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    if (LocalWheelNavigation.current != null) {
-        BaseScreen(
-            title = "Playback",
-            onBackClick = { navController.popBackStack() },
-            modifier = modifier,
-        ) {
-            NavigationList(
-                listOf(
-                    NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
-                    NavigationItem("USB audio") {
-                        navController.navigate(Screen.UsbSettings.route)
-                    },
-                    NavigationItem(
-                        "App notifications",
-                        if (notificationsAllowed) "Allowed" else "Off",
-                    ) {
-                        openNotificationSettings()
-                    },
-                    NavigationItem(
-                        "Auto-resume",
-                        if (resumeOnBt) "On" else "Off",
-                        checked = resumeOnBt,
-                    ) {
-                        scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
-                    },
-                    NavigationItem(
-                        "Fade in / out",
-                        if (fadeEnabled) "On" else "Off",
-                        checked = fadeEnabled,
-                    ) {
-                        scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }
-                    },
-                )
-            )
-        }
-        return
-    }
-
     BaseScreen(
         title = "Playback",
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
     ) {
-        Column(
-            modifier =
-                Modifier.verticalScroll(rememberScrollState()).fillMaxSize().padding(24.dp, 16.dp)
-        ) {
-            Text(
-                text = "Audio Output",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SettingsActionRow(
-                title = activeDevice.label,
-                subtitle = "Output Type: ${activeDevice.type}",
-                actionLabel = "CHANGE",
-                onActionClick = { openOutputSwitcher() },
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SettingsActionRow(
-                title = "App notifications",
-                subtitle = if (notificationsAllowed) "Allowed" else "Off",
-                actionLabel = "OPEN",
-                onActionClick = ::openNotificationSettings,
-            )
-
-            SettingsActionRow(
-                title = "USB audio",
-                subtitle = "Direct USB playback and device settings",
-                actionLabel = "OPEN",
-                onActionClick = { navController.navigate(Screen.UsbSettings.route) },
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Bluetooth",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SettingsToggleRow(
-                title = "Auto-resume",
-                subtitle = "Resume on Bluetooth connect",
-                checked = resumeOnBt,
-                onCheckedChange = { value ->
-                    scope.launch {
-                        SettingsStore.setResumeOnBluetoothReconnect(value)
-                    }
+        NavigationList(
+            listOf(
+                NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
+                NavigationItem("USB audio") {
+                    navController.navigate(Screen.UsbSettings.route)
+                },
+                NavigationItem(
+                    "App notifications",
+                    if (notificationsAllowed) "Allowed" else "Off",
+                ) {
+                    openNotificationSettings()
+                },
+                NavigationItem(
+                    "Auto-resume",
+                    if (resumeOnBt) "On" else "Off",
+                    checked = resumeOnBt,
+                ) {
+                    scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
+                },
+                NavigationItem(
+                    "Fade in / out",
+                    if (fadeEnabled) "On" else "Off",
+                    checked = fadeEnabled,
+                ) {
+                    scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }
                 },
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Audio Transitions",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SettingsToggleRow(
-                title = "Fade In / Out",
-                subtitle = "Smoothly fade audio",
-                checked = fadeEnabled,
-                onCheckedChange = { value ->
-                    scope.launch {
-                        SettingsStore.setFadeEnabled(value)
-                    }
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.secondary,
-            )
-        }
-
-        Text(
-            text = if (checked) "I" else "O",
-            fontSize = 16.sp,
-            color =
-                if (checked) MaterialTheme.colorScheme.background
-                else MaterialTheme.colorScheme.onBackground,
-            modifier =
-                Modifier.background(
-                        if (checked) MaterialTheme.colorScheme.onBackground else Color.Transparent
-                    )
-                    .border(1.dp, MaterialTheme.colorScheme.onBackground)
-                    .clickable(
-                        onClick = { onCheckedChange(!checked) },
-                        indication = null,
-                        interactionSource = null,
-                    )
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-        )
-    }
-}
-
-@Composable
-private fun SettingsActionRow(
-    title: String,
-    subtitle: String,
-    actionLabel: String,
-    onActionClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.secondary,
-            )
-        }
-
-        Text(
-            text = actionLabel,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier =
-                Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground)
-                    .clickable(
-                        onClick = onActionClick,
-                        indication = null,
-                        interactionSource = null,
-                    )
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
 }

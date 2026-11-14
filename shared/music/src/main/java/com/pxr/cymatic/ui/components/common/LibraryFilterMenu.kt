@@ -14,9 +14,6 @@ import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.ui.components.list.NavigationItem
-import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.ui.components.primitives.CymaticDialog
-import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 
 @Composable
 fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss) {
@@ -33,16 +30,7 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
                 },
             )
         }
-    if (LocalWheelNavigation.current != null) {
-        WheelContextMenu("Show music", items, onDismiss)
-    } else {
-        CymaticDialog(
-            "Show music",
-            onDismiss,
-            content = { NavigationList(items) },
-            buttons = { CymaticDialogButton("Close", onDismiss) },
-        )
-    }
+    WheelContextMenu("Show music", items, onDismiss)
 }
 
 @Composable

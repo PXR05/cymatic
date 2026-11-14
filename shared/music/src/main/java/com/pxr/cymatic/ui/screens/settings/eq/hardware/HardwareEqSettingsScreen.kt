@@ -1,6 +1,5 @@
 package com.pxr.cymatic.ui.screens.settings.eq.hardware
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
@@ -9,7 +8,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -22,14 +20,11 @@ import com.pxr.cymatic.audio.eq.dacProfile
 import com.pxr.cymatic.audio.eq.dacType
 import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.data.model.EqPreset
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.ReadingDocument
-import com.pxr.cymatic.ui.components.common.SettingsChoicesDialog
-import com.pxr.cymatic.ui.components.common.SettingsConfirmationDialog
-import com.pxr.cymatic.ui.components.common.SettingsReadingDialog
-import com.pxr.cymatic.ui.components.common.WheelSettingsOverlay
+import com.pxr.cymatic.ui.components.common.ReadingScreen
+import com.pxr.cymatic.ui.components.common.WheelConfirmationMenu
+import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.common.WheelTextEditor
-import com.pxr.cymatic.ui.components.eq.EqBandDialog
 import com.pxr.cymatic.ui.components.eq.EqBodePlot
 import com.pxr.cymatic.ui.components.eq.EqNumberEdit
 import com.pxr.cymatic.ui.components.eq.EqNumberEditor
@@ -37,17 +32,11 @@ import com.pxr.cymatic.ui.components.eq.WheelEqBandEditor
 import com.pxr.cymatic.ui.components.eq.formatEqGain
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 import io.github.chronosauros.contour.core.Dsp
 import io.github.chronosauros.contour.core.isPass
-
-private enum class DacEqPage(val title: String) {
-    MAIN("Equalizer"),
-    PRESETS("DAC presets"),
-    BANDS("DAC bands"),
-}
 
 @Composable
 internal fun HardwareEqSettingsScreen(
@@ -55,11 +44,12 @@ internal fun HardwareEqSettingsScreen(
     onPlayer: () -> Unit,
     modifier: Modifier = Modifier,
     model: HardwareEqViewModel = viewModel(),
+    pageRoute: String = Screen.HardwareEq.route,
+    bandIndex: Int = -1,
 ) {
     val state by model.state.collectAsState()
     val target = state.target
     val nav = LocalNavController.current
-    val wheel = LocalWheelNavigation.current != null
     val lifecycle = LocalLifecycleOwner.current
     DisposableEffect(lifecycle, model) {
         model.refresh()
@@ -69,25 +59,21 @@ internal fun HardwareEqSettingsScreen(
         lifecycle.lifecycle.addObserver(observer)
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
-    var page by remember { mutableStateOf(DacEqPage.MAIN) }
+    val page = pageRoute
     var chooseDevice by remember { mutableStateOf(false) }
     var choosePreset by remember { mutableStateOf(false) }
     var savePreset by remember { mutableStateOf(false) }
     var confirmApply by remember { mutableStateOf(false) }
     var confirmRead by remember { mutableStateOf(false) }
-    var graph by remember { mutableStateOf(false) }
-    var details by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var bandIndex by remember(state.device?.key, state.slot) { mutableIntStateOf(-1) }
     var number by remember { mutableStateOf<EqNumberEdit?>(null) }
     val editable = !state.busy && !state.pendingVerification
 
-    BackHandler(enabled = page != DacEqPage.MAIN) { page = DacEqPage.MAIN }
     val pageContent: @Composable () -> Unit = {
         key(page) {
             NavigationList(
                 buildList {
                     when (page) {
-                        DacEqPage.MAIN -> {
+                        Screen.HardwareEq.route -> {
                             add(
                                 NavigationItem(
                                     "EQ target",
@@ -106,9 +92,7 @@ internal fun HardwareEqSettingsScreen(
                                     subLabelMaxLines = 2,
                                 ) {
                                     if (target != null) {
-                                        details =
-                                            "Device details" to
-                                                deviceDetails(target, state.firmware)
+                                        nav.navigate(Screen.HardwareEqDevice.route)
                                     }
                                 }
                             )
@@ -127,7 +111,7 @@ internal fun HardwareEqSettingsScreen(
                                         state.draft.name,
                                         enabled = !state.busy,
                                     ) {
-                                        page = DacEqPage.PRESETS
+                                        nav.navigate(Screen.HardwareEqPresets.route)
                                     }
                                 )
                                 if (target.hasPreamp)
@@ -145,7 +129,9 @@ internal fun HardwareEqSettingsScreen(
                                                             .toFloat(),
                                                     target.preampStep.toFloat(),
                                                     ::formatEqGain,
-                                                    save = { model.edit(state.draft.copy(preamp = it)) },
+                                                    save = {
+                                                        model.edit(state.draft.copy(preamp = it))
+                                                    },
                                                 )
                                         }
                                     )
@@ -155,7 +141,7 @@ internal fun HardwareEqSettingsScreen(
                                         "${state.draft.bands.size} / ${target.caps.bands}",
                                         enabled = !state.busy,
                                     ) {
-                                        page = DacEqPage.BANDS
+                                        nav.navigate(Screen.HardwareEqBands.route)
                                     }
                                 )
                                 if (state.pendingVerification)
@@ -183,13 +169,12 @@ internal fun HardwareEqSettingsScreen(
                                             state.issues.first(),
                                             subLabelMaxLines = 2,
                                         ) {
-                                            details =
-                                                "Cannot apply" to state.issues.joinToString("\n\n")
+                                            nav.navigate(Screen.HardwareEqIssues.route)
                                         }
                                     )
                             }
                         }
-                        DacEqPage.PRESETS -> {
+                        Screen.HardwareEqPresets.route -> {
                             if (state.devices.size > 1)
                                 add(
                                     NavigationItem("Select DAC", enabled = !state.busy) {
@@ -217,8 +202,12 @@ internal fun HardwareEqSettingsScreen(
                                 }
                             )
                         }
-                        DacEqPage.BANDS -> {
-                            add(NavigationItem("Response graph") { graph = true })
+                        Screen.HardwareEqBands.route -> {
+                            add(
+                                NavigationItem("Response graph") {
+                                    nav.navigate(Screen.HardwareEqGraphPage.route)
+                                }
+                            )
                             state.draft.bands.forEachIndexed { index, band ->
                                 add(
                                     NavigationItem(
@@ -229,7 +218,7 @@ internal fun HardwareEqSettingsScreen(
                                         key = "dac-band-${band.id}",
                                         enabled = editable,
                                     ) {
-                                        bandIndex = index
+                                        nav.navigate(Screen.HardwareEqBand.createRoute(index))
                                     }
                                 )
                             }
@@ -249,77 +238,69 @@ internal fun HardwareEqSettingsScreen(
         }
     }
 
-    if (wheel && page != DacEqPage.MAIN) {
-        WheelSettingsOverlay(page.title, { page = DacEqPage.MAIN }, content = pageContent)
-    } else {
-        BaseScreen(
-            page.title,
-            { if (page == DacEqPage.MAIN) nav.popBackStack() else page = DacEqPage.MAIN },
-            modifier = modifier,
-        ) {
-            pageContent()
-        }
+    if (
+        page in
+            listOf(
+                Screen.HardwareEq.route,
+                Screen.HardwareEqPresets.route,
+                Screen.HardwareEqBands.route,
+            )
+    ) {
+        val title =
+            when (page) {
+                Screen.HardwareEqPresets.route -> "DAC presets"
+                Screen.HardwareEqBands.route -> "DAC bands"
+                else -> "Equalizer"
+            }
+        BaseScreen(title, { nav.popBackStack() }, modifier = modifier) { pageContent() }
     }
-
     if (chooseDevice)
-        SettingsChoicesDialog(
-            "USB DAC",
-            { chooseDevice = false },
-            state.devices
-                .map { handle ->
-                    NavigationItem(
-                        handle.target.caps.name,
-                        subLabel = handle.usb?.deviceName,
-                        key = handle.key,
-                        checked = handle.key == state.device?.key,
-                    ) {
-                        model.selectDevice(handle)
-                        chooseDevice = false
+        WheelContextMenu(
+            title = "USB DAC",
+            onDismiss = { chooseDevice = false },
+            items =
+                state.devices
+                    .map { handle ->
+                        NavigationItem(
+                            handle.target.caps.name,
+                            subLabel = handle.usb?.deviceName,
+                            key = handle.key,
+                            checked = handle.key == state.device?.key,
+                        ) {
+                            model.selectDevice(handle)
+                            chooseDevice = false
+                        }
                     }
-                }
-                .ifEmpty { listOf(NavigationItem("No supported DAC connected", enabled = false)) },
+                    .ifEmpty {
+                        listOf(NavigationItem("No supported DAC connected", enabled = false))
+                    },
         )
     if (choosePreset)
-        SettingsChoicesDialog(
-            "Load preset",
-            { choosePreset = false },
-            presets.map { preset ->
-                NavigationItem(preset.name) {
-                    model.edit(preset.copy())
-                    choosePreset = false
-                    page = DacEqPage.MAIN
-                }
-            },
+        WheelContextMenu(
+            title = "Load preset",
+            onDismiss = { choosePreset = false },
+            items =
+                presets.map { preset ->
+                    NavigationItem(preset.name) {
+                        model.edit(preset.copy())
+                        choosePreset = false
+                        nav.popBackStack(Screen.HardwareEq.route, false)
+                    }
+                },
         )
     if (savePreset) {
-        if (wheel)
-            WheelTextEditor(
-                "Save DAC preset",
-                state.draft.name,
-                onSave = {
-                    model.savePreset(it)
-                    page = DacEqPage.MAIN
-                },
-                onDismiss = { savePreset = false },
-            )
-        else {
-            var name by remember { mutableStateOf(state.draft.name) }
-            CymaticInputDialog(
-                "Save DAC preset",
-                "Preset name",
-                name,
-                { name = it },
-                onConfirm = {
-                    model.savePreset(name)
-                    savePreset = false
-                    page = DacEqPage.MAIN
-                },
-                onDismiss = { savePreset = false },
-            )
-        }
+        WheelTextEditor(
+            "Save DAC preset",
+            state.draft.name,
+            onSave = {
+                model.savePreset(it)
+                nav.popBackStack(Screen.HardwareEq.route, false)
+            },
+            onDismiss = { savePreset = false },
+        )
     }
     if (confirmApply)
-        SettingsConfirmationDialog(
+        WheelConfirmationMenu(
             "Apply EQ?",
             "Save on the DAC.",
             { confirmApply = false },
@@ -329,13 +310,13 @@ internal fun HardwareEqSettingsScreen(
             },
         )
     if (confirmRead)
-        SettingsConfirmationDialog(
+        WheelConfirmationMenu(
             "Load DAC EQ?",
             "Replace this draft.",
             { confirmRead = false },
             {
                 confirmRead = false
-                page = DacEqPage.MAIN
+                nav.popBackStack(Screen.HardwareEq.route, false)
                 model.readDac()
             },
         )
@@ -347,33 +328,28 @@ internal fun HardwareEqSettingsScreen(
             val pass = runCatching { updated.type.dacType().isPass }.getOrDefault(false)
             model.updateBand(bandIndex, if (pass) updated.copy(gain = 0f) else updated)
         }
-        if (!wheel)
-            EqBandDialog(
-                bandIndex,
-                band,
-                { bandIndex = -1 },
-                ::update,
-                {
-                    model.removeBand(bandIndex)
-                    bandIndex = -1
-                },
-                limits,
-            )
-        else
-            WheelEqBandEditor(
-                title = "DAC band ${bandIndex + 1}",
-                band = band,
-                onChange = ::update,
-                onRemove = {
-                    model.removeBand(bandIndex)
-                    bandIndex = -1
-                },
-                onDismiss = { bandIndex = -1 },
-                limits = limits,
-            )
+        WheelEqBandEditor(
+            title = "DAC band ${bandIndex + 1}",
+            band = band,
+            onChange = ::update,
+            onRemove = {
+                model.removeBand(bandIndex)
+                nav.popBackStack()
+            },
+            onDismiss = { nav.popBackStack() },
+            limits = limits,
+        )
+    }
+    if (
+        page == Screen.HardwareEqBand.route &&
+            (bandIndex !in state.draft.bands.indices || target == null)
+    ) {
+        BaseScreen("Band unavailable", { nav.popBackStack() }) {
+            Text("This band or DAC is no longer available.")
+        }
     }
     number?.let { edit -> EqNumberEditor(edit) { number = null } }
-    if (graph) {
+    if (page == Screen.HardwareEqGraphPage.route) {
         val response =
             remember(state.draft) {
                 runCatching {
@@ -384,13 +360,20 @@ internal fun HardwareEqSettingsScreen(
                 }
                     .getOrNull()
             }
-        SettingsReadingDialog("DAC response", { graph = false }) {
+        ReadingScreen("DAC response", { nav.popBackStack() }) {
             if (response != null)
                 EqBodePlot(state.draft, Modifier.fillMaxWidth().aspectRatio(16f / 9f), response)
             else Text("This filter has no valid response. Adjust gain or Q before applying.")
         }
     }
-    details?.let { (title, text) ->
-        SettingsReadingDialog(title, { details = null }) { ReadingDocument(text) }
+    if (page == Screen.HardwareEqDevice.route) {
+        ReadingScreen("Device details", { nav.popBackStack() }) {
+            ReadingDocument(target?.let { deviceDetails(it, state.firmware) } ?: "No DAC connected")
+        }
+    }
+    if (page == Screen.HardwareEqIssues.route) {
+        ReadingScreen("Cannot apply", { nav.popBackStack() }) {
+            ReadingDocument(state.issues.joinToString("\n\n"))
+        }
     }
 }

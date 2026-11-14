@@ -1,15 +1,11 @@
 package com.pxr.cymatic.ui.screens.settings.sync
 
 import android.text.format.DateFormat
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
@@ -23,14 +19,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.sync.SyncProgress
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
+import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
-import com.pxr.cymatic.ui.components.common.WheelReadingPage
-import com.pxr.cymatic.ui.components.common.WheelSettingsOverlay
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
-import com.pxr.cymatic.ui.components.primitives.CymaticDialog
-import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import java.util.Date
 import java.util.Locale
@@ -75,18 +67,7 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
                         choice = null
                     }
                 }
-            if (LocalWheelNavigation.current != null) {
-                WheelContextMenu(setting.title, options, { choice = null })
-            } else {
-                CymaticDialog(
-                    setting.title,
-                    { choice = null },
-                    content = {
-                        NavigationList(options, Modifier.heightIn(max = 320.dp))
-                    },
-                    buttons = { CymaticDialogButton("Close", { choice = null }) },
-                )
-            }
+            WheelContextMenu(setting.title, options, { choice = null })
         }
 }
 
@@ -96,12 +77,7 @@ internal fun SyncSettingsPage(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    if (LocalWheelNavigation.current != null) {
-        WheelSettingsOverlay(title = title, onDismiss = onDismiss, content = content)
-    } else {
-        BackHandler(onBack = onDismiss)
-        BaseScreen(title, onDismiss) { content() }
-    }
+    BaseScreen(title, onDismiss) { content() }
 }
 
 @Composable
@@ -123,15 +99,7 @@ internal fun SyncReadingPage(
             }
         }
     }
-    if (LocalWheelNavigation.current != null) {
-        WheelReadingPage(title, onDismiss, readingContent)
-    } else {
-        SyncSettingsPage(title, onDismiss) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
-                readingContent()
-            }
-        }
-    }
+    ReadingScreen(title, onDismiss, readingContent)
 }
 
 @Composable

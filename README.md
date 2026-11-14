@@ -115,8 +115,7 @@ duration, and embedded ID3 cover art are read by Cymatic.
 
 | Module | Purpose |
 | --- | --- |
-| `app-player` | Standalone music player (`com.pxr.cymatic`) |
-| `app-launcher` | Home-screen launcher (`com.pxr.cymatic.launcher`) |
+| `app` | Music player with click wheel controls (`com.pxr.cymatic`) |
 | `shared/music` | Playback, library, playlists, EQ, and music screens |
 | `shared/ui` | Themes, fonts, icons, components, and animations |
 | `shared/usb` | Native USB isochronous PCM transport |

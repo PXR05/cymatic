@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Cymatic Player" type="AndroidRunConfigurationType" factoryName="Android App">
-    <module name="cymatic.app-player" />
+    <module name="cymatic.app" />
     <option name="ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
     <option name="DEPLOY" value="true" />
     <option name="MODE" value="default_activity" />

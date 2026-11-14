@@ -3,7 +3,7 @@ gradle.projectsEvaluated {
     root.tasks.register('exportLicenseDependencies') {
         doLast {
             def rows = [:]
-            [':app-player', ':app-launcher'].each { path ->
+            [':app'].each { path ->
                 ['debugRuntimeClasspath', 'releaseRuntimeClasspath'].each { name ->
                     root.project(path).configurations.getByName(name).incoming.resolutionResult.allComponents.each { component ->
                         def id = component.id

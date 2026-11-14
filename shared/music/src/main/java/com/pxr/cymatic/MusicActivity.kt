@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.pxr.cymatic.audio.usb.UsbConnectionManager
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.UsbVolumeState
+import com.pxr.cymatic.ui.components.screen.HeaderClockProvider
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.theme.CymaticTheme
@@ -73,18 +74,18 @@ abstract class MusicActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalMediaController provides mediaController,
                     LocalNavController provides navController,
-                    com.pxr.cymatic.ui.components.screen.LocalScreenNotice provides {
-                        com.pxr.cymatic.ui.components.common.OfflineQueueNotice()
-                    },
+                    com.pxr.cymatic.ui.components.screen.LocalScreenNotice provides
+                        {
+                            com.pxr.cymatic.ui.components.common.OfflineQueueNotice()
+                        },
                 ) {
-                    AppContent()
+                    HeaderClockProvider { AppContent() }
                 }
             }
         }
     }
 
-    @Composable
-    protected abstract fun AppContent()
+    @Composable protected abstract fun AppContent()
 
     override fun onResume() {
         super.onResume()
@@ -95,7 +96,7 @@ abstract class MusicActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (
             UsbPlaybackState.volumeActive.value &&
-            (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+                (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                     event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
         ) {
             if (event.action == KeyEvent.ACTION_DOWN) {

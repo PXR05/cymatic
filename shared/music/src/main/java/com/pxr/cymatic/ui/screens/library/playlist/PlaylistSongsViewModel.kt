@@ -1,9 +1,6 @@
 package com.pxr.cymatic.ui.screens.library.playlist
 
 import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -12,6 +9,7 @@ import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.ui.screens.library.SongListState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,8 +32,7 @@ class PlaylistSongsViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    var contextMenuFile by mutableStateOf<AudioFile?>(null)
-    var infoDialogId by mutableStateOf<Long?>(null)
+    internal val listState = SongListState()
 
     init {
         val cachedPlaylist = repository.getCachedPlaylists()?.find { it.id == playlistId }

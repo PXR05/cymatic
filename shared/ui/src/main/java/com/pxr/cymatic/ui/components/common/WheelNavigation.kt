@@ -1,5 +1,6 @@
 package com.pxr.cymatic.ui.components.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,7 +25,20 @@ data class WheelActions(
 
 class WheelNavigation {
     private data class Handler(val actions: WheelActions, val overlay: WheelOverlay?)
+
     private data class MenuHoldHandler(val onMenuHold: () -> Unit, val overlay: WheelOverlay?)
+
+    private val pageBackHandlers = mutableStateListOf<() -> Unit>()
+    val pageBack: (() -> Unit)?
+        get() = pageBackHandlers.lastOrNull()
+
+    fun registerPageBack(action: () -> Unit) {
+        pageBackHandlers.add(action)
+    }
+
+    fun unregisterPageBack(action: () -> Unit) {
+        pageBackHandlers.removeAll { it === action }
+    }
 
     private val handlers = mutableStateListOf<Handler>()
     private val overlayStack = mutableStateListOf<WheelOverlay>()
@@ -117,14 +131,14 @@ fun rememberWheelSelection(
                 onSelect = {
                     if (
                         count > 0 &&
-                        (availableIndices == null || selection in availableIndices.orEmpty())
+                            (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         select(selection.coerceIn(0, count - 1))
                 },
                 onContext = {
                     if (
                         count > 0 &&
-                        (availableIndices == null || selection in availableIndices.orEmpty())
+                            (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         context(selection.coerceIn(0, count - 1))
                 },
@@ -153,4 +167,16 @@ fun rememberWheelSelection(
     }
     return if (wheel == null || itemCount == 0 || selectableIndices?.isEmpty() == true) -1
     else selection.coerceIn(0, itemCount - 1)
+}
+
+@Composable
+fun ScreenBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
+    BackHandler(enabled, onBack)
+    val wheel = LocalWheelNavigation.current
+    val currentBack by rememberUpdatedState(onBack)
+    DisposableEffect(wheel, enabled) {
+        val action: () -> Unit = { currentBack() }
+        if (enabled) wheel?.registerPageBack(action)
+        onDispose { wheel?.unregisterPageBack(action) }
+    }
 }

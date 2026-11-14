@@ -1,17 +1,6 @@
 package com.pxr.cymatic.ui.components.common
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,16 +8,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.design.R
 import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
@@ -52,7 +37,7 @@ fun PlaylistContextMenu(
                 context,
                 playlist.sourceId,
                 playlist.remoteId,
-                playlist.name
+                playlist.name,
             )
         else LibraryOfflineManager.keepPlaylist(context, playlist.id, playlist.name)
         onDismiss()
@@ -77,7 +62,7 @@ fun PlaylistContextMenu(
             onDismiss = {
                 renameValue = playlist.name
                 showRenameDialog = false
-            }
+            },
         )
         return
     }
@@ -86,21 +71,19 @@ fun PlaylistContextMenu(
         CymaticDialog(
             title = "Delete \"${playlist.name}\"?",
             onDismissRequest = { showDeleteConfirm = false },
-            maxHeightRatio = 0.7f,
-            widthRatio = 0.8f,
             content = {
                 Text(
                     text = "This will permanently delete the playlist.",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             },
             buttons = {
                 CymaticDialogButton(
                     text = "Cancel",
                     onClick = { showDeleteConfirm = false },
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
                 )
                 CymaticDialogButton(
                     text = "Delete",
@@ -108,144 +91,56 @@ fun PlaylistContextMenu(
                         onDelete(playlist.id)
                         onDismiss()
                     },
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
                 )
-            }
+            },
         )
         return
     }
 
-    val wheel = LocalWheelNavigation.current
-    if (wheel != null) {
-        WheelContextMenu(
-            title = playlist.name,
-            items = listOfNotNull(
-                NavigationItem("Play", onClick = {
-                    onPlay()
-                    onDismiss()
-                    wheel.onPlaybackRequested()
-                }),
-                NavigationItem("Play Next", onClick = {
-                    onPlayNext()
-                    onDismiss()
-                }),
-                NavigationItem("Add to Queue", onClick = {
-                    onAddToQueue()
-                    onDismiss()
-                }),
-                if (playlist.availability != LibraryAvailability.OFFLINE)
-                    NavigationItem("Keep offline", onClick = keepOffline) else null,
-                if (playlist.sourceId == null) NavigationItem(
-                    "Rename",
-                    onClick = { showRenameDialog = true }) else null,
-                if (playlist.sourceId == null) NavigationItem(
-                    "Delete",
-                    onClick = { showDeleteConfirm = true }) else null
-            ),
-            onDismiss = onDismiss
-        )
-        return
-    }
-
-    CymaticDialog(
+    val wheel = checkNotNull(LocalWheelNavigation.current)
+    WheelContextMenu(
         title = playlist.name,
-        onDismissRequest = onDismiss,
-        maxHeightRatio = 0.7f,
-        widthRatio = 0.8f,
-        content = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
-                PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_play,
-                    label = "Play",
+        items =
+            listOfNotNull(
+                NavigationItem(
+                    "Play",
                     onClick = {
                         onPlay()
                         onDismiss()
-                    }
-                )
-                PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_next,
-                    label = "Play Next",
+                        wheel.onPlaybackRequested()
+                    },
+                ),
+                NavigationItem(
+                    "Play Next",
                     onClick = {
                         onPlayNext()
                         onDismiss()
-                    }
-                )
-                PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_queue,
-                    label = "Add to Queue",
+                    },
+                ),
+                NavigationItem(
+                    "Add to Queue",
                     onClick = {
                         onAddToQueue()
                         onDismiss()
-                    }
-                )
-                if (playlist.availability != LibraryAvailability.OFFLINE) PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_offline,
-                    label = "Keep offline",
-                    onClick = keepOffline,
-                )
-                if (playlist.sourceId == null) PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_edit,
-                    label = "Rename",
-                    onClick = { showRenameDialog = true }
-                )
-                if (playlist.sourceId == null) PlaylistContextMenuAction(
-                    iconRes = R.drawable.ic_pixel_trash,
-                    label = "Delete",
-                    onClick = { showDeleteConfirm = true }
-                )
-            }
-        },
-        buttons = {
-            CymaticDialogButton(
-                text = "Cancel",
-                onClick = onDismiss,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
+                    },
+                ),
+                if (playlist.availability != LibraryAvailability.OFFLINE)
+                    NavigationItem("Keep offline", onClick = keepOffline)
+                else null,
+                if (playlist.sourceId == null)
+                    NavigationItem(
+                        "Rename",
+                        onClick = { showRenameDialog = true },
+                    )
+                else null,
+                if (playlist.sourceId == null)
+                    NavigationItem(
+                        "Delete",
+                        onClick = { showDeleteConfirm = true },
+                    )
+                else null,
+            ),
+        onDismiss = onDismiss,
     )
-}
-
-@Composable
-private fun PlaylistContextMenuAction(
-    iconRes: Int,
-    label: String,
-    onClick: () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (pressed) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
-            )
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = interactionSource
-            )
-            .padding(
-                vertical = 14.dp,
-                horizontal = 24.dp
-            )
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 16.sp
-        )
-    }
 }

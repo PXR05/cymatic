@@ -1,9 +1,5 @@
 package com.pxr.cymatic.ui.screens.library.artist
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,14 +13,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.sync.LibraryOfflineManager
-import com.pxr.cymatic.ui.components.common.AlbumArtistContextMenu
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
+import com.pxr.cymatic.ui.components.common.LibraryContextMenu
 import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
 import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
-import com.pxr.cymatic.ui.components.common.hasStoragePermission
+import com.pxr.cymatic.ui.components.common.rememberStoragePermission
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -43,12 +39,11 @@ fun ArtistAlbumsScreen(
     val context = LocalContext.current
     val navController = LocalNavController.current
     val state by viewModel.uiState.collectAsState()
-    var hasPermission by remember { mutableStateOf(hasStoragePermission(context)) }
-    val permissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            hasPermission = granted
-            if (granted) viewModel.load(artistName)
+    val permission = rememberStoragePermission { granted ->
+        if (granted) {
+            viewModel.load(artistName)
         }
+    }
 
     LaunchedEffect(artistName) { viewModel.load(artistName) }
 
@@ -64,20 +59,15 @@ fun ArtistAlbumsScreen(
         onMenuLongClick = { showHeaderMenu = true },
         onBackClick = { navController.popBackStack() },
         modifier = modifier,
-        showWallpaperBackdrop = true,
     ) {
         LibraryFilterStatus(availabilityFilter)
         when {
-            !hasPermission && availabilityFilter == LibraryFilter.ALL && state.albums.isEmpty() ->
+            !permission.granted &&
+                availabilityFilter == LibraryFilter.ALL &&
+                state.albums.isEmpty() ->
                 PermissionDeniedState(
                     onGrantClick = {
-                        permissionLauncher.launch(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                Manifest.permission.READ_MEDIA_AUDIO
-                            } else {
-                                Manifest.permission.READ_EXTERNAL_STORAGE
-                            }
-                        )
+                        permission.request()
                     }
                 )
 
@@ -142,7 +132,7 @@ fun ArtistAlbumsScreen(
         }
     }
     if (showHeaderMenu)
-        AlbumArtistContextMenu(
+        LibraryContextMenu(
             title = artistName,
             onDismiss = { showHeaderMenu = false },
             showLibraryFilter = true,
@@ -154,7 +144,7 @@ fun ArtistAlbumsScreen(
                     },
         )
     selectedAlbum?.let { albumName ->
-        AlbumArtistContextMenu(
+        LibraryContextMenu(
             title = albumName,
             onDismiss = { selectedAlbum = null },
             onKeepOffline =

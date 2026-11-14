@@ -18,10 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.locals.LocalNavController
+import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 internal fun SyncPlaylistsPage(
@@ -31,14 +32,13 @@ internal fun SyncPlaylistsPage(
     onRefresh: () -> Unit,
 ) {
     var showActions by remember { mutableStateOf(false) }
-    var showHelp by remember { mutableStateOf(false) }
+    val nav = LocalNavController.current
     val playlists = state.catalog?.playlists.orEmpty()
     val selection = state.selection
     val enabled = state.canEdit
     val ids = playlists.mapTo(mutableSetOf()) { it.id }
     val tracks =
         playlists.filter { it.id in selection }.flatMapTo(mutableSetOf()) { it.trackIds }.size
-    val wheel = LocalWheelNavigation.current != null
     SyncSettingsPage("Offline playlists", onDismiss) {
         Column(Modifier.fillMaxSize()) {
             if (playlists.isEmpty()) {
@@ -86,11 +86,10 @@ internal fun SyncPlaylistsPage(
                 )
                 PlaylistAction("All", enabled && playlists.isNotEmpty()) { onChange(ids) }
                 PlaylistAction("None", enabled && selection.isNotEmpty()) { onChange(emptySet()) }
-                if (!wheel) PlaylistAction("Done", !state.saving, onDismiss)
             }
         }
     }
-    if (showActions && wheel)
+    if (showActions)
         WheelContextMenu(
             "Playlists",
             listOf(
@@ -112,12 +111,11 @@ internal fun SyncPlaylistsPage(
                 },
                 NavigationItem("Help") {
                     showActions = false
-                    showHelp = true
+                    nav.navigate(Screen.SyncHelp.route)
                 },
             ),
             { showActions = false },
         )
-    if (showHelp) SyncHelpPage { showHelp = false }
 }
 
 @Composable

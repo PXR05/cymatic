@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.VectorConverter
@@ -23,23 +25,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 
 @Composable
 fun LoadingState(
     modifier: Modifier = Modifier,
-    delayMillis: Long = 300L
+    delayMillis: Long = 300L,
 ) {
     var showLoading by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -49,37 +57,40 @@ fun LoadingState(
 
     if (showLoading) {
         val infiniteTransition = rememberInfiniteTransition(label = "loading")
-        val frame by infiniteTransition.animateValue(
-            initialValue = 0,
-            targetValue = 8,
-            typeConverter = Int.VectorConverter,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 800, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "frame"
-        )
+        val frame by
+            infiniteTransition.animateValue(
+                initialValue = 0,
+                targetValue = 8,
+                typeConverter = Int.VectorConverter,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 800, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                label = "frame",
+            )
 
-        val spinner = when (frame) {
-            0 -> "▖"
-            1 -> "▘"
-            2 -> "▝"
-            3 -> "▗"
-            4 -> "▚"
-            5 -> "▞"
-            6 -> "█"
-            else -> "░"
-        }
+        val spinner =
+            when (frame) {
+                0 -> "▖"
+                1 -> "▘"
+                2 -> "▝"
+                3 -> "▗"
+                4 -> "▚"
+                5 -> "▞"
+                6 -> "█"
+                else -> "░"
+            }
 
         Box(
             modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = spinner,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }
@@ -92,24 +103,22 @@ fun EmptyState(
     iconText: String = "( ! )",
     actionLabel: String? = null,
     onActionClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+        modifier = modifier.fillMaxSize().padding(24.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Text(
                 text = iconText,
                 fontSize = 32.sp,
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.headlineLarge,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -117,7 +126,7 @@ fun EmptyState(
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -126,21 +135,21 @@ fun EmptyState(
                 color = MaterialTheme.colorScheme.secondary,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
             if (actionLabel != null && onActionClick != null) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
-                    modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.onBackground)
-                        .clickable(onClick = onActionClick)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier =
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground)
+                            .clickable(onClick = onActionClick)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = actionLabel.uppercase(),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
@@ -152,7 +161,7 @@ fun EmptyState(
 fun ErrorState(
     message: String = "An unexpected error occurred while loading content.",
     onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     EmptyState(
         title = "ERROR OCCURRED",
@@ -160,14 +169,14 @@ fun ErrorState(
         iconText = "[ X ]",
         actionLabel = "RETRY",
         onActionClick = onRetry,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
 @Composable
 fun PermissionDeniedState(
     onGrantClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     EmptyState(
         title = "PERMISSION REQUIRED",
@@ -175,18 +184,39 @@ fun PermissionDeniedState(
         iconText = "[ ! ]",
         actionLabel = "GRANT PERMISSION",
         onActionClick = onGrantClick,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
-fun hasStoragePermission(context: Context): Boolean {
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_AUDIO
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+val audioStoragePermission: String
+    get() =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            Manifest.permission.READ_MEDIA_AUDIO
+        else Manifest.permission.READ_EXTERNAL_STORAGE
+
+fun hasStoragePermission(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, audioStoragePermission) ==
+        PackageManager.PERMISSION_GRANTED
+
+class StoragePermissionState(val granted: Boolean, val request: () -> Unit)
+
+@Composable
+fun rememberStoragePermission(onResult: (Boolean) -> Unit = {}): StoragePermissionState {
+    val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    var granted by remember(context) { mutableStateOf(hasStoragePermission(context)) }
+    val result by rememberUpdatedState(onResult)
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            granted = it
+            result(it)
+        }
+    DisposableEffect(owner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) granted = hasStoragePermission(context)
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    return ContextCompat.checkSelfPermission(
-        context,
-        permission
-    ) == PackageManager.PERMISSION_GRANTED
+    return StoragePermissionState(granted) { launcher.launch(audioStoragePermission) }
 }
