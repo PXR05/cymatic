@@ -3,13 +3,19 @@ package com.pxr.cymatic.ui.components.common
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,9 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -84,6 +94,7 @@ fun WheelNumberEditor(
     format: (Float) -> String,
     onSave: suspend (Float) -> Unit,
     onDismiss: () -> Unit,
+    inputToValue: (Float) -> Float = { it },
 ) {
     val draftState = remember(title, value, range) { mutableFloatStateOf(value.coerceIn(range)) }
     var draft by draftState
@@ -92,10 +103,27 @@ fun WheelNumberEditor(
     val errorState = remember(draftState) { mutableStateOf<String?>(null) }
     var error by errorState
     val scope = rememberCoroutineScope()
+    var input by remember(draftState) { mutableStateOf<String?>(null) }
+    val focus = LocalFocusManager.current
+    val currentInputToValue by rememberUpdatedState(inputToValue)
     val currentRange by rememberUpdatedState(range)
     val currentStep by rememberUpdatedState(step)
     val save by rememberUpdatedState(onSave)
     val dismiss by rememberUpdatedState(onDismiss)
+    fun commitInput(): Float? {
+        val text = input ?: return draft
+        val parsed = text.replace(',', '.').toFloatOrNull()
+        val converted = parsed?.takeIf { it.isFinite() }?.let(currentInputToValue)
+        if (converted == null || !converted.isFinite()) {
+            error = "Enter a valid number."
+            return null
+        }
+        draft = converted.coerceIn(currentRange)
+        input = null
+        error = null
+        return draft
+    }
+    val commit by rememberUpdatedState(::commitInput)
     WheelSettingsOverlay(title, onDismiss) {
         val wheel = LocalWheelNavigation.current
         val overlay = LocalWheelOverlay.current
@@ -103,11 +131,18 @@ fun WheelNumberEditor(
             remember(wheel, draftState, savingState, errorState, scope) {
                 WheelActions(
                     onRotate = {
-                        if (!saving) draft = (draft + it * currentStep).coerceIn(currentRange)
+                        if (!saving) {
+                            val base = commit() ?: draft
+                            input = null
+                            error = null
+                            draft = (base + it * currentStep).coerceIn(currentRange)
+                            focus.clearFocus()
+                        }
                     },
                     onSelect = {
                         if (!saving) {
-                            val selectedValue = draft
+                            val selectedValue = commit() ?: return@WheelActions
+                            focus.clearFocus()
                             saving = true
                             error = null
                             scope.launch {
@@ -137,14 +172,52 @@ fun WheelNumberEditor(
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(format(draft), fontSize = 32.sp)
+            val formatted = format(draft)
+            val number = remember(formatted) { Regex("[+-]?[0-9]+(?:[.,][0-9]+)?").find(formatted) }
+            val textStyle = LocalTextStyle.current.copy(
+                fontSize = 32.sp,
+                color = LocalContentColor.current,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(formatted.substring(0, number?.range?.first ?: 0), style = textStyle)
+                BasicTextField(
+                    value = input ?: number?.value.orEmpty(),
+                    onValueChange = {
+                        input = it
+                        error = null
+                    },
+                    modifier = Modifier
+                        .width(IntrinsicSize.Min)
+                        .onFocusChanged { if (!it.isFocused && input != null) commit() }
+                        .semantics { contentDescription = title },
+                    enabled = !saving,
+                    textStyle = textStyle,
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (commit() != null) focus.clearFocus()
+                    }),
+                )
+                Text(formatted.substring(number?.range?.last?.plus(1) ?: formatted.length), style = textStyle)
+            }
             CymaticSlider(
                 value = draft,
-                onValueChange = { if (!saving) draft = it },
+                onValueChange = {
+                    if (!saving) {
+                        input = null
+                        error = null
+                        draft = it
+                        focus.clearFocus()
+                    }
+                },
                 valueRange = range,
             )
             Text(
-                error ?: if (saving) "Saving…" else "Rotate to adjust · Select to save",
+                error ?: if (saving) "Saving…" else "Tap value or rotate to adjust",
                 color = MaterialTheme.colorScheme.secondary,
             )
         }

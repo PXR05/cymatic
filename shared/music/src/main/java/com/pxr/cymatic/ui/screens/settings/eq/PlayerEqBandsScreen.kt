@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.ui.components.eq.EqBandRow
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -40,9 +38,14 @@ internal fun PlayerEqBandsScreen(
     var expandedBandIndex by remember { mutableIntStateOf(-1) }
     BackHandler(onBack = onBack)
     BaseScreen("Bands", onBack, modifier = modifier) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp, 16.dp)) {
+        Column(Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp, 16.dp)) {
             Column(
-                modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.secondary)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 preset.bands.forEachIndexed { index, band ->
                     EqBandRow(
@@ -61,7 +64,8 @@ internal fun PlayerEqBandsScreen(
 
                     Box(
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .height(1.dp)
                                 .border(1.dp, MaterialTheme.colorScheme.secondary)
                     )
@@ -70,7 +74,8 @@ internal fun PlayerEqBandsScreen(
                 if (preset.bands.size < EqViewModel.MAX_BANDS) {
                     Row(
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .padding(16.dp)
                                 .clickable(
                                     onClick = { viewModel.addBand() },

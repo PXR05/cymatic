@@ -8,5 +8,6 @@ data class EqBandEditorLimits(
     val q: ClosedFloatingPointRange<Float> = 0.1f..2f,
     val types: List<FilterType> = FilterType.entries,
     val gainStep: Float = 0.1f,
+    val qStep: Float = 0.1f,
     val showGain: Boolean = true,
 )

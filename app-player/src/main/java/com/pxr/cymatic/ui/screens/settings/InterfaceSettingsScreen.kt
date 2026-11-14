@@ -39,6 +39,7 @@ private data class InterfaceNumberEdit(
     val range: ClosedFloatingPointRange<Float>,
     val step: Float,
     val format: (Float) -> String,
+    val inputToValue: (Float) -> Float = { it },
     val save: suspend (Float) -> Unit,
 )
 
@@ -175,6 +176,7 @@ internal fun InterfaceSettingsScreen() {
                                 0f..5000f,
                                 100f,
                                 ::seconds,
+                                inputToValue = { it * 1000 },
                             ) {
                                 SettingsStore.setTextScrollDelayMs(it.roundToLong())
                             }
@@ -226,6 +228,7 @@ internal fun InterfaceSettingsScreen() {
             edit.step,
             edit.format,
             onSave = edit.save,
+            inputToValue = edit.inputToValue,
             onDismiss = { number = null },
         )
     }

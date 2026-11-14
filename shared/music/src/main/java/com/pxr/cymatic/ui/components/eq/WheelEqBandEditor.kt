@@ -49,7 +49,8 @@ internal fun WheelEqBandEditor(
                                 ln(limits.frequency.start)..ln(limits.frequency.endInclusive),
                                 0.025f,
                                 { "${exp(it).roundToInt()} Hz" },
-                                { onChange(band.copy(frequency = exp(it).roundToInt().toFloat())) },
+                                inputToValue = { ln(it) },
+                                save = { onChange(band.copy(frequency = exp(it).roundToInt().toFloat())) },
                             )
                     }
                 )
@@ -69,14 +70,14 @@ internal fun WheelEqBandEditor(
                         }
                     )
                 add(
-                    NavigationItem("Q", String.format(Locale.US, "%.3f", band.q)) {
+                    NavigationItem("Q", String.format(Locale.US, "%.1f", band.q)) {
                         number =
                             EqNumberEdit(
                                 "Q",
                                 band.q,
                                 limits.q,
-                                0.01f,
-                                { String.format(Locale.US, "%.3f", it) },
+                                limits.qStep,
+                                { String.format(Locale.US, "%.1f", it) },
                             ) {
                                 onChange(band.copy(q = it))
                             }

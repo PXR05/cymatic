@@ -21,6 +21,7 @@ internal fun bandLimits(target: DeviceTarget, band: EqBand): EqBandEditorLimits 
         q.start.toFloat()..q.endInclusive.toFloat(),
         target.caps.types.map { it.playerType() },
         if (band.type == FilterType.HIGH_SHELF) target.highShelfStepDb?.toFloat() ?: 0.1f else 0.1f,
+        0.1f,
         !type.isPass,
     )
 }

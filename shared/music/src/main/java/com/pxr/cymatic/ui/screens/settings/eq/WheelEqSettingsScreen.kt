@@ -77,7 +77,7 @@ internal fun WheelEqSettingsScreen(
                                 -12f..12f,
                                 0.1f,
                                 ::formatEqGain,
-                                viewModel::updatePreamp,
+                                save = viewModel::updatePreamp,
                             )
                     }
                 )

@@ -52,6 +52,7 @@ fun EqBandDialog(
             when (field) {
                 "frequency" ->
                     "Frequency (${limits.frequency.start}–${limits.frequency.endInclusive} Hz)"
+
                 "gain" -> "Gain (${limits.gain.start}–${limits.gain.endInclusive} dB)"
                 "q" -> "Q (${limits.q.start}–${limits.q.endInclusive})"
                 else -> ""
@@ -79,7 +80,8 @@ fun EqBandDialog(
                         }
 
                         "q" -> {
-                            val coerced = floatVal.coerceIn(limits.q)
+                            val coerced =
+                                (round(floatVal / limits.qStep) * limits.qStep).coerceIn(limits.q)
                             onBandChange(band.copy(q = coerced))
                         }
                     }
@@ -97,7 +99,8 @@ fun EqBandDialog(
         content = {
             Column(
                 modifier =
-                    Modifier.fillMaxWidth()
+                    Modifier
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 24.dp)
             ) {
@@ -122,7 +125,8 @@ fun EqBandDialog(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .clickable {
                                 inputValue = String.format("%.0f", band.frequency)
                                 editingField = "frequency"
@@ -144,7 +148,8 @@ fun EqBandDialog(
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .clickable {
                                     inputValue = String.format("%.1f", band.gain)
                                     editingField = "gain"
@@ -166,20 +171,25 @@ fun EqBandDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    String.format("Q: %.2f", band.q),
+                    String.format("Q: %.1f", band.q),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .clickable {
-                                inputValue = String.format("%.2f", band.q)
+                                inputValue = String.format("%.1f", band.q)
                                 editingField = "q"
                             }
                             .padding(vertical = 4.dp),
                 )
                 CymaticSlider(
                     value = band.q,
-                    onValueChange = { onBandChange(band.copy(q = it)) },
+                    onValueChange = {
+                        onBandChange(
+                            band.copy(q = round(it / limits.qStep) * limits.qStep)
+                        )
+                    },
                     valueRange = limits.q,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -191,7 +201,8 @@ fun EqBandDialog(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.error,
                     modifier =
-                        Modifier.clickable(
+                        Modifier
+                            .clickable(
                                 onClick = onRemove,
                                 indication = null,
                                 interactionSource = null,

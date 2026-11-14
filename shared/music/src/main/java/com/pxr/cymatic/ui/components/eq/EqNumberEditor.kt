@@ -21,6 +21,7 @@ internal fun EqNumberEditor(edit: EqNumberEdit, onDismiss: () -> Unit) {
             edit.format,
             edit.save,
             onDismiss,
+            inputToValue = edit.inputToValue,
         )
     } else {
         var value by remember(edit) { mutableStateOf(edit.value.toString()) }

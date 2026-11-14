@@ -145,7 +145,7 @@ internal fun HardwareEqSettingsScreen(
                                                             .toFloat(),
                                                     target.preampStep.toFloat(),
                                                     ::formatEqGain,
-                                                    { model.edit(state.draft.copy(preamp = it)) },
+                                                    save = { model.edit(state.draft.copy(preamp = it)) },
                                                 )
                                         }
                                     )

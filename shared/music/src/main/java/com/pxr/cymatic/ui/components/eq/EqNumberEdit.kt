@@ -6,5 +6,6 @@ internal data class EqNumberEdit(
     val range: ClosedFloatingPointRange<Float>,
     val step: Float,
     val format: (Float) -> String,
+    val inputToValue: (Float) -> Float = { it },
     val save: (Float) -> Unit,
 )
