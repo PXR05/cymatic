@@ -1,6 +1,6 @@
 package com.pxr.cymatic.audio.eq
 
-internal class DacEqInitialRead {
+class DacEqInitialRead {
     private val attempted = mutableSetOf<String>()
 
     fun retainConnections(keys: Set<String>) {

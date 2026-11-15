@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.pxr.cymatic.design.R
+import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.ScrollingTrackText
 import com.pxr.cymatic.ui.components.screen.WheelScreenHeader

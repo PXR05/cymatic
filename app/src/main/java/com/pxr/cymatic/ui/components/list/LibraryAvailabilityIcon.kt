@@ -21,7 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.pxr.cymatic.data.model.LibraryAvailability
-import com.pxr.cymatic.design.R
+import com.pxr.cymatic.R
 
 @Composable
 fun LibraryAvailabilityIcon(

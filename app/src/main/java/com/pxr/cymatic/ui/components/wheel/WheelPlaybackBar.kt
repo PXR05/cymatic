@@ -18,7 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.design.R
+import com.pxr.cymatic.R
 
 @Composable
 internal fun WheelPlaybackBar(title: String?, isPlaying: Boolean, onNowPlaying: () -> Unit) {

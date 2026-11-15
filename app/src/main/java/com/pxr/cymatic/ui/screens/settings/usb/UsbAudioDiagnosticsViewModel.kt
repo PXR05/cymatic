@@ -14,6 +14,7 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.AndroidViewModel
@@ -21,6 +22,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.audio.usb.UsbAudioDiagnostics
 import com.pxr.cymatic.audio.usb.UsbConnectionManager
 import com.pxr.cymatic.audio.usb.UsbOutputOwnership
@@ -40,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 
+@OptIn(UnstableApi::class)
 internal class UsbAudioDiagnosticsViewModel(application: Application) :
     AndroidViewModel(application) {
     private val context = application.applicationContext

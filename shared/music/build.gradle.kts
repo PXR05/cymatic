@@ -1,11 +1,11 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.pxr.cymatic.music"
+    buildFeatures.compose = false
     sourceSets.named("debug") {
         kotlin.directories += "build/generated/ksp/debug/kotlin"
     }
@@ -20,32 +20,21 @@ dependencies {
     implementation(project(":shared:flac"))
     implementation(project(":shared:alac"))
     implementation(project(":shared:dsd"))
-    api(project(":shared:ui"))
     configurations.configureEach {
         exclude(group = "com.intellij", module = "annotations")
     }
 
-    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.inspector)
-    implementation(libs.androidx.media3.ui)
     api(libs.androidx.media3.common)
     implementation(libs.androidx.media3.datasource)
     api(libs.androidx.media3.session)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    api(libs.androidx.lifecycle.runtime.compose)
-    api(libs.androidx.lifecycle.viewmodel.compose)
-    api(libs.androidx.activity.compose)
-    api(libs.coil.compose)
-    api(libs.androidx.navigation.compose)
-    implementation(libs.androidx.mediarouter)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.kotlinx.coroutines.guava)
-    debugImplementation(libs.androidx.compose.ui.tooling)
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }

@@ -27,7 +27,7 @@ data class OfflineSelection(
         tracks + catalog.playlists.filter { it.id in playlists }.flatMap { it.trackIds }
 }
 
-internal object OfflineSelectionStore {
+object OfflineSelectionStore {
     fun read(context: Context, sourceId: String): OfflineSelection {
         val prefs = context.getSharedPreferences("library-offline", Context.MODE_PRIVATE)
         return OfflineSelection(

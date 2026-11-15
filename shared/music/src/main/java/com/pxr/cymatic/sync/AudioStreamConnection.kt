@@ -9,7 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-internal class AudioStreamConnection(
+class AudioStreamConnection(
     private val context: Context,
     private val address: String,
     private val username: String,
@@ -72,7 +72,7 @@ internal class AudioStreamConnection(
         }
 }
 
-internal fun connectionError(error: Throwable): String =
+fun connectionError(error: Throwable): String =
     when (error) {
         is AudioStreamRequestException ->
             when (error.status) {

@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.design.R
+import com.pxr.cymatic.R
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2

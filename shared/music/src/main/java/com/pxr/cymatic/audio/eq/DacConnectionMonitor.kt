@@ -11,7 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import io.github.chronosauros.contour.usb.DacHandle
 
-internal class DacConnectionMonitor(
+class DacConnectionMonitor(
     private val context: Context,
     private val onChanged: () -> Unit,
     private val onMessage: (String) -> Unit,

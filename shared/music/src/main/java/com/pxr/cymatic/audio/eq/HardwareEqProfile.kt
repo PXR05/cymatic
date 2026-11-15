@@ -8,20 +8,20 @@ import io.github.chronosauros.contour.core.DeviceTarget
 import io.github.chronosauros.contour.core.FilterType as DacFilterType
 import io.github.chronosauros.contour.core.Profile
 
-internal fun FilterType.dacType(): DacFilterType =
+fun FilterType.dacType(): DacFilterType =
     when (this) {
         FilterType.PEAKING -> DacFilterType.PEAK
         FilterType.NOTCH -> error("Notch filters are not supported by the connected DAC")
         else -> DacFilterType.valueOf(name)
     }
 
-internal fun DacFilterType.playerType(): FilterType =
+fun DacFilterType.playerType(): FilterType =
     when (this) {
         DacFilterType.PEAK -> FilterType.PEAKING
         else -> FilterType.valueOf(name)
     }
 
-internal fun EqPreset.dacProfile(): Profile =
+fun EqPreset.dacProfile(): Profile =
     Profile(
         id = "cymatic-dac",
         name = name,
@@ -52,7 +52,7 @@ internal fun List<Band>.playerBands() = mapIndexed { index, b ->
     )
 }
 
-internal fun DeviceTarget.draftIssues(preset: EqPreset): List<String> = runCatching {
+fun DeviceTarget.draftIssues(preset: EqPreset): List<String> = runCatching {
     val profile = preset.dacProfile()
     buildList {
         addAll(issues(profile))
@@ -77,7 +77,7 @@ internal fun DeviceTarget.draftIssues(preset: EqPreset): List<String> = runCatch
 }
     .getOrElse { listOf(it.message ?: "This profile cannot be sent to the DAC") }
 
-internal fun DeviceTarget.emptyDraft(): EqPreset =
+fun DeviceTarget.emptyDraft(): EqPreset =
     EqPreset(
         "DAC draft",
         0f,

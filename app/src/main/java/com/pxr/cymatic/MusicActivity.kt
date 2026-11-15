@@ -1,5 +1,6 @@
 package com.pxr.cymatic
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.os.Bundle
 import android.view.KeyEvent
@@ -87,12 +88,15 @@ abstract class MusicActivity : ComponentActivity() {
 
     @Composable protected abstract fun AppContent()
 
+    @OptIn(UnstableApi::class)
     override fun onResume() {
         super.onResume()
         mainViewModel.performInitialScan()
         UsbConnectionManager.refresh(this)
     }
 
+    // Activity's public dispatch hook is marked restricted by AndroidX's intermediate class.
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (
             UsbPlaybackState.volumeActive.value &&

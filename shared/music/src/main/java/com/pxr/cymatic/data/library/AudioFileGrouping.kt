@@ -2,14 +2,14 @@ package com.pxr.cymatic.data.library
 
 import com.pxr.cymatic.data.model.AudioFile
 
-internal const val UnknownArtist = "Unknown Artist"
-internal const val UnknownAlbum = "Unknown Album"
+const val UnknownArtist = "Unknown Artist"
+const val UnknownAlbum = "Unknown Album"
 
-internal fun artistDisplayName(audioFile: AudioFile): String {
+fun artistDisplayName(audioFile: AudioFile): String {
     return mainArtistDisplayName(audioFile.metadata.artist)
 }
 
-internal fun mainArtistDisplayName(rawArtist: String?): String {
+fun mainArtistDisplayName(rawArtist: String?): String {
     val artistList =
         rawArtist
             ?.trim()
@@ -21,20 +21,20 @@ internal fun mainArtistDisplayName(rawArtist: String?): String {
     return artistList.firstOrNull() ?: UnknownArtist
 }
 
-internal fun albumDisplayName(audioFile: AudioFile): String {
+fun albumDisplayName(audioFile: AudioFile): String {
     val album = audioFile.metadata.album?.trim()
     return if (album.isNullOrEmpty()) UnknownAlbum else album
 }
 
-internal fun filterByArtist(audioFiles: List<AudioFile>, artistName: String): List<AudioFile> {
+fun filterByArtist(audioFiles: List<AudioFile>, artistName: String): List<AudioFile> {
     return audioFiles.filter { artistDisplayName(it) == artistName }
 }
 
-internal fun filterByAlbum(audioFiles: List<AudioFile>, albumName: String): List<AudioFile> {
+fun filterByAlbum(audioFiles: List<AudioFile>, albumName: String): List<AudioFile> {
     return audioFiles.filter { albumDisplayName(it) == albumName }
 }
 
-internal fun filterByArtistAndAlbum(
+fun filterByArtistAndAlbum(
     audioFiles: List<AudioFile>,
     artistName: String,
     albumName: String,

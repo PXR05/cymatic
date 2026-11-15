@@ -32,11 +32,13 @@ fun PlaylistContextMenu(
 ) {
     val context = LocalContext.current
     val keepOffline = {
-        if (playlist.sourceId != null && playlist.remoteId != null)
+        val sourceId = playlist.sourceId
+        val remoteId = playlist.remoteId
+        if (sourceId != null && remoteId != null)
             LibraryOfflineManager.keepPlaylist(
                 context,
-                playlist.sourceId,
-                playlist.remoteId,
+                sourceId,
+                remoteId,
                 playlist.name,
             )
         else LibraryOfflineManager.keepPlaylist(context, playlist.id, playlist.name)

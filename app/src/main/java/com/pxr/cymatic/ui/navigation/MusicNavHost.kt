@@ -177,9 +177,9 @@ fun MusicNavHost(
                     route = Screen.VersionGraph.route,
                 ) {
                     listOf(Screen.VersionSettings, Screen.Changelog).forEach { screen ->
-                        page(screen.route) {
+                        page(screen.route) { entry ->
                             val model: VersionSettingsViewModel =
-                                graphViewModel(Screen.VersionGraph.route)
+                                graphViewModel(Screen.VersionGraph.route, entry)
                             VersionSettingsScreen(model = model, pageRoute = screen.route)
                         }
                     }
@@ -196,9 +196,11 @@ fun MusicNavHost(
                         .forEach { screen ->
                             page(screen.route) { entry ->
                                 val model: UsbAudioDiagnosticsViewModel =
-                                    graphViewModel(Screen.UsbGraph.route)
+                                    graphViewModel(Screen.UsbGraph.route, entry)
                                 val owner =
-                                    remember(nav) { nav.getBackStackEntry(Screen.UsbGraph.route) }
+                                    remember(nav, entry) {
+                                        nav.getBackStackEntry(Screen.UsbGraph.route)
+                                    }
                                 LaunchedEffect(model, owner) {
                                     model.bindGraphLifecycle(owner.lifecycle)
                                 }
@@ -223,7 +225,7 @@ fun MusicNavHost(
                         )
                         .forEach { screen ->
                             page(screen.route) { entry ->
-                                val model: EqViewModel = graphViewModel(Screen.EqGraph.route)
+                                val model: EqViewModel = graphViewModel(Screen.EqGraph.route, entry)
                                 EQSettingsScreen(
                                     viewModel = model,
                                     pageRoute = screen.route,
@@ -244,9 +246,10 @@ fun MusicNavHost(
                         )
                         .forEach { screen ->
                             page(screen.route) { entry ->
-                                val playerModel: EqViewModel = graphViewModel(Screen.EqGraph.route)
+                                val playerModel: EqViewModel =
+                                    graphViewModel(Screen.EqGraph.route, entry)
                                 val model: HardwareEqViewModel =
-                                    graphViewModel(Screen.EqGraph.route)
+                                    graphViewModel(Screen.EqGraph.route, entry)
                                 val state by playerModel.uiState.collectAsState()
                                 HardwareEqSettingsScreen(
                                     state.presets,
@@ -280,9 +283,9 @@ fun MusicNavHost(
                             Screen.SyncError,
                         )
                         .forEach { screen ->
-                            page(screen.route) {
+                            page(screen.route) { entry ->
                                 val model: LibrarySyncSettingsViewModel =
-                                    graphViewModel(Screen.SyncGraph.route)
+                                    graphViewModel(Screen.SyncGraph.route, entry)
                                 LibrarySyncSettingsScreen(model, pageRoute = screen.route)
                             }
                         }
@@ -325,8 +328,11 @@ fun MusicNavHost(
 }
 
 @Composable
-private inline fun <reified T : ViewModel> graphViewModel(graph: String): T {
+private inline fun <reified T : ViewModel> graphViewModel(
+    graph: String,
+    entry: NavBackStackEntry,
+): T {
     val nav = LocalNavController.current
-    val owner = remember(nav, graph) { nav.getBackStackEntry(graph) }
+    val owner = remember(nav, graph, entry) { nav.getBackStackEntry(graph) }
     return viewModel(viewModelStoreOwner = owner)
 }

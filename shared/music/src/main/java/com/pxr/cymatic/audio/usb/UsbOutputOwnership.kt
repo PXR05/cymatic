@@ -2,7 +2,7 @@ package com.pxr.cymatic.audio.usb
 
 import java.util.concurrent.atomic.AtomicReference
 
-internal object UsbOutputOwnership {
+object UsbOutputOwnership {
     private val owner = AtomicReference<Any?>(null)
     val inUse: Boolean
         get() = owner.get() != null

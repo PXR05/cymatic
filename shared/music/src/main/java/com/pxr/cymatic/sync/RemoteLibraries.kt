@@ -3,7 +3,7 @@ package com.pxr.cymatic.sync
 import android.content.Context
 import com.pxr.cymatic.data.store.LibrarySyncSettings
 
-internal object RemoteLibraries {
+object RemoteLibraries {
     suspend fun currentSource() =
         RemoteLibrarySource(
             LibrarySyncSettings.getSyncAdapter(),

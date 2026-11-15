@@ -21,7 +21,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 
-internal class UsbAudioDiagnostics(private val context: Context) {
+class UsbAudioDiagnostics(private val context: Context) {
     private val usbManager = context.getSystemService(UsbManager::class.java)
     private val audioManager = context.getSystemService(AudioManager::class.java)
 

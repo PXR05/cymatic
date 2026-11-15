@@ -115,9 +115,8 @@ duration, and embedded ID3 cover art are read by Cymatic.
 
 | Module | Purpose |
 | --- | --- |
-| `app` | Music player with click wheel controls (`com.pxr.cymatic`) |
-| `shared/music` | Playback, library, playlists, EQ, and music screens |
-| `shared/ui` | Themes, fonts, icons, components, and animations |
+| `app` | Player screens, navigation, click wheel controls, themes, fonts, and UI components (`com.pxr.cymatic`) |
+| `shared/music` | Playback, library, playlists, EQ, and library sync |
 | `shared/usb` | Native USB isochronous PCM transport |
 | `shared/flac` | Integer FLAC decoding for Android and direct USB playback |
 | `shared/alac` | Integer ALAC decoding for Android and direct USB playback |

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 
-internal fun libraryRefreshEvents(includeScans: Boolean = true): Flow<Unit> {
+fun libraryRefreshEvents(includeScans: Boolean = true): Flow<Unit> {
     val changes = listOf(LibraryChanges.version, LibraryFilterStore.changes)
     return merge(
             *(if (includeScans) changes + SettingsStore.lastScanTimeMsFlow else changes)

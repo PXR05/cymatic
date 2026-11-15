@@ -4,14 +4,14 @@ import android.hardware.usb.UsbDevice
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class UsbDiagnosticDevice(
+data class UsbDiagnosticDevice(
     val device: UsbDevice,
     val label: String,
     val permission: Boolean,
     val details: JSONObject,
 )
 
-internal data class UsbDiagnosticReport(
+data class UsbDiagnosticReport(
     val capturedAt: String,
     val hostSupported: Boolean,
     val environment: JSONObject,

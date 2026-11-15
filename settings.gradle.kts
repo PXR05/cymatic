@@ -29,7 +29,6 @@ rootProject.name = "cymatic"
 include(
     ":app",
     ":shared:music",
-    ":shared:ui",
     ":shared:usb",
     ":shared:peq",
     ":shared:flac",

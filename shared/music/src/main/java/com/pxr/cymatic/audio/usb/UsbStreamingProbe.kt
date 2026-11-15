@@ -16,7 +16,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-internal class UsbStreamingProbe(private val context: Context) {
+class UsbStreamingProbe(private val context: Context) {
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val activeDevice = AtomicReference<UsbPcmDevice?>(null)
     private val cancelled = AtomicBoolean(false)

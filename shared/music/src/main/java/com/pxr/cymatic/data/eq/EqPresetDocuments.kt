@@ -7,7 +7,7 @@ import com.pxr.cymatic.data.model.EqPreset.Companion.toApoString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class EqPresetDocuments(private val resolver: ContentResolver) {
+class EqPresetDocuments(private val resolver: ContentResolver) {
     suspend fun read(uri: Uri, name: String): EqPreset? =
         withContext(Dispatchers.IO) {
             resolver.openInputStream(uri)?.bufferedReader()?.use {

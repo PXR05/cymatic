@@ -13,7 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
-internal fun UsbDevice.dsdSettingsKey(): String =
+fun UsbDevice.dsdSettingsKey(): String =
     "$vendorId:$productId:${runCatching { serialNumber }.getOrNull().orEmpty()}"
 
 @UnstableApi

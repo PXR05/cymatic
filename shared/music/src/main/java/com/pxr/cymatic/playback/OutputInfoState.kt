@@ -24,7 +24,7 @@ data class OutputInfoReport(val sections: List<OutputInfoSection> = emptyList())
 }
 
 @UnstableApi
-internal object OutputInfoState {
+object OutputInfoState {
     private data class Sink(val owner: Any, val snapshot: () -> JSONObject)
 
     private val sink = AtomicReference<Sink?>(null)

@@ -7,7 +7,7 @@ import io.github.chronosauros.contour.usb.DacHandle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class HardwareEqStore(context: Context) {
+class HardwareEqStore(context: Context) {
     private val preferences = context.getSharedPreferences("hardware_eq", Context.MODE_PRIVATE)
 
     fun draft(handle: DacHandle, slot: Int?): EqPreset? =

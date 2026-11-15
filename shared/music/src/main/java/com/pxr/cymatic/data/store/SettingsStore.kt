@@ -69,7 +69,7 @@ object SettingsStore {
     internal val currentPreferences: Preferences?
         get() = _prefs.value
 
-    internal val store: DataStore<Preferences>
+    val store: DataStore<Preferences>
         get() {
             requireInit()
             return dataStore

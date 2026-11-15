@@ -3,7 +3,7 @@ package com.pxr.cymatic.data.licenses
 import android.content.res.AssetManager
 import org.json.JSONArray
 
-internal class LicenseCatalog(private val assets: AssetManager) {
+class LicenseCatalog(private val assets: AssetManager) {
     private val documents = mutableMapOf<String, String>()
 
     private val libraries = run {

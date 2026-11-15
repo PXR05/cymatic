@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal class EqPresetRepository {
+class EqPresetRepository {
     val enabled = EqSettingsStore.eqGlobalEnabledFlow
     val presets = EqSettingsStore.eqPresetsFlow
     val selectedName = EqSettingsStore.eqSelectedPresetFlow

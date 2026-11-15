@@ -4,7 +4,7 @@ import com.pxr.cymatic.data.model.EqPreset
 import io.github.chronosauros.contour.usb.DacHandle
 import io.github.chronosauros.contour.usb.PendingSave
 
-internal class PendingDacVerification(
+class PendingDacVerification(
     val ticket: PendingSave,
     val profile: EqPreset,
     handle: DacHandle,

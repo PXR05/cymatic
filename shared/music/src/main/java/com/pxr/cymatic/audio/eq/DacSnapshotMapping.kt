@@ -5,7 +5,7 @@ import io.github.chronosauros.contour.core.DacImport
 import io.github.chronosauros.contour.usb.DacSnapshot
 import java.io.IOException
 
-internal fun DacSnapshot.playerPreset(): EqPreset =
+fun DacSnapshot.playerPreset(): EqPreset =
     when (val result = importExact()) {
         is DacImport.Ready ->
             EqPreset(

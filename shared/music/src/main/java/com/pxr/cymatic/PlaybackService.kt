@@ -33,7 +33,6 @@ import com.pxr.cymatic.data.model.selectedOrDefault
 import com.pxr.cymatic.data.store.EqSettingsStore
 import com.pxr.cymatic.data.store.PlaybackStore
 import com.pxr.cymatic.data.store.UsbPlaybackSettings
-import com.pxr.cymatic.design.R as DesignR
 import com.pxr.cymatic.music.R
 import com.pxr.cymatic.playback.FadingPlayer
 import com.pxr.cymatic.playback.OutputInfoState
@@ -86,7 +85,7 @@ class PlaybackService : MediaLibraryService() {
             DefaultMediaNotificationProvider.Builder(this)
                 .setChannelName(R.string.notification_channel_name)
                 .build()
-                .apply { setSmallIcon(DesignR.mipmap.ic_launcher) }
+                .apply { setSmallIcon(applicationInfo.icon) }
         )
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -385,14 +384,14 @@ class PlaybackService : MediaLibraryService() {
             CommandButton.Builder()
                 .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE)
                 .setDisplayName("Shuffle")
-                .setIconResId(DesignR.drawable.ic_pixel_shuffle)
+                .setIconResId(R.drawable.ic_pixel_shuffle)
                 .build()
 
         val repeat =
             CommandButton.Builder()
                 .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE)
                 .setDisplayName("Repeat")
-                .setIconResId(DesignR.drawable.ic_pixel_repeat)
+                .setIconResId(R.drawable.ic_pixel_repeat)
                 .build()
 
         return listOf(shuffle, repeat)

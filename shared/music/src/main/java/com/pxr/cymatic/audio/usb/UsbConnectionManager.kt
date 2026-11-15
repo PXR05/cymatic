@@ -13,7 +13,7 @@ import androidx.media3.common.util.UnstableApi
 import java.io.Closeable
 
 @UnstableApi
-internal class UsbConnectionManager(
+class UsbConnectionManager(
     private val context: Context,
     private val onReady: () -> Unit,
     private val onWaiting: (String) -> Unit,

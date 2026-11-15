@@ -1,6 +1,6 @@
 package com.pxr.cymatic.data.licenses
 
-internal data class LicenseEntry(
+data class LicenseEntry(
     val title: String,
     val assets: List<String>,
     val summary: String = "",
