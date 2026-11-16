@@ -33,13 +33,17 @@ import kotlinx.coroutines.withContext
 internal fun SongInfoScreen(mediaId: Long) {
     val nav = LocalNavController.current
     val context = LocalContext.current
-    var audioFile by remember(mediaId) { mutableStateOf<AudioFile?>(null) }
-    var loaded by remember(mediaId) { mutableStateOf(false) }
+    val repository = remember(context) { AudioRepository.getInstance(context) }
+    val cached = remember(repository, mediaId) {
+        repository.getCachedAudio()?.firstOrNull { it.id == mediaId }
+    }
+    var audioFile by remember(mediaId) { mutableStateOf(cached) }
+    var loaded by remember(mediaId) { mutableStateOf(cached != null) }
 
     LaunchedEffect(mediaId) {
         audioFile =
             withContext(Dispatchers.IO) {
-                AudioRepository.getInstance(context).getAudioByIds(listOf(mediaId)).firstOrNull()
+                repository.getAudioByIds(listOf(mediaId)).firstOrNull()
             }
         loaded = true
     }

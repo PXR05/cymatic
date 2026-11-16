@@ -15,6 +15,11 @@ object SyncCredentialStore {
     private const val PREFS = "sync_credentials"
     private const val PASSWORD = "password"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
+    private val passwordPresence = mutableMapOf<String, Boolean>()
+
+    @Synchronized
+    fun cachedHasPassword(sourceId: String? = null): Boolean? =
+        passwordPresence[sourceId?.let { "password_$it" } ?: PASSWORD]
 
     @Synchronized
     fun migrateLegacy(context: Context, sourceId: String) {
@@ -24,12 +29,15 @@ object SyncCredentialStore {
         val edit = prefs.edit()
         if (!prefs.contains(key)) edit.putString(key, value)
         check(edit.remove(PASSWORD).commit()) { "Could not migrate library credentials" }
+        passwordPresence[key] = true
+        passwordPresence.remove(PASSWORD)
     }
 
     fun savePassword(context: Context, password: String, sourceId: String? = null) {
         val key = sourceId?.let { "password_$it" } ?: PASSWORD
         if (password.isEmpty()) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(key).apply()
+            synchronized(this) { passwordPresence[key] = false }
             return
         }
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
@@ -43,6 +51,7 @@ object SyncCredentialStore {
         ) {
             "Could not save library credentials"
         }
+        synchronized(this) { passwordPresence[key] = true }
     }
 
     fun getPassword(context: Context, sourceId: String? = null): String? = runCatching {
@@ -58,8 +67,13 @@ object SyncCredentialStore {
         cipher.doFinal(encrypted).toString(Charsets.UTF_8)
     }.getOrNull()
 
-    fun hasPassword(context: Context, sourceId: String? = null): Boolean =
-        getPassword(context, sourceId) != null
+    fun hasPassword(context: Context, sourceId: String? = null): Boolean {
+        val key = sourceId?.let { "password_$it" } ?: PASSWORD
+        synchronized(this) { passwordPresence[key] }?.let { return it }
+        return (getPassword(context, sourceId) != null).also {
+            synchronized(this) { passwordPresence[key] = it }
+        }
+    }
 
     private fun getOrCreateKey(): SecretKey {
         val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

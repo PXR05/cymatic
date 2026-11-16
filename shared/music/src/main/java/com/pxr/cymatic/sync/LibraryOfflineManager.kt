@@ -28,12 +28,18 @@ data class OfflineSelection(
 }
 
 object OfflineSelectionStore {
+    private val cachedSelections = mutableMapOf<String, OfflineSelection>()
+
+    @Synchronized
+    fun cached(sourceId: String): OfflineSelection? = cachedSelections[sourceId]
+
     fun read(context: Context, sourceId: String): OfflineSelection {
+        synchronized(this) { cachedSelections[sourceId] }?.let { return it }
         val prefs = context.getSharedPreferences("library-offline", Context.MODE_PRIVATE)
         return OfflineSelection(
             prefs.getStringSet("${sourceId}_tracks", emptySet()).orEmpty().toSet(),
             prefs.getStringSet("${sourceId}_playlists", emptySet()).orEmpty().toSet(),
-        )
+        ).also { synchronized(this) { cachedSelections[sourceId] = it } }
     }
 
     fun save(context: Context, sourceId: String, selection: OfflineSelection) {
@@ -47,6 +53,7 @@ object OfflineSelectionStore {
         ) {
             "Could not save offline selection"
         }
+        synchronized(this) { cachedSelections[sourceId] = selection }
     }
 }
 

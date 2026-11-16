@@ -33,7 +33,7 @@ fun ArtistSongsScreen(
         errorMessage = error,
         queueSource = Screen.ArtistSongs.createRoute(artistName),
         state = viewModel.listState,
-        onReload = { viewModel.loadArtistSongs(artistName) },
+        onReload = { viewModel.loadArtistSongs(artistName, force = true) },
         modifier = modifier,
         scrollTargetId = scrollTargetId,
         onKeepOffline =

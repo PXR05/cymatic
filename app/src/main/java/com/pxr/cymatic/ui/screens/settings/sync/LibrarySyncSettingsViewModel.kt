@@ -34,10 +34,43 @@ import kotlinx.coroutines.withContext
 internal class LibrarySyncSettingsViewModel(application: Application) :
     AndroidViewModel(application) {
     private val context = application.applicationContext
-    private val mutableState = MutableStateFlow(LibrarySyncSettingsState())
+    private val mutableState = MutableStateFlow(initialState())
     val state = mutableState.asStateFlow()
     private var requestBaseline: SyncProgress? = null
     private var playlistsDirty = false
+
+    private fun initialState(): LibrarySyncSettingsState {
+        if (com.pxr.cymatic.data.store.SettingsStore.currentPreferences == null) {
+            return LibrarySyncSettingsState()
+        }
+        val directory = LibrarySyncSettings.currentSyncDirectory
+        val source = RemoteLibraries.cachedCurrentSource()
+        val configured = LibrarySyncSettings.currentSyncContentConfigured
+        return LibrarySyncSettingsState(
+            loading = false,
+            url = LibrarySyncSettings.currentSyncUrl,
+            username = LibrarySyncSettings.currentSyncUsername,
+            hasPassword = SyncCredentialStore.cachedHasPassword(source.id) ?: false,
+            directory = directory,
+            folderAccessible = hasFolderAccess(directory),
+            network = SyncNetwork.from(LibrarySyncSettings.currentSyncNetwork),
+            interval = LibrarySyncSettings.currentSyncIntervalHours,
+            layout = SyncLayout.from(LibrarySyncSettings.currentSyncLayout),
+            contentMode =
+                if (configured) SyncContentMode.from(LibrarySyncSettings.currentSyncContentMode)
+                else SyncContentMode.NONE,
+            musicConfigured = configured,
+            hasPinnedMusic =
+                com.pxr.cymatic.sync.OfflineSelectionStore.cached(source.id)?.let { !it.isEmpty }
+                    ?: false,
+            selectedPlaylists = LibrarySyncSettings.currentSyncSelectedPlaylists,
+            catalog = SyncCatalogStore.cached(source),
+            progress = LibrarySyncManager.progress.value,
+            catalogProgress = LibraryCatalogManager.progress.value,
+            lastTime = LibrarySyncSettings.currentSyncLastTime,
+            lastResult = LibrarySyncSettings.currentSyncLastResult,
+        )
+    }
 
     init {
         viewModelScope.launch {
@@ -85,6 +118,8 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     catalog = catalog,
                     progress = LibrarySyncManager.progress.value,
                     catalogProgress = LibraryCatalogManager.progress.value,
+                    lastTime = LibrarySyncSettings.currentSyncLastTime,
+                    lastResult = LibrarySyncSettings.currentSyncLastResult,
                 )
             launch {
                 com.pxr.cymatic.data.media.LibraryChanges.version.collect {

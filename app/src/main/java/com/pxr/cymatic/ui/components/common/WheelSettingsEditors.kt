@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
@@ -61,12 +62,13 @@ fun WheelSettingsOverlay(
     content: @Composable () -> Unit,
 ) {
     val wheel = LocalWheelNavigation.current ?: return
+    val owner = LocalLifecycleOwner.current
     val currentTitle by rememberUpdatedState(title)
     val dismiss by rememberUpdatedState(onDismiss)
     val currentMenuLongClick by rememberUpdatedState(onMenuLongClick)
     val body by rememberUpdatedState(content)
     val overlay =
-        remember(wheel) {
+        remember(wheel, owner) {
             WheelOverlay(
                 {
                     BackHandler(enabled = wheel.overlay === LocalWheelOverlay.current) { dismiss() }
@@ -79,11 +81,17 @@ fun WheelSettingsOverlay(
                     }
                 },
                 { dismiss() },
+                owner = owner,
             )
         }
     DisposableEffect(wheel, overlay) {
         wheel.showOverlay(overlay)
-        onDispose { wheel.removeOverlay(overlay) }
+        onDispose {
+            wheel.removeOverlay(overlay)
+            if (wheel.activeOwner != null && wheel.activeOwner !== owner) {
+                dismiss()
+            }
+        }
     }
 }
 
@@ -241,6 +249,8 @@ fun WheelTextEditor(
     onDismiss: () -> Unit,
     hint: String? = null,
 ) {
+    val wheel = LocalWheelNavigation.current
+    val owner = LocalLifecycleOwner.current
     var draft by remember { mutableStateOf(value) }
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
@@ -282,7 +292,9 @@ fun WheelTextEditor(
                         keyboard?.hide()
                         focus.clearFocus()
                         onSave(draft)
-                        onDismiss()
+                        if (wheel?.activeOwner == null || wheel.activeOwner === owner) {
+                            onDismiss()
+                        }
                     },
                     NavigationItem("Cancel") {
                         keyboard?.hide()

@@ -15,8 +15,8 @@ internal fun WheelPlayerMenu(
     state: WheelPlayerState,
     playback: PlaybackState,
     controller: MediaController?,
+    trackActions: Boolean = state.panel == WheelPanel.TRACK_ACTIONS,
 ) {
-    val trackActions = state.panel == WheelPanel.TRACK_ACTIONS
     BaseScreen(
         title = if (trackActions) "Track actions" else "Quick settings",
         onBackClick = state::back,

@@ -2,7 +2,9 @@ package com.pxr.cymatic.ui.screens.library.artist
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.library.UnknownArtist
 import com.pxr.cymatic.data.library.albumDisplayName
 import com.pxr.cymatic.data.library.filterByArtist
 import com.pxr.cymatic.data.library.libraryRefreshEvents
@@ -23,31 +25,47 @@ data class ArtistAlbumsState(
     val errorMessage: String? = null,
 )
 
-class ArtistAlbumsViewModel(application: Application) : AndroidViewModel(application) {
+class ArtistAlbumsViewModel(application: Application, savedStateHandle: SavedStateHandle) :
+    AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
-    private val _uiState = MutableStateFlow(ArtistAlbumsState())
+    private var currentArtist: String? =
+        savedStateHandle.get<String>("artistName")?.takeIf(String::isNotBlank) ?: UnknownArtist
+    private val initialCached = repository.getCachedAudio()
+    private var hasLoaded = initialCached != null && currentArtist != null
+    private val _uiState =
+        MutableStateFlow(
+            if (initialCached != null && currentArtist != null) {
+                buildState(initialCached, currentArtist!!, isLoading = false)
+            } else {
+                ArtistAlbumsState()
+            }
+        )
     val uiState: StateFlow<ArtistAlbumsState> = _uiState
-    private var currentArtist: String? = null
 
     init {
         viewModelScope.launch {
             libraryRefreshEvents().collect {
-                currentArtist?.let(::load)
+                currentArtist?.let { load(it, force = true) }
             }
         }
     }
 
-    fun load(artistName: String) {
+    fun load(artistName: String, force: Boolean = false) {
+        if (!force && currentArtist == artistName && hasLoaded) return
         currentArtist = artistName
         repository.getCachedAudio()?.let { cached ->
             _uiState.value = buildState(cached, artistName, isLoading = false)
+            hasLoaded = true
         }
         viewModelScope.launch(Dispatchers.IO) {
-            if (_uiState.value.albums.isEmpty()) {
+            if (!hasLoaded) {
                 _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             }
             runCatching { repository.getAllAudio() }
-                .onSuccess { _uiState.value = buildState(it, artistName, isLoading = false) }
+                .onSuccess {
+                    hasLoaded = true
+                    _uiState.value = buildState(it, artistName, isLoading = false)
+                }
                 .onFailure {
                     _uiState.value =
                         _uiState.value.copy(

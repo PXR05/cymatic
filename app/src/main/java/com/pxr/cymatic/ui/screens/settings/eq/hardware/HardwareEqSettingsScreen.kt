@@ -283,7 +283,6 @@ internal fun HardwareEqSettingsScreen(
                 presets.map { preset ->
                     NavigationItem(preset.name) {
                         model.edit(preset.copy())
-                        choosePreset = false
                         nav.popBackStack(Screen.HardwareEq.route, false)
                     }
                 },

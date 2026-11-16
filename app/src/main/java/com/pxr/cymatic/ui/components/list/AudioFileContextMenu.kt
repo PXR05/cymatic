@@ -48,7 +48,6 @@ fun AudioFileContextMenu(
                     "Play",
                     onClick = {
                         onPlay(audioFile)
-                        onDismiss()
                         wheel.onPlaybackRequested()
                     },
                 ),
@@ -69,7 +68,6 @@ fun AudioFileContextMenu(
                 NavigationItem(
                     "Add to Playlist",
                     onClick = {
-                        onDismiss()
                         nav.navigate(Screen.AddToPlaylist.createRoute(audioFile.id))
                     },
                 ),
@@ -78,7 +76,6 @@ fun AudioFileContextMenu(
                     "Track Info",
                     onClick = {
                         onTrackInfo(audioFile)
-                        onDismiss()
                     },
                 ),
             ),

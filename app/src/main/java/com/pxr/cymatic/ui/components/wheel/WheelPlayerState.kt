@@ -120,6 +120,7 @@ internal class WheelPlayerState(
     }
 
     fun rememberBrowser(entry: NavBackStackEntry?) {
+        wheel.activeOwner = entry
         panel = entry?.destination?.route.routePanel()
         previousPanel = nav.previousBackStackEntry?.destination?.route.routePanel()
         val route = entry?.musicBrowserRoute()?.currentLibraryRoute() ?: return
@@ -128,6 +129,7 @@ internal class WheelPlayerState(
     }
 
     fun mainMenu() {
+        val previous = nav.currentBackStackEntry
         if (
             nav.currentDestination?.route != Screen.Home.route &&
                 !nav.popBackStack(Screen.Home.route, false, saveState = true)
@@ -137,7 +139,7 @@ internal class WheelPlayerState(
                 launchSingleTop = true
             }
         }
-        clearDialogs()
+        if (nav.currentBackStackEntry === previous) clearDialogs()
     }
 
     fun back() {
@@ -150,8 +152,8 @@ internal class WheelPlayerState(
     }
 
     fun nowPlaying() {
+        val previous = nav.currentBackStackEntry
         if (panel == WheelPanel.QUICK_SETTINGS || panel == WheelPanel.TRACK_ACTIONS) {
-            clearDialogs()
             if (nav.previousBackStackEntry?.destination?.route == Screen.NowPlaying.route) {
                 nav.popBackStack()
             } else {
@@ -161,17 +163,25 @@ internal class WheelPlayerState(
                     launchSingleTop = true
                 }
             }
-        } else open(Screen.NowPlaying.route)
+        } else {
+            nav.navigate(Screen.NowPlaying.route) { launchSingleTop = true }
+        }
+        if (nav.currentBackStackEntry === previous) clearDialogs()
     }
 
     fun browse() {
-        clearDialogs()
-        if (nav.currentBackStackEntry?.musicBrowserRoute() != null) return
-        if (nav.popBackStack(browserRoute, false)) return
-        nav.navigate(browserRoot) {
-            launchSingleTop = true
-            restoreState = true
+        val previous = nav.currentBackStackEntry
+        if (nav.currentBackStackEntry?.musicBrowserRoute() != null) {
+            clearDialogs()
+            return
         }
+        if (!nav.popBackStack(browserRoute, false)) {
+            nav.navigate(browserRoot) {
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+        if (nav.currentBackStackEntry === previous) clearDialogs()
     }
 
     fun quickSettings() = open(Screen.QuickSettings.route)
@@ -179,8 +189,9 @@ internal class WheelPlayerState(
     fun trackActions() = open(Screen.TrackActions.route)
 
     fun open(route: String) {
-        clearDialogs()
+        val previous = nav.currentBackStackEntry
         nav.navigate(route) { launchSingleTop = true }
+        if (nav.currentBackStackEntry === previous) clearDialogs()
     }
 
     fun toggleCover() {
@@ -267,6 +278,7 @@ internal fun rememberWheelPlayerState(
         }
     state.nav = nav
     state.wheel = wheel
+    state.wheel.activeOwner = nav.currentBackStackEntry
     LaunchedEffect(coverDefault) { state.updateCoverDefault(coverDefault) }
     val entry by nav.currentBackStackEntryAsState()
     DisposableEffect(nav, state) {

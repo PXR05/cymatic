@@ -9,6 +9,10 @@ import java.io.File
 object SyncCatalogStore {
     private const val FILE_NAME = "audiostream-catalog.json"
     private val sources = mutableMapOf<String, RemoteLibrarySource>()
+    private val catalogs = mutableMapOf<String, RemoteCatalog>()
+
+    @Synchronized
+    fun cached(source: RemoteLibrarySource): RemoteCatalog? = catalogs[source.id]
 
     @Synchronized
     internal fun needsMetadataRefresh(context: Context, source: RemoteLibrarySource): Boolean =
@@ -60,46 +64,54 @@ object SyncCatalogStore {
         read(context, source.id)
 
     @Synchronized
-    internal fun read(context: Context, sourceId: String): RemoteCatalog? = runCatching {
-        val root =
-            JSONObject(file(context, sourceId).openRead().bufferedReader().use { it.readText() })
-        val tracksJson = root.getJSONArray("tracks")
-        val tracks = buildList {
-            for (index in 0 until tracksJson.length()) {
-                val item = tracksJson.getJSONObject(index)
-                add(
-                    RemoteTrack(
-                        id = item.getString("id"),
-                        filename = item.getString("filename"),
-                        size = item.optLong("size", -1L),
-                        updatedAt = item.optString("updatedAt"),
-                        title = item.optString("title"),
-                        artist = item.optString("artist"),
-                        album = item.optString("album"),
-                        trackNumber = item.optInt("trackNumber").takeIf { item.has("trackNumber") },
-                        durationMs = item.optLong("durationMs").takeIf { item.has("durationMs") },
-                        bitRate = item.optLong("bitRate", -1L).takeIf { it > 0L },
-                        sampleRate = item.optLong("sampleRate", -1L).takeIf { it > 0L },
+    internal fun read(context: Context, sourceId: String): RemoteCatalog? =
+        catalogs[sourceId]
+            ?: runCatching {
+                val root =
+                    JSONObject(
+                        file(context, sourceId).openRead().bufferedReader().use { it.readText() }
                     )
-                )
+                val tracksJson = root.getJSONArray("tracks")
+                val tracks = buildList {
+                    for (index in 0 until tracksJson.length()) {
+                        val item = tracksJson.getJSONObject(index)
+                        add(
+                            RemoteTrack(
+                                id = item.getString("id"),
+                                filename = item.getString("filename"),
+                                size = item.optLong("size", -1L),
+                                updatedAt = item.optString("updatedAt"),
+                                title = item.optString("title"),
+                                artist = item.optString("artist"),
+                                album = item.optString("album"),
+                                trackNumber =
+                                    item.optInt("trackNumber").takeIf { item.has("trackNumber") },
+                                durationMs =
+                                    item.optLong("durationMs").takeIf { item.has("durationMs") },
+                                bitRate = item.optLong("bitRate", -1L).takeIf { it > 0L },
+                                sampleRate = item.optLong("sampleRate", -1L).takeIf { it > 0L },
+                            )
+                        )
+                    }
+                }
+                val playlistsJson = root.getJSONArray("playlists")
+                val playlists = buildList {
+                    for (index in 0 until playlistsJson.length()) {
+                        val item = playlistsJson.getJSONObject(index)
+                        val ids = item.getJSONArray("trackIds")
+                        add(
+                            RemotePlaylist(
+                                id = item.getString("id"),
+                                name = item.getString("name"),
+                                trackIds = List(ids.length()) { ids.getString(it) },
+                            )
+                        )
+                    }
+                }
+                RemoteCatalog(tracks, playlists, root.optLong("refreshedAt"))
             }
-        }
-        val playlistsJson = root.getJSONArray("playlists")
-        val playlists = buildList {
-            for (index in 0 until playlistsJson.length()) {
-                val item = playlistsJson.getJSONObject(index)
-                val ids = item.getJSONArray("trackIds")
-                add(
-                    RemotePlaylist(
-                        id = item.getString("id"),
-                        name = item.getString("name"),
-                        trackIds = List(ids.length()) { ids.getString(it) },
-                    )
-                )
-            }
-        }
-        RemoteCatalog(tracks, playlists, root.optLong("refreshedAt"))
-    }.getOrNull()
+                .getOrNull()
+                ?.also { catalogs[sourceId] = it }
 
     @Synchronized
     fun write(
@@ -150,6 +162,7 @@ object SyncCatalogStore {
             output.write(value.toByteArray(Charsets.UTF_8))
             target.finishWrite(output)
             sources[source.id] = source
+            catalogs[source.id] = catalog
         } catch (error: Throwable) {
             target.failWrite(output)
             throw error

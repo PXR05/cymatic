@@ -4,14 +4,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.sync.LibraryOfflineManager
@@ -47,6 +50,17 @@ fun PlaylistContextMenu(
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var renameValue by remember { mutableStateOf(playlist.name) }
+
+    val wheel = checkNotNull(LocalWheelNavigation.current)
+    val owner = LocalLifecycleOwner.current
+    val currentDismiss by rememberUpdatedState(onDismiss)
+    DisposableEffect(wheel, owner) {
+        onDispose {
+            if (wheel.activeOwner != null && wheel.activeOwner !== owner) {
+                currentDismiss()
+            }
+        }
+    }
 
     if (showRenameDialog) {
         CymaticInputDialog(
@@ -100,7 +114,6 @@ fun PlaylistContextMenu(
         return
     }
 
-    val wheel = checkNotNull(LocalWheelNavigation.current)
     WheelContextMenu(
         title = playlist.name,
         items =
@@ -109,7 +122,6 @@ fun PlaylistContextMenu(
                     "Play",
                     onClick = {
                         onPlay()
-                        onDismiss()
                         wheel.onPlaybackRequested()
                     },
                 ),

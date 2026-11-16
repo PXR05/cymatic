@@ -106,11 +106,9 @@ internal fun SyncPlaylistsPage(
                     showActions = false
                 },
                 NavigationItem("Done", enabled = !state.saving) {
-                    showActions = false
                     onDismiss()
                 },
                 NavigationItem("Help") {
-                    showActions = false
                     nav.navigate(Screen.SyncHelp.route)
                 },
             ),

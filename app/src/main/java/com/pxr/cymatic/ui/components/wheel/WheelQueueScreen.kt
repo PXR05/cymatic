@@ -61,7 +61,6 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                             onClick = {
                                 controller?.seekTo(index, 0L)
                                 controller?.play()
-                                selectedIndex = null
                                 onNowPlaying()
                             },
                         )

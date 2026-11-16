@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
@@ -31,13 +32,18 @@ object LibrarySyncSettings {
     private val SYNC_CONTENT_CONFIGURED_KEY = booleanPreferencesKey("SYNC_CONTENT_CONFIGURED")
     private val SYNC_SELECTED_PLAYLISTS_KEY = stringSetPreferencesKey("SYNC_SELECTED_PLAYLISTS")
     val syncUrlFlow: Flow<String>
-        get() = SettingsStore.store.data.map { it[SYNC_URL_KEY] ?: DEFAULT_SYNC_URL }
+        get() =
+            SettingsStore.store.data
+                .map { it[SYNC_URL_KEY] ?: DEFAULT_SYNC_URL }
+                .distinctUntilChanged()
 
     val syncUsernameFlow: Flow<String>
         get() =
-            SettingsStore.store.data.map {
-                it[SYNC_USERNAME_KEY] ?: DEFAULT_SYNC_USERNAME
-            }
+            SettingsStore.store.data
+                .map {
+                    it[SYNC_USERNAME_KEY] ?: DEFAULT_SYNC_USERNAME
+                }
+                .distinctUntilChanged()
 
     val syncAdapterFlow: Flow<String>
         get() =
@@ -47,9 +53,11 @@ object LibrarySyncSettings {
 
     val syncNetworkFlow: Flow<String>
         get() =
-            SettingsStore.store.data.map {
-                it[SYNC_NETWORK_KEY] ?: DEFAULT_SYNC_NETWORK
-            }
+            SettingsStore.store.data
+                .map {
+                    it[SYNC_NETWORK_KEY] ?: DEFAULT_SYNC_NETWORK
+                }
+                .distinctUntilChanged()
 
     val syncIntervalHoursFlow: Flow<Long>
         get() =
@@ -67,13 +75,15 @@ object LibrarySyncSettings {
         get() = SettingsStore.store.data.map { it[SYNC_DIRECTORY_KEY].orEmpty() }
 
     val syncLastTimeFlow: Flow<Long>
-        get() = SettingsStore.store.data.map { it[SYNC_LAST_TIME_KEY] ?: 0L }
+        get() = SettingsStore.store.data.map { it[SYNC_LAST_TIME_KEY] ?: 0L }.distinctUntilChanged()
 
     val syncLastResultFlow: Flow<String>
         get() =
-            SettingsStore.store.data.map {
-                it[SYNC_LAST_RESULT_KEY] ?: "Not synced yet"
-            }
+            SettingsStore.store.data
+                .map {
+                    it[SYNC_LAST_RESULT_KEY] ?: "Not synced yet"
+                }
+                .distinctUntilChanged()
 
     val syncContentModeFlow: Flow<String>
         get() =
@@ -123,6 +133,18 @@ object LibrarySyncSettings {
 
     val currentSyncSelectedPlaylists: Set<String>
         get() = SettingsStore.currentPreferences?.get(SYNC_SELECTED_PLAYLISTS_KEY) ?: emptySet()
+
+    val currentSyncContentConfigured: Boolean
+        get() =
+            SettingsStore.currentPreferences?.let {
+                it[SYNC_CONTENT_CONFIGURED_KEY] ?: (it[SYNC_CONTENT_MODE_KEY] != null)
+            } ?: false
+
+    val currentSyncLastTime: Long
+        get() = SettingsStore.currentPreferences?.get(SYNC_LAST_TIME_KEY) ?: 0L
+
+    val currentSyncLastResult: String
+        get() = SettingsStore.currentPreferences?.get(SYNC_LAST_RESULT_KEY) ?: "Not synced yet"
 
     suspend fun setSyncUrl(value: String) =
         SettingsStore.store.edit { it[SYNC_URL_KEY] = value.trim() }

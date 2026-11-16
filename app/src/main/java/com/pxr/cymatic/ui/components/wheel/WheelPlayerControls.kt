@@ -54,11 +54,10 @@ internal class WheelPlayerControls(
                 }
 
             WheelButton.SELECT ->
-                when {
-                    state.wheel.overlay != null -> selectItem()
-                    state.isNowPlaying -> state.browse()
-                    state.panel == WheelPanel.QUICK_SETTINGS -> state.back()
-                    else -> selectItem()
+                if (state.controlsPlayback) {
+                    state.browse()
+                } else {
+                    selectItem()
                 }
 
             WheelButton.PLAY ->

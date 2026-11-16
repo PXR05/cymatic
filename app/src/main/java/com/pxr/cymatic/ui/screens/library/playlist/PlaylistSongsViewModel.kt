@@ -32,26 +32,42 @@ class PlaylistSongsViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
+    private var currentPlaylistId = playlistId
+    private var hasLoaded = false
+
     internal val listState = SongListState()
 
     init {
         val cachedPlaylist = repository.getCachedPlaylists()?.find { it.id == playlistId }
         val cachedAudio = repository.getCachedPlaylistAudio(playlistId)
-        if (cachedPlaylist != null && cachedAudio != null) {
+        if (cachedPlaylist != null) {
             _playlist.value = cachedPlaylist
+        }
+        if (cachedAudio != null) {
             _audioFiles.value = LibraryFilterStore.audio(cachedAudio)
             _isLoading.value = false
+            hasLoaded = true
         }
         viewModelScope.launch {
             libraryRefreshEvents(includeScans = false).collect {
-                if (playlistId != -1L) loadPlaylist(playlistId)
+                if (currentPlaylistId != -1L) loadPlaylist(currentPlaylistId, force = true)
             }
         }
     }
 
-    fun loadPlaylist(playlistId: Long) {
+    fun loadPlaylist(playlistId: Long, force: Boolean = false) {
+        if (!force && playlistId == currentPlaylistId && hasLoaded) return
+        currentPlaylistId = playlistId
+        repository.getCachedPlaylists()?.find { it.id == playlistId }?.let {
+            _playlist.value = it
+        }
+        repository.getCachedPlaylistAudio(playlistId)?.let { cached ->
+            _audioFiles.value = LibraryFilterStore.audio(cached)
+            _isLoading.value = false
+            hasLoaded = true
+        }
         viewModelScope.launch(Dispatchers.IO) {
-            if (_audioFiles.value.isEmpty()) {
+            if (!hasLoaded) {
                 _isLoading.value = true
             }
             _errorMessage.value = null
@@ -59,6 +75,7 @@ class PlaylistSongsViewModel(
                 _playlist.value = repository.getPlaylist(playlistId)
                 _audioFiles.value =
                     LibraryFilterStore.audio(repository.getPlaylistAudio(playlistId))
+                hasLoaded = true
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Failed to load playlist songs"
             } finally {

@@ -50,7 +50,18 @@ fun AllSongsScreen(
     val catalogProgress by LibraryCatalogManager.progress.collectAsState()
     val scanProgress by LocalLibraryScanner.progress.collectAsState()
     val remoteConnected by
-        produceState<Boolean?>(null, context) {
+        produceState<Boolean?>(
+            run {
+                val address = LibrarySyncSettings.currentSyncUrl
+                val username = LibrarySyncSettings.currentSyncUsername
+                if (address.isBlank() || username.isBlank()) false
+                else
+                    SyncCredentialStore.cachedHasPassword(
+                        RemoteLibrarySource("audiostream", address, username).id
+                    )
+            },
+            context,
+        ) {
             combine(
                     LibrarySyncSettings.syncUrlFlow,
                     LibrarySyncSettings.syncUsernameFlow,

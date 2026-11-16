@@ -4,6 +4,13 @@ import android.content.Context
 import com.pxr.cymatic.data.store.LibrarySyncSettings
 
 object RemoteLibraries {
+    fun cachedCurrentSource() =
+        RemoteLibrarySource(
+            LibrarySyncSettings.currentSyncAdapter,
+            LibrarySyncSettings.currentSyncUrl,
+            LibrarySyncSettings.currentSyncUsername,
+        )
+
     suspend fun currentSource() =
         RemoteLibrarySource(
             LibrarySyncSettings.getSyncAdapter(),

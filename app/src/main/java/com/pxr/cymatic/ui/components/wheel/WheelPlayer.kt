@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.data.store.currentInterfaceSettings
@@ -129,8 +130,10 @@ private fun PlayerScreen(
 
 @Composable
 private fun WheelOverlays(wheel: WheelNavigation) {
-    val overlays = wheel.overlays.toList()
+    val owner = LocalLifecycleOwner.current
+    val overlays = wheel.overlays.filter { it.owner == null || it.owner === owner }
     if (overlays.isEmpty()) return
+    BrowserInputBarrier()
     Layout(
         modifier = Modifier.fillMaxSize(),
         content = {

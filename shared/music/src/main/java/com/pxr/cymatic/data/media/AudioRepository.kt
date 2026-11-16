@@ -21,17 +21,18 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
             if (doubleChecked != null) {
                 doubleChecked
             } else {
-                val dbList = audioDao.getAllAudio().let { records ->
-                    val remoteCopies =
-                        records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
-                    records.filter { it.sourceId != null || it.uri !in remoteCopies }
-                        .map { it.toAudioFile() }
-                }
-                cachedAudio = dbList
-                dbList
+                loadFromDb().also { cachedAudio = it }
             }
         }
     }
+
+    private suspend fun loadFromDb(): List<AudioFile> =
+        audioDao.getAllAudio().let { records ->
+            val remoteCopies =
+                records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
+            records.filter { it.sourceId != null || it.uri !in remoteCopies }
+                .map { it.toAudioFile() }
+        }
 
     fun getCachedAudio(): List<AudioFile>? {
         return cachedAudio
@@ -44,7 +45,7 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
     suspend fun upsertAudio(records: List<AudioEntity>) {
         audioDao.upsertAudio(records)
         cacheMutex.withLock {
-            cachedAudio = null
+            cachedAudio = loadFromDb()
         }
     }
 
@@ -52,7 +53,7 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
         if (ids.isNotEmpty()) {
             audioDao.deleteByIds(ids)
             cacheMutex.withLock {
-                cachedAudio = null
+                cachedAudio = loadFromDb()
             }
         }
     }
@@ -65,11 +66,25 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
 
     internal suspend fun updateTechnicalMetadata(id: Long, metadata: AudioTechnicalMetadata) {
         audioDao.updateTechnicalMetadata(id, metadata.bitRate, metadata.sampleRate, metadata.codec)
-        cacheMutex.withLock { cachedAudio = null }
+        cacheMutex.withLock {
+            cachedAudio =
+                cachedAudio?.map { file ->
+                    if (file.id != id) file
+                    else
+                        file.copy(
+                            metadata =
+                                file.metadata.copy(
+                                    bitRate = metadata.bitRate ?: file.metadata.bitRate,
+                                    sampleRate = metadata.sampleRate ?: file.metadata.sampleRate,
+                                    format = metadata.codec ?: file.metadata.format,
+                                )
+                        )
+                }
+        }
     }
 
     suspend fun invalidate() {
-        cacheMutex.withLock { cachedAudio = null }
+        cacheMutex.withLock { cachedAudio = loadFromDb() }
     }
 
     companion object {

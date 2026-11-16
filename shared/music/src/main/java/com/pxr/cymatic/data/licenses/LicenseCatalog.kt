@@ -137,4 +137,14 @@ class LicenseCatalog(private val assets: AssetManager) {
         documents.getOrPut(path) {
             assets.open(path).bufferedReader().use { it.readText() }
         }
+
+    companion object {
+        @Volatile private var cached: LicenseCatalog? = null
+
+        fun getCached(): LicenseCatalog? = cached
+
+        @Synchronized
+        fun getInstance(assets: AssetManager): LicenseCatalog =
+            cached ?: LicenseCatalog(assets).also { cached = it }
+    }
 }

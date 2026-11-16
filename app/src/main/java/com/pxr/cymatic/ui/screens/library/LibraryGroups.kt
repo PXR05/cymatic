@@ -51,11 +51,14 @@ private object LibraryGroupsCache {
     @Volatile private var snapshot: Pair<List<AudioFile>, LibraryGroups>? = null
     val empty = LibraryGroups(emptyList())
 
-    fun cached(songs: List<AudioFile>?): LibraryGroups? =
-        snapshot?.takeIf { it.first === songs }?.second
+    fun cached(songs: List<AudioFile>?): LibraryGroups? {
+        if (songs == null) return null
+        snapshot?.takeIf { it.first === songs }?.second?.let { return it }
+        return LibraryGroups(songs).also { snapshot = songs to it }
+    }
 
     suspend fun groups(songs: List<AudioFile>): LibraryGroups = mutex.withLock {
-        cached(songs)
+        snapshot?.takeIf { it.first === songs }?.second
             ?: withContext(Dispatchers.Default) { LibraryGroups(songs) }
                 .also {
                     snapshot = songs to it

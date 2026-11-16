@@ -36,7 +36,7 @@ fun PlaylistSongsScreen(
         errorMessage = error,
         queueSource = Screen.PlaylistSongs.createRoute(playlistId),
         state = viewModel.listState,
-        onReload = { viewModel.loadPlaylist(playlistId) },
+        onReload = { viewModel.loadPlaylist(playlistId, force = true) },
         modifier = modifier,
         scrollTargetId = scrollTargetId,
         needsStoragePermission = false,

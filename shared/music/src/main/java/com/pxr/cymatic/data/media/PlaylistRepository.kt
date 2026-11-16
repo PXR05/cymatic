@@ -29,26 +29,39 @@ class PlaylistRepository private constructor(
 
     private val playlistMutex = Mutex()
 
+    private suspend fun loadPlaylistsFromDb(): List<Playlist> {
+        val counts = playlistDao.availability().associateBy { it.playlistId }
+        return playlistDao.getPlaylists().map { entity ->
+            val count = counts[entity.id]
+            entity.toPlaylist().copy(
+                availability =
+                    LibraryAvailability.fromCounts(
+                        count?.offline ?: 0,
+                        count?.total ?: 0,
+                        entity.sourceId != null,
+                    )
+            )
+        }
+    }
+
+    private suspend fun loadPlaylistAudioFromDb(playlistId: Long): List<AudioFile> =
+        playlistDao.getPlaylistAudio(playlistId).map { it.toAudioFile() }
+
     suspend fun getPlaylists(): List<Playlist> {
         val cached = cachedPlaylists
-        if (cached != null) return cached
+        val audioCache = cachedPlaylistAudio
+        if (cached != null && cached.all { it.id in audioCache }) return cached
         return playlistMutex.withLock {
-            val doubleChecked = cachedPlaylists
-            if (doubleChecked != null) {
-                doubleChecked
-            } else {
-                val counts = playlistDao.availability().associateBy { it.playlistId }
-                val dbList = playlistDao.getPlaylists().map { entity ->
-                    val count = counts[entity.id]
-                    entity.toPlaylist().copy(
-                        availability = LibraryAvailability.fromCounts(
-                            count?.offline ?: 0, count?.total ?: 0, entity.sourceId != null
-                        )
-                    )
+            val dbList = cachedPlaylists ?: loadPlaylistsFromDb().also { cachedPlaylists = it }
+            val missing = dbList.filter { it.id !in cachedPlaylistAudio }
+            if (missing.isNotEmpty()) {
+                val newMap = cachedPlaylistAudio.toMutableMap()
+                missing.forEach { playlist ->
+                    newMap[playlist.id] = loadPlaylistAudioFromDb(playlist.id)
                 }
-                cachedPlaylists = dbList
-                dbList
+                cachedPlaylistAudio = newMap
             }
+            dbList
         }
     }
 
@@ -72,7 +85,8 @@ class PlaylistRepository private constructor(
             )
         )
         playlistMutex.withLock {
-            cachedPlaylists = null
+            cachedPlaylists = loadPlaylistsFromDb()
+            cachedPlaylistAudio = cachedPlaylistAudio + (id to emptyList())
         }
         LibraryChanges.notifyChanged()
         return id
@@ -87,7 +101,7 @@ class PlaylistRepository private constructor(
             )
         )
         playlistMutex.withLock {
-            cachedPlaylists = null
+            cachedPlaylists = loadPlaylistsFromDb()
         }
         LibraryChanges.notifyChanged()
     }
@@ -95,7 +109,7 @@ class PlaylistRepository private constructor(
     suspend fun deletePlaylist(playlistId: Long) {
         playlistDao.deletePlaylist(playlistId)
         playlistMutex.withLock {
-            cachedPlaylists = null
+            cachedPlaylists = loadPlaylistsFromDb()
             cachedPlaylistAudio = cachedPlaylistAudio - playlistId
         }
         LibraryChanges.notifyChanged()
@@ -109,7 +123,7 @@ class PlaylistRepository private constructor(
             if (doubleChecked != null) {
                 doubleChecked
             } else {
-                val dbList = playlistDao.getPlaylistAudio(playlistId).map { it.toAudioFile() }
+                val dbList = loadPlaylistAudioFromDb(playlistId)
                 val newMap = cachedPlaylistAudio.toMutableMap()
                 newMap[playlistId] = dbList
                 cachedPlaylistAudio = newMap
@@ -128,8 +142,8 @@ class PlaylistRepository private constructor(
             )
         )
         playlistMutex.withLock {
-            cachedPlaylists = null
-            cachedPlaylistAudio = cachedPlaylistAudio - playlistId
+            cachedPlaylists = loadPlaylistsFromDb()
+            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
@@ -137,8 +151,8 @@ class PlaylistRepository private constructor(
     suspend fun removeAudioFromPlaylist(playlistId: Long, audioId: Long) {
         playlistDao.removePlaylistItem(playlistId, audioId)
         playlistMutex.withLock {
-            cachedPlaylists = null
-            cachedPlaylistAudio = cachedPlaylistAudio - playlistId
+            cachedPlaylists = loadPlaylistsFromDb()
+            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
@@ -150,16 +164,17 @@ class PlaylistRepository private constructor(
             addedAt = System.currentTimeMillis()
         )
         playlistMutex.withLock {
-            cachedPlaylists = null
-            cachedPlaylistAudio = cachedPlaylistAudio - playlistId
+            cachedPlaylists = loadPlaylistsFromDb()
+            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
 
     suspend fun invalidate() {
         playlistMutex.withLock {
-            cachedPlaylists = null
-            cachedPlaylistAudio = emptyMap()
+            val dbList = loadPlaylistsFromDb()
+            cachedPlaylists = dbList
+            cachedPlaylistAudio = dbList.associate { it.id to loadPlaylistAudioFromDb(it.id) }
         }
     }
 

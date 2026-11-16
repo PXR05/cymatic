@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +44,11 @@ class WheelNavigation {
     private val handlers = mutableStateListOf<Handler>()
     private val overlayStack = mutableStateListOf<WheelOverlay>()
     private val menuHoldHandlers = mutableStateListOf<MenuHoldHandler>()
+    var activeOwner by mutableStateOf<Any?>(null)
+
+    private fun WheelOverlay.isActive(): Boolean =
+        owner == null || activeOwner == null || owner === activeOwner
+
     val actions: WheelActions?
         get() = handlers.lastOrNull { it.overlay === overlay }?.actions
 
@@ -50,7 +56,7 @@ class WheelNavigation {
         get() = overlayStack
 
     val overlay: WheelOverlay?
-        get() = overlayStack.lastOrNull()
+        get() = overlayStack.lastOrNull { it.isActive() }
 
     val onMenuHold: (() -> Unit)?
         get() = menuHoldHandlers.lastOrNull { it.overlay === overlay }?.onMenuHold
@@ -83,12 +89,17 @@ class WheelNavigation {
     }
 
     fun clearOverlays() {
-        overlayStack.toList().asReversed().forEach { it.onDismiss() }
-        overlayStack.clear()
+        val active = overlayStack.filter { it.isActive() }
+        active.asReversed().forEach { it.onDismiss() }
+        overlayStack.removeAll(active)
     }
 }
 
-data class WheelOverlay(val content: @Composable () -> Unit, val onDismiss: () -> Unit)
+data class WheelOverlay(
+    val content: @Composable () -> Unit,
+    val onDismiss: () -> Unit,
+    val owner: Any? = null,
+)
 
 val LocalWheelNavigation = staticCompositionLocalOf<WheelNavigation?> { null }
 val LocalWheelOverlay = staticCompositionLocalOf<WheelOverlay?> { null }

@@ -24,14 +24,33 @@ internal fun AddToPlaylistScreen(audioId: Long) {
     val onDismiss: () -> Unit = { nav.popBackStack() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val repo = remember(context) { PlaylistRepository.getInstance(context) }
 
-    var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
-    var memberIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val cachedPlaylists = remember(repo, audioId) {
+        repo.getCachedPlaylists()?.filter { it.sourceId == null }
+    }
+    var playlists by remember(audioId) { mutableStateOf(cachedPlaylists.orEmpty()) }
+    var memberIds by remember(audioId) {
+        mutableStateOf(
+            cachedPlaylists
+                ?.filter { playlist ->
+                    repo.getCachedPlaylistAudio(playlist.id)?.any { it.id == audioId } == true
+                }
+                ?.map { it.id }
+                ?.toSet()
+                .orEmpty()
+        )
+    }
+    var loaded by remember(audioId) {
+        mutableStateOf(
+            cachedPlaylists != null &&
+                cachedPlaylists.all { repo.getCachedPlaylistAudio(it.id) != null }
+        )
+    }
 
     val toggle: (Playlist) -> Unit = { playlist ->
         val isMember = playlist.id in memberIds
         scope.launch {
-            val repo = PlaylistRepository.getInstance(context)
             withContext(Dispatchers.IO) {
                 if (isMember) repo.removeAudioFromPlaylist(playlist.id, audioId)
                 else repo.addAudioToPlaylist(playlist.id, audioId)
@@ -42,7 +61,6 @@ internal fun AddToPlaylistScreen(audioId: Long) {
 
     LaunchedEffect(audioId) {
         withContext(Dispatchers.IO) {
-            val repo = PlaylistRepository.getInstance(context)
             val all = repo.getPlaylists().filter { it.sourceId == null }
             val members =
                 all.filter { playlist ->
@@ -52,13 +70,14 @@ internal fun AddToPlaylistScreen(audioId: Long) {
                     .toSet()
             playlists = all
             memberIds = members
+            loaded = true
         }
     }
 
     BaseScreen("Add to Playlist", onDismiss) {
         NavigationList(
             buildList {
-                if (playlists.isEmpty()) add(NavigationItem("No playlists yet", enabled = false))
+                if (loaded && playlists.isEmpty()) add(NavigationItem("No playlists yet", enabled = false))
                 playlists.forEach { playlist ->
                     add(
                         NavigationItem(

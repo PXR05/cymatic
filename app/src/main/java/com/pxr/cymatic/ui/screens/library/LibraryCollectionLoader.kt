@@ -23,6 +23,7 @@ internal class LibraryCollectionLoader<T>(
     private val mutableLoading = MutableStateFlow(cachedItems == null)
     private val mutableError = MutableStateFlow<String?>(null)
     private var loadingJob: Job? = null
+    private var hasLoaded = cachedItems != null
 
     val items = mutableItems.asStateFlow()
     val isLoading = mutableLoading.asStateFlow()
@@ -32,13 +33,22 @@ internal class LibraryCollectionLoader<T>(
         scope.launch { changes.collect { refresh() } }
     }
 
+    fun updateCached(items: List<T>?) {
+        if (items != null) {
+            mutableItems.value = items
+            mutableLoading.value = false
+            hasLoaded = true
+        }
+    }
+
     fun refresh() {
         loadingJob?.cancel()
         loadingJob = scope.launch {
-            mutableLoading.value = true
+            if (!hasLoaded) mutableLoading.value = true
             mutableError.value = null
             try {
                 mutableItems.value = withContext(Dispatchers.IO) { loadItems() }
+                hasLoaded = true
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

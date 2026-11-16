@@ -52,8 +52,14 @@ internal fun WheelBrowser(
                             onSeekEnd = { state.endSeek(controller) },
                         )
                     },
-                Screen.QuickSettings.route to { WheelPlayerMenu(state, playback, controller) },
-                Screen.TrackActions.route to { WheelPlayerMenu(state, playback, controller) },
+                Screen.QuickSettings.route to
+                    {
+                        WheelPlayerMenu(state, playback, controller, trackActions = false)
+                    },
+                Screen.TrackActions.route to
+                    {
+                        WheelPlayerMenu(state, playback, controller, trackActions = true)
+                    },
                 Screen.Queue.route to { WheelQueueScreen(onNowPlaying = state::nowPlaying) },
                 Screen.InterfaceSettings.route to { InterfaceSettingsScreen() },
                 Screen.TextScrollingSettings.route to

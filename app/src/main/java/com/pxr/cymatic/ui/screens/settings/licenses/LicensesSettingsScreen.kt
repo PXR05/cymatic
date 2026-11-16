@@ -27,8 +27,16 @@ internal fun LicensesSettingsScreen(
     val nav = LocalNavController.current
     val context = LocalContext.current
     val loaded by
-        produceState<Result<LicenseCatalog>?>(null, context) {
-            value = withContext(Dispatchers.IO) { runCatching { LicenseCatalog(context.assets) } }
+        produceState<Result<LicenseCatalog>?>(
+            LicenseCatalog.getCached()?.let { Result.success(it) },
+            context,
+        ) {
+            if (value == null) {
+                value =
+                    withContext(Dispatchers.IO) {
+                        runCatching { LicenseCatalog.getInstance(context.assets) }
+                    }
+            }
         }
     val catalog = loaded?.getOrNull()
     val entries = catalog?.entries(group).orEmpty()

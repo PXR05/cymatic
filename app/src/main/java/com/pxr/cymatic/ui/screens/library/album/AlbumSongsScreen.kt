@@ -43,7 +43,7 @@ fun AlbumSongsScreen(
             if (artistName == null) Screen.AlbumSongs.createRoute(albumName)
             else Screen.ArtistAlbumSongs.createRoute(artistName, albumName),
         state = viewModel.listState,
-        onReload = { viewModel.loadAlbumSongs(albumName, artistName) },
+        onReload = { viewModel.loadAlbumSongs(albumName, artistName, force = true) },
         modifier = modifier,
         scrollTargetId = scrollTargetId,
         onKeepOffline =

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.library.UnknownAlbum
 import com.pxr.cymatic.data.library.filterByAlbum
 import com.pxr.cymatic.data.library.filterByArtistAndAlbum
 import com.pxr.cymatic.data.library.libraryRefreshEvents
@@ -17,7 +18,8 @@ class AlbumSongsViewModel(application: Application, savedStateHandle: SavedState
     AndroidViewModel(application) {
     private val repository = AudioRepository.getInstance(application)
 
-    private var albumName = savedStateHandle.get<String>("albumName").orEmpty()
+    private var albumName =
+        savedStateHandle.get<String>("albumName")?.takeIf(String::isNotBlank) ?: UnknownAlbum
     private var artistName = savedStateHandle.get<String>("artistName")?.takeIf(String::isNotBlank)
 
     private val loader =
@@ -34,9 +36,15 @@ class AlbumSongsViewModel(application: Application, savedStateHandle: SavedState
 
     internal val listState = SongListState()
 
-    fun loadAlbumSongs(albumName: String, artistName: String? = this.artistName) {
+    fun loadAlbumSongs(
+        albumName: String,
+        artistName: String? = this.artistName,
+        force: Boolean = false,
+    ) {
+        if (!force && this.albumName == albumName && this.artistName == artistName) return
         this.albumName = albumName
         this.artistName = artistName
+        loader.updateCached(repository.getCachedAudio()?.let(::filterSongs))
         loader.refresh()
     }
 

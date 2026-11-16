@@ -85,7 +85,7 @@ internal fun SongListScreen(
                 message = errorMessage,
                 onRetry = onReload,
             )
-        } else if (isLoading) {
+        } else if (isLoading && audioFiles.isEmpty()) {
             LoadingState()
         } else if (availabilityFilter != LibraryFilter.ALL && audioFiles.isEmpty()) {
             LibraryFilteredEmptyState()

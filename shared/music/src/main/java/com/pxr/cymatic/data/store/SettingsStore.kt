@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -47,7 +48,7 @@ object SettingsStore {
         booleanPreferencesKey("RESUME_ON_BLUETOOTH_RECONNECT")
     private val LIBRARY_FILTER_KEY = stringPreferencesKey("LIBRARY_FILTER")
     val libraryFilterFlow: Flow<String>
-        get() = store.data.map { it[LIBRARY_FILTER_KEY] ?: "all" }
+        get() = store.data.map { it[LIBRARY_FILTER_KEY] ?: "all" }.distinctUntilChanged()
 
     suspend fun setLibraryFilter(value: String) = store.edit { it[LIBRARY_FILTER_KEY] = value }
 
@@ -66,7 +67,7 @@ object SettingsStore {
         }
     }
 
-    internal val currentPreferences: Preferences?
+    val currentPreferences: Preferences?
         get() = _prefs.value
 
     val store: DataStore<Preferences>
@@ -83,9 +84,11 @@ object SettingsStore {
 
     val lastScanTimeMsFlow: Flow<Long>
         get() =
-            store.data.map { prefs ->
-                prefs[LAST_SCAN_TIME_MS_KEY] ?: DEFAULT_LAST_SCAN_TIME_MS
-            }
+            store.data
+                .map { prefs ->
+                    prefs[LAST_SCAN_TIME_MS_KEY] ?: DEFAULT_LAST_SCAN_TIME_MS
+                }
+                .distinctUntilChanged()
 
     val lastScanCountFlow: Flow<Long>
         get() =

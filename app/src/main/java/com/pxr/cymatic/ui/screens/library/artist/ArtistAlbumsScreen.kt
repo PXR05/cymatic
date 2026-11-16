@@ -41,7 +41,7 @@ fun ArtistAlbumsScreen(
     val state by viewModel.uiState.collectAsState()
     val permission = rememberStoragePermission { granted ->
         if (granted) {
-            viewModel.load(artistName)
+            viewModel.load(artistName, force = true)
         }
     }
 
@@ -74,7 +74,7 @@ fun ArtistAlbumsScreen(
             state.errorMessage != null ->
                 ErrorState(
                     message = state.errorMessage ?: "Unknown error",
-                    onRetry = { viewModel.load(artistName) },
+                    onRetry = { viewModel.load(artistName, force = true) },
                 )
 
             state.isLoading -> LoadingState()
