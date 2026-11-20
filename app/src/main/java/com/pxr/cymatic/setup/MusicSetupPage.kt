@@ -2,7 +2,6 @@ package com.pxr.cymatic.setup
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,9 +33,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.data.media.LocalScanProgress
@@ -47,6 +51,7 @@ import com.pxr.cymatic.ui.components.common.LocalWheelOverlay
 import com.pxr.cymatic.ui.components.common.WheelActions
 import com.pxr.cymatic.ui.components.common.WheelSelectionNavigator
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun SetupPage(
@@ -60,6 +65,9 @@ internal fun SetupPage(
     onFolder: () -> Unit,
 ) {
     val step = state.step
+    val tutorialList =
+        step == MusicSetupStep.SELECT || step == MusicSetupStep.BACK || step == MusicSetupStep.BROWSE
+    val listStep = tutorialList || step == MusicSetupStep.CHOICE
     val foreground = MaterialTheme.colorScheme.onBackground
     val background = MaterialTheme.colorScheme.background
     val secondary = MaterialTheme.colorScheme.secondary
@@ -83,8 +91,15 @@ internal fun SetupPage(
     val remoteLoading =
         step == MusicSetupStep.CONNECTING ||
             (step == MusicSetupStep.CONNECTED && catalog == CatalogProgress.Refreshing)
+    val libraryReady =
+        (step == MusicSetupStep.SCANNING &&
+            local is LocalScanProgress.Complete &&
+            local.count > 0) ||
+            (step == MusicSetupStep.CONNECTED && catalog is CatalogProgress.Complete)
+    val showCompletion = libraryReady && !state.storageError
+    val showResult = step == MusicSetupStep.SUCCESS || showCompletion
     val centered =
-        step == MusicSetupStep.NAVIGATE || step == MusicSetupStep.SUCCESS || remoteLoading
+        step == MusicSetupStep.NAVIGATE || showResult || remoteLoading
     val number =
         when (step) {
             MusicSetupStep.NAVIGATE,
@@ -134,10 +149,9 @@ internal fun SetupPage(
     val description =
         when (step) {
             MusicSetupStep.NAVIGATE -> "Clockwise adds. Counterclockwise subtracts."
-            MusicSetupStep.SELECT -> "Press center to open a folder."
-            MusicSetupStep.BACK -> "Use Left or Menu."
-            MusicSetupStep.BROWSE -> "Select the record, or go back."
-            MusicSetupStep.CHOICE -> "Local music or AudioStream."
+            MusicSetupStep.SELECT -> "Press center to open."
+            MusicSetupStep.BACK -> "Press Left or Menu."
+            MusicSetupStep.BROWSE -> "Press center to select."
             MusicSetupStep.DEVICE ->
                 if (permissionDenied) "Allow access or choose another source."
                 else "Allow access to find device music."
@@ -145,8 +159,11 @@ internal fun SetupPage(
             MusicSetupStep.SCANNING ->
                 when (local) {
                     is LocalScanProgress.Complete ->
-                        if (local.count > 0) "${local.count} songs found."
-                        else "Choose a music folder."
+                        when (local.count) {
+                            0 -> "Choose a music folder."
+                            1 -> "1 song found."
+                            else -> "${local.count} songs found."
+                        }
                     LocalScanProgress.Failed -> "Try again or choose a folder."
                     else -> "Scanning device music."
                 }
@@ -182,17 +199,12 @@ internal fun SetupPage(
         }
     LaunchedEffect(step, state.navigationProgress) {
         if (step == MusicSetupStep.NAVIGATE && state.navigationProgress >= 100) {
-            delay(600)
+            delay(600.milliseconds)
             model.next()
         }
     }
-    val libraryReady =
-        (step == MusicSetupStep.SCANNING &&
-            local is LocalScanProgress.Complete &&
-            local.count > 0) ||
-            (step == MusicSetupStep.CONNECTED && catalog is CatalogProgress.Complete)
-    LaunchedEffect(libraryReady, state.storageError) {
-        if (libraryReady && !state.storageError) model.finish(true)
+    LaunchedEffect(libraryReady) {
+        if (libraryReady) actionIndex = 0
     }
     val wheelFill by
         animateFloatAsState(
@@ -201,6 +213,17 @@ internal fun SetupPage(
             label = "Wheel progress",
         )
     val actions = buildList {
+        if (libraryReady) {
+            add(
+                SetupAction(
+                    if (state.storageError) "Try saving again" else "Open All Songs",
+                    !state.busy,
+                    showButton = state.storageError,
+                ) {
+                    model.finish(true)
+                }
+            )
+        }
         when (step) {
             MusicSetupStep.SELECT ->
                 add(
@@ -314,15 +337,6 @@ internal fun SetupPage(
             else -> Unit
         }
         if (state.storageError) {
-            if (libraryReady)
-                add(
-                    SetupAction(
-                        "Try saving again",
-                        !state.busy,
-                    ) {
-                        model.finish(true)
-                    }
-                )
             add(
                 SetupAction(
                     "Continue without saving",
@@ -382,8 +396,33 @@ internal fun SetupPage(
         wheel?.register(handler, overlay)
         onDispose { wheel?.unregister(handler) }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val pageInsets =
+        if (listStep) Modifier else Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+    val headerInsets = if (listStep) Modifier.padding(horizontal = 24.dp) else Modifier
+    Column(Modifier.fillMaxSize().then(pageInsets)) {
+        Row(
+            Modifier.fillMaxWidth()
+                .then(
+                    if (tutorialList) Modifier.padding(start = 8.dp, end = 24.dp)
+                    else headerInsets
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (tutorialList) {
+                val backSlot = Modifier.size(48.dp)
+                if (step == MusicSetupStep.BROWSE) {
+                    Box(
+                        backSlot.clickable(onClickLabel = "Back to folders", role = Role.Button) {
+                            model.back()
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("<", color = foreground, fontSize = 12.sp)
+                    }
+                } else {
+                    Spacer(backSlot)
+                }
+            }
             val section =
                 when {
                     navigation -> "NAVIGATION"
@@ -410,7 +449,9 @@ internal fun SetupPage(
         }
         if (number > 0)
             Row(
-                Modifier.fillMaxWidth().padding(top = 8.dp),
+                Modifier.fillMaxWidth()
+                    .then(headerInsets)
+                    .padding(top = if (tutorialList) 0.dp else 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 repeat(3) { index ->
@@ -423,7 +464,7 @@ internal fun SetupPage(
                     )
                 }
             }
-        if (step != MusicSetupStep.SUCCESS && !remoteLoading) {
+        if (!listStep && !showResult && !remoteLoading) {
             Spacer(Modifier.height(16.dp))
             Text(title, fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Medium)
             if (description.isNotBlank()) {
@@ -435,9 +476,63 @@ internal fun SetupPage(
         Column(
             Modifier.weight(1f)
                 .fillMaxWidth()
-                .then(if (centered) Modifier else Modifier.verticalScroll(rememberScrollState())),
-            verticalArrangement = if (centered) Arrangement.Center else Arrangement.spacedBy(8.dp),
+                .then(if (centered) Modifier else Modifier.verticalScroll(rememberScrollState()))
+                .then(if (listStep) Modifier.padding(bottom = 12.dp) else Modifier),
+            verticalArrangement =
+                when {
+                    centered -> Arrangement.Center
+                    listStep -> Arrangement.Top
+                    else -> Arrangement.spacedBy(8.dp)
+                },
         ) {
+            if (showResult) {
+                Text(
+                    title,
+                    Modifier.align(Alignment.CenterHorizontally).semantics { heading() },
+                    fontSize = 23.sp,
+                    lineHeight = 29.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (showCompletion) description else MusicSetupTutorial.target,
+                    Modifier.align(Alignment.CenterHorizontally),
+                    color = secondary,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    when {
+                        state.busy -> "Saving…"
+                        showCompletion -> "Press center to open All Songs"
+                        else -> "Press center to continue"
+                    },
+                    Modifier.align(Alignment.CenterHorizontally),
+                    color = secondary,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (listStep) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        title,
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (description.isNotBlank()) {
+                        Text(
+                            description,
+                            color = secondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
             when (step) {
                 MusicSetupStep.NAVIGATE -> {
                     Text(
@@ -457,106 +552,54 @@ internal fun SetupPage(
 
                 MusicSetupStep.SELECT ->
                     MusicSetupTutorial.folders.forEachIndexed { index, label ->
-                        SetupChoice(
-                            label,
-                            "Folder",
-                            index == tutorialIndex,
-                            folder = true,
+                        SetupListItem(
+                            label = label,
+                            selected = index == tutorialIndex,
+                            trailing = ">",
                         ) {
                             model.openTutorialFolder(index)
                         }
                     }
 
                 MusicSetupStep.BACK -> {
-                    Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
-                        Row(
-                            Modifier.fillMaxWidth()
-                                .background(foreground.copy(alpha = 0.06f))
-                                .clickable { model.back() }
-                                .padding(horizontal = 14.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Text("<", fontSize = 18.sp, color = foreground)
-                            Text("Folders", Modifier.weight(1f), fontSize = 15.sp)
-                            Text("Left / Menu", fontSize = 11.sp, color = secondary)
-                        }
-                        Row(
-                            Modifier.padding(start = 24.dp, top = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Canvas(Modifier.size(16.dp)) {
-                                drawLine(
-                                    secondary.copy(alpha = 0.5f),
-                                    Offset(0f, 0f),
-                                    Offset(0f, size.height / 2),
-                                    strokeWidth = 1.dp.toPx(),
-                                )
-                                drawLine(
-                                    secondary.copy(alpha = 0.5f),
-                                    Offset(0f, size.height / 2),
-                                    Offset(size.width / 2, size.height / 2),
-                                    strokeWidth = 1.dp.toPx(),
-                                )
-                            }
-                            Text(
-                                MusicSetupTutorial.folders[state.tutorialFolder],
-                                color = secondary,
-                                fontSize = 13.sp,
-                            )
-                        }
+                    SetupListItem(label = "Back to folders", selected = false) {
+                        model.back()
                     }
                 }
 
                 MusicSetupStep.BROWSE -> {
-                    Text(
-                        "Folders / ${MusicSetupTutorial.folders[state.tutorialFolder]}",
-                        color = secondary,
-                        fontSize = 12.sp,
-                    )
                     MusicSetupTutorial.items(state.tutorialFolder).forEachIndexed { index, label ->
-                        SetupChoice(label, null, index == tutorialIndex) {
+                        SetupListItem(label, selected = index == tutorialIndex) {
                             model.selectTutorialItem(index)
                         }
                     }
                     state.tutorialMessage?.let {
                         Text(
                             it,
+                            modifier =
+                                Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                                    .semantics { liveRegion = LiveRegionMode.Polite },
                             color = secondary,
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                 }
 
-                MusicSetupStep.SUCCESS -> {
-                    Text(
-                        title,
-                        Modifier.align(Alignment.CenterHorizontally),
-                        fontSize = 23.sp,
-                        lineHeight = 29.sp,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        MusicSetupTutorial.target,
-                        Modifier.align(Alignment.CenterHorizontally),
-                        color = secondary,
-                        fontSize = 13.sp,
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    Text(
-                        "Press center to continue",
-                        Modifier.align(Alignment.CenterHorizontally),
-                        color = secondary,
-                        fontSize = 12.sp,
-                    )
-                }
-
                 MusicSetupStep.CHOICE -> {
-                    SetupChoice("On this device", "Device files", sourceIndex == 0) {
+                    SetupListItem(
+                        label = "On this device",
+                        selected = sourceIndex == 0,
+                        trailing = ">",
+                        subLabel = "Device files",
+                    ) {
                         model.choose(MusicSetupStep.DEVICE)
                     }
-                    SetupChoice("AudioStream", "Remote library", sourceIndex == 1) {
+                    SetupListItem(
+                        label = "AudioStream",
+                        selected = sourceIndex == 1,
+                        trailing = ">",
+                        subLabel = "Remote library",
+                    ) {
                         model.choose(MusicSetupStep.ADDRESS)
                     }
                 }
@@ -606,11 +649,15 @@ internal fun SetupPage(
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
-                    modifier = Modifier.padding(vertical = 8.dp),
+                    modifier =
+                        Modifier.padding(
+                            horizontal = if (listStep) 24.dp else 0.dp,
+                            vertical = 8.dp,
+                        ),
                 )
             }
         }
-        Spacer(Modifier.height(12.dp))
+        if (!listStep || actions.any { it.showButton }) Spacer(Modifier.height(12.dp))
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             actions.forEachIndexed { index, action ->
                 if (!action.showButton) return@forEachIndexed
@@ -620,6 +667,7 @@ internal fun SetupPage(
                     else action.label,
                     modifier =
                         Modifier.fillMaxWidth()
+                            .then(headerInsets)
                             .heightIn(min = 40.dp)
                             .background(if (selected && action.enabled) foreground else background)
                             .border(1.dp, foreground.copy(alpha = if (selected) 0.7f else 0.2f))

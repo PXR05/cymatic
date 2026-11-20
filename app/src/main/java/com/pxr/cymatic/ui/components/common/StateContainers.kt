@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -36,31 +38,49 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun LoadingState(
     modifier: Modifier = Modifier,
     delayMillis: Long = 300L,
 ) {
-    var showLoading by remember { mutableStateOf(false) }
+    var showLoading by remember { mutableStateOf(delayMillis <= 0L) }
     LaunchedEffect(Unit) {
-        delay(delayMillis)
+        delay(delayMillis.milliseconds)
         showLoading = true
     }
 
     if (showLoading) {
+        val frames = arrayOf(
+            "█⠀⠀⠀⠀",
+            "▒█⠀⠀⠀",
+            "░▒█⠀⠀",
+            "⠀░▒█⠀",
+            "⠀⠀░▒█",
+            "⠀⠀⠀▒█",
+            "⠀⠀⠀⠀█",
+            "⠀⠀⠀█▒",
+            "⠀⠀█▒░",
+            "⠀█▒░⠀",
+            "█▒░⠀⠀",
+            "█▒⠀⠀⠀",
+        )
         val infiniteTransition = rememberInfiniteTransition(label = "loading")
         val frame by
             infiniteTransition.animateValue(
                 initialValue = 0,
-                targetValue = 8,
+                targetValue = frames.size,
                 typeConverter = Int.VectorConverter,
                 animationSpec =
                     infiniteRepeatable(
@@ -69,26 +89,16 @@ fun LoadingState(
                     ),
                 label = "frame",
             )
-
-        val spinner =
-            when (frame) {
-                0 -> "▖"
-                1 -> "▘"
-                2 -> "▝"
-                3 -> "▗"
-                4 -> "▚"
-                5 -> "▞"
-                6 -> "█"
-                else -> "░"
-            }
+        val chars = frames[frame]
 
         Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = spinner,
+                text = chars,
                 fontSize = 16.sp,
+                letterSpacing = (-0.1).em,
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyLarge,
             )
@@ -219,4 +229,39 @@ fun rememberStoragePermission(onResult: (Boolean) -> Unit = {}): StoragePermissi
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
     return StoragePermissionState(granted) { launcher.launch(audioStoragePermission) }
+}
+
+@PreviewLightDark
+@Composable
+private fun LoadingStatePreview() {
+    StateContainerPreview { LoadingState(delayMillis = 0L) }
+}
+
+@PreviewLightDark
+@Composable
+private fun EmptyStatePreview() {
+    StateContainerPreview { EmptyState() }
+}
+
+@PreviewLightDark
+@Composable
+private fun ErrorStatePreview() {
+    StateContainerPreview { ErrorState() }
+}
+
+@PreviewLightDark
+@Composable
+private fun PermissionDeniedStatePreview() {
+    StateContainerPreview { PermissionDeniedState() }
+}
+
+@Composable
+private fun StateContainerPreview(content: @Composable () -> Unit) {
+    CymaticTheme {
+        Surface(
+            modifier = Modifier.size(width = 320.dp, height = 240.dp),
+            color = MaterialTheme.colorScheme.background,
+            content = content,
+        )
+    }
 }

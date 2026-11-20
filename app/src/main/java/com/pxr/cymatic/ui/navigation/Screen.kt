@@ -63,6 +63,8 @@ sealed class Screen(val route: String) {
 
     object LibrarySyncSettings : Screen("setting/library-sync")
 
+    object AboutSettings : Screen("setting/about")
+
     object VersionSettings : Screen("setting/version")
 
     object LicensesSettings : Screen("setting/licenses")

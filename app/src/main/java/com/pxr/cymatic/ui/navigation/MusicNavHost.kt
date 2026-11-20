@@ -40,6 +40,7 @@ import com.pxr.cymatic.ui.screens.library.artist.ArtistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.AddToPlaylistScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
+import com.pxr.cymatic.ui.screens.settings.AboutSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsViewModel
@@ -130,6 +131,7 @@ fun MusicNavHost(
                 },
             Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
             Screen.StorageSettings.route to { StorageSettingsScreen() },
+            Screen.AboutSettings.route to { AboutSettingsScreen() },
         ) + additionalRoutes
     val nav = LocalNavController.current
     val currentRoutes = routes.mapValues { (route, content) ->

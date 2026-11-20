@@ -43,12 +43,8 @@ fun SettingsScreen(
                     additionalItems +
                     listOf(
                         NavigationItem(
-                            label = "Version",
-                            onClick = { navController.navigate(Screen.VersionSettings.route) },
-                        ),
-                        NavigationItem(
-                            label = "Licenses",
-                            onClick = { navController.navigate(Screen.LicensesSettings.route) },
+                            label = "About",
+                            onClick = { navController.navigate(Screen.AboutSettings.route) },
                         ),
                     )
         )
