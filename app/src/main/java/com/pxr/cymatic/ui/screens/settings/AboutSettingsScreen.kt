@@ -17,6 +17,7 @@ internal fun AboutSettingsScreen() {
                 listOf(
                     NavigationItem("Version") { nav.navigate(Screen.VersionSettings.route) },
                     NavigationItem("Licenses") { nav.navigate(Screen.LicensesSettings.route) },
+                    NavigationItem("Report bug") { nav.navigate(Screen.ReportBug.route) },
                 ),
         )
     }

@@ -41,6 +41,7 @@ import com.pxr.cymatic.ui.screens.library.playlist.AddToPlaylistScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistSongsScreen
 import com.pxr.cymatic.ui.screens.library.playlist.PlaylistsScreen
 import com.pxr.cymatic.ui.screens.settings.AboutSettingsScreen
+import com.pxr.cymatic.ui.screens.settings.ReportBugScreen
 import com.pxr.cymatic.ui.screens.settings.SettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsScreen
 import com.pxr.cymatic.ui.screens.settings.VersionSettingsViewModel
@@ -132,6 +133,7 @@ fun MusicNavHost(
             Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
             Screen.StorageSettings.route to { StorageSettingsScreen() },
             Screen.AboutSettings.route to { AboutSettingsScreen() },
+            Screen.ReportBug.route to { ReportBugScreen() },
         ) + additionalRoutes
     val nav = LocalNavController.current
     val currentRoutes = routes.mapValues { (route, content) ->
@@ -147,7 +149,9 @@ fun MusicNavHost(
                     Box(currentContentModifier.value.fillMaxSize()) { content(entry) }
                     currentOverlay.value()
                 }
-                if (route != Screen.NowPlaying.route) currentFooter.value()
+                if (route != Screen.NowPlaying.route && route != Screen.ReportBug.route) {
+                    currentFooter.value()
+                }
             }
         }
     }

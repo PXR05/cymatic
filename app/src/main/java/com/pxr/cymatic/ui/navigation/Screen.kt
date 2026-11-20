@@ -65,6 +65,8 @@ sealed class Screen(val route: String) {
 
     object AboutSettings : Screen("setting/about")
 
+    object ReportBug : Screen("setting/about/report-bug")
+
     object VersionSettings : Screen("setting/version")
 
     object LicensesSettings : Screen("setting/licenses")
