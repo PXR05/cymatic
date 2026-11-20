@@ -4,6 +4,7 @@ plugins {
 }
 android {
     namespace = "com.pxr.cymatic"
+    ndkVersion = "29.0.14206865"
     defaultConfig {
         applicationId = "com.pxr.cymatic"
     }
