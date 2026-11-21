@@ -128,7 +128,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
         direct = UsbPlaybackState.routeToUsb
         format = inputFormat
         OutputInfoState.event(
-            "Sink configured: ${if (direct) "Direct USB" else "Android AudioTrack"}; ${inputFormat.sampleRate} Hz / ${inputFormat.channelCount} channels"
+            "Sink configured: ${if (direct) "Direct USB" else "Android AudioTrack"}, ${inputFormat.sampleRate} Hz / ${inputFormat.channelCount} channels"
         )
         resetTimeline()
         if (!direct) {
@@ -414,12 +414,12 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
             val report =
                 output.report
                     .put("capturedAt", Instant.now().toString())
-                    .put("scope", "Continuous PCM output; digital equality is unverified")
+                    .put("scope", "Continuous PCM output. Digital equality is unverified")
                     .put("digitalEqualityVerified", false)
                     .putUsbStreamStatistics(stats)
             UsbPlaybackState.record(report)
             if (report.optJSONArray("cleanupWarnings")?.length() != 0) {
-                UsbPlaybackState.update("USB cleanup needs attention; export diagnostics")
+                UsbPlaybackState.update("USB cleanup needs attention. Export diagnostics.")
             }
         } finally {
             UsbPlaybackState.setActive(false)
@@ -482,7 +482,7 @@ internal class UsbAudioSink(private val context: Context, private val normal: Au
                     usb.put("pendingBytes", stats[2])
                         .put(
                             "statisticsScope",
-                            "Current USB connection; completed frames are USB transfer completions",
+                            "Current USB connection. Completed frames are USB transfer completions",
                         )
                 }
                 result.put("usb", usb)

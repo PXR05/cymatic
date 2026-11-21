@@ -14,5 +14,5 @@ fun DacSnapshot.playerPreset(): EqPreset =
                 result.eq.bands.playerBands(),
             )
 
-        is DacImport.Rejected -> throw IOException(result.issues.joinToString("; "))
+        is DacImport.Rejected -> throw IOException(result.issues.joinToString(", "))
     }

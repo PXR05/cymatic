@@ -258,9 +258,9 @@ internal class PlaybackOutputMonitor(
         val processing =
             when {
                 dsf != null && !dop -> "DSD converted to PCM"
-                direct && dop -> "DSD payload sent through DoP; host EQ and software gain bypassed"
-                direct -> "PCM passthrough after decoding; host EQ and software gain bypassed"
-                else -> "Android PCM pipeline; system may mix or resample"
+                direct && dop -> "DSD payload sent through DoP (host EQ and software gain bypassed)"
+                direct -> "PCM passthrough after decoding (host EQ and software gain bypassed)"
+                else -> "Android PCM pipeline (system may mix or resample)"
             }
         val overview =
             section(
@@ -303,7 +303,7 @@ internal class PlaybackOutputMonitor(
                 "Decoded audio" to decodedDescription,
                 "DSD handling" to dsd?.optString("mode"),
                 "DSD conversion filter" to
-                        if (dsf != null && !dop) "40 kHz low-pass FIR; 24-bit PCM output" else null,
+                        if (dsf != null && !dop) "40 kHz low-pass FIR, 24-bit PCM output" else null,
                 "Encoder delay / padding" to
                         source
                             ?.takeIf { it.encoderDelay > 0 || it.encoderPadding > 0 }
@@ -330,7 +330,7 @@ internal class PlaybackOutputMonitor(
                         preset.name.takeIf { !direct && EqSettingsStore.currentEqGlobalEnabled },
                 "EQ preamp" to
                         if (eqActive)
-                            "${preset.preamp} dB requested; linear gain ${eq?.opt("preampLinear")}"
+                            "${preset.preamp} dB requested, linear gain ${eq?.opt("preampLinear")}"
                         else null,
                 "Active EQ filters" to eq?.optInt("activeFilters")?.takeIf { eqActive },
                 "EQ rate mismatch" to
@@ -341,7 +341,7 @@ internal class PlaybackOutputMonitor(
                                 true,
                             ) == false
                         )
-                            "Filter rate ${rate(eq.optLong("coefficientSampleRateHz"))}; PCM rate ${
+                            "Filter rate ${rate(eq.optLong("coefficientSampleRateHz"))}, PCM rate ${
                                 rate(
                                     eq.optLong("inputSampleRateHz")
                                 )
@@ -471,7 +471,7 @@ internal class PlaybackOutputMonitor(
                 "Transfer error" to usb?.optLong("transferError")?.takeIf { it != 0L },
                 "Frames delivered to USB" to usb?.opt("completedFrames"),
                 "Statistics scope" to
-                        "Current USB connection; completion does not prove analog playback or bit-perfect output",
+                        "Current USB connection. Completion does not prove analog playback or bit-perfect output",
             )
 
         val errorFields =
@@ -483,7 +483,7 @@ internal class PlaybackOutputMonitor(
                 "AudioTrack underruns" to underruns,
                 "Last underrun" to
                         if (underruns > 0)
-                            "${underrunDetails.opt("elapsedSinceFeedMs")} ms since last feed; ${
+                            "${underrunDetails.opt("elapsedSinceFeedMs")} ms since last feed, ${
                                 underrunDetails.opt(
                                     "bufferDurationMs"
                                 )

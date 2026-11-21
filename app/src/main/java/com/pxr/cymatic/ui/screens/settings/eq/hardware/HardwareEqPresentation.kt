@@ -39,7 +39,7 @@ internal fun deviceDetails(target: DeviceTarget, firmware: String?): String = bu
     )
     appendLine("Frequency: ${target.caps.freqMinHz}–${target.caps.freqMaxHz} Hz")
     appendLine(
-        "Gain: ${target.caps.gainMinDb}–${target.caps.gainMaxDb} dB; some filters have narrower limits"
+        "Gain: ${target.caps.gainMinDb}–${target.caps.gainMaxDb} dB (some filters have narrower limits)"
     )
     appendLine(
         if (target.hasPreamp)
@@ -47,7 +47,7 @@ internal fun deviceDetails(target: DeviceTarget, firmware: String?): String = bu
         else "No writable EQ preamp"
     )
     if (target.emulatesHighShelf)
-        appendLine("High shelves use an inverted low shelf and preamp; gain uses whole dB.")
+        appendLine("High shelves use an inverted low shelf and preamp. Gain uses whole dB.")
     target.ktMicro?.let {
         appendLine(
             "Tuning assumes ${it.assumedStreamHz.toInt()} Hz playback. Other sample rates shift the filter frequencies."

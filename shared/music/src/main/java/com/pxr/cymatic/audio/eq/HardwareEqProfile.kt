@@ -72,7 +72,7 @@ fun DeviceTarget.draftIssues(preset: EqPreset): List<String> = runCatching {
                 }
             }
         }
-        if (!hasPreamp && preset.preamp != 0f) add("This DAC has no EQ preamp; set it to 0 dB")
+        if (!hasPreamp && preset.preamp != 0f) add("This DAC has no EQ preamp, so set it to 0 dB")
     }
 }
     .getOrElse { listOf(it.message ?: "This profile cannot be sent to the DAC") }

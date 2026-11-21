@@ -227,7 +227,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
             if (feature == null) {
                 UsbVolumeState.unavailable("DAC hardware volume is unavailable")
                 error(
-                    "DAC has no resolved writable hardware volume; direct playback stopped to avoid uncontrolled output"
+                    "DAC has no resolved writable hardware volume. Direct playback stopped to avoid uncontrolled output."
                 )
             }
             UsbHardwareVolume(connection, feature) { continuous?.stop() }
@@ -389,7 +389,7 @@ internal class UsbPcmDevice private constructor(private val connection: UsbDevic
                 else devices.singleOrNull()
             checkNotNull(device) { "Connect exactly one USB DAC for direct playback" }
             check(manager.hasPermission(device)) {
-                "USB access is required; reconnect the DAC to request permission"
+                "USB access is required. Reconnect the DAC to request permission."
             }
             val connection = manager.openDevice(device) ?: error("USB DAC could not be opened")
             val result = UsbPcmDevice(connection)

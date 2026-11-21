@@ -13,7 +13,7 @@ internal fun UsbDiagnosticsState.exportJson(): String? =
         JSONObject(text)
             .put(
                 "scope",
-                "USB capabilities and optional bounded transport probes; bit-perfect music playback is unverified",
+                "USB capabilities and optional bounded transport probes. Bit-perfect music playback is unverified.",
             )
             .put("directUsbPlaybackStatus", UsbPlaybackState.status.value)
             .put(

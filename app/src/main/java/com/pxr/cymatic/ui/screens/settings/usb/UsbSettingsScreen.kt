@@ -228,7 +228,7 @@ internal fun UsbSettingsScreen(
                     if (mode.name == selected) "Selected"
                     else
                         when (mode) {
-                            DsdUsbMode.AUTO -> "Verified DACs; otherwise PCM"
+                            DsdUsbMode.AUTO -> "PCM unless the DAC is verified"
                             DsdUsbMode.PCM -> "Works with PCM-only DACs"
                             DsdUsbMode.DOP -> "Use with a DoP-capable DAC"
                         },

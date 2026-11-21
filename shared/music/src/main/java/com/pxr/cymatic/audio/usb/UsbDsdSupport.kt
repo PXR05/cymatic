@@ -123,6 +123,6 @@ internal object UsbDsdSupport {
             .put("failedCarrierRatesHz", JSONArray(failedRates.toList().sorted()))
             .put(
                 "carrierRateValidation",
-                "Confirmed during USB initialization; candidate rates alone do not prove active output",
+                "Confirmed during USB initialization. Candidate rates alone do not prove active output",
             )
 }

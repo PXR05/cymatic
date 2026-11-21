@@ -14,7 +14,7 @@ object UsbOutputOwnership {
                 token,
             )
         ) {
-            "DAC is in use; stop direct USB playback before probing"
+            "DAC is in use. Stop direct USB playback before probing."
         }
     }
 

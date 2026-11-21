@@ -191,7 +191,7 @@ internal class UsbAudioDiagnosticsViewModel(application: Application) :
         if (state.value.permissionDeviceId != null) return
         val current = usbManager.deviceList[device.deviceName]
         if (current?.deviceId != device.deviceId) {
-            message("Device disconnected; refreshing")
+            message("Device disconnected. Refreshing.")
             refresh()
             return
         }
@@ -295,7 +295,7 @@ internal class UsbAudioDiagnosticsViewModel(application: Application) :
         exportSnapshot = null
         if (uri == null || text == null) {
             mutableState.update { it.copy(exporting = false) }
-            if (uri != null) message("Inspection was interrupted; refresh and export again")
+            if (uri != null) message("Inspection was interrupted. Refresh and export again.")
             return
         }
         viewModelScope.launch {

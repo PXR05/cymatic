@@ -264,7 +264,7 @@ internal class HardwareEqViewModel(application: Application) : AndroidViewModel(
                 message("Reconnect, then verify EQ")
             } else {
                 check(result.verified) {
-                    result.mismatches.joinToString("; ").ifBlank { "DAC EQ verification failed" }
+                    result.mismatches.joinToString(", ").ifBlank { "DAC EQ verification failed" }
                 }
                 withContext(Dispatchers.Main) {
                     mutableState.value =
@@ -320,7 +320,7 @@ internal class HardwareEqViewModel(application: Application) : AndroidViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                message(e.message ?: "DAC EQ operation failed; read the DAC before retrying")
+                message(e.message ?: "DAC EQ operation failed. Read the DAC before retrying.")
             } finally {
                 mutableState.value = state.value.copy(busy = false)
                 refresh()

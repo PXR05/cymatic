@@ -87,7 +87,7 @@ internal class UsbPlaybackCoordinator(
                             }
                         }
                 if (output?.dop == true && UsbDsdSupport.fallback(output.sourceRate / 16)) {
-                    OutputInfoState.event("DoP failed; retrying PCM: ${error.message}")
+                    OutputInfoState.event("DoP failed. Retrying PCM: ${error.message}")
                     UsbPlaybackState.update("DSD over PCM unavailable · retrying as PCM")
                     switchRoute(true)
                     return

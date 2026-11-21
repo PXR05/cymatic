@@ -25,7 +25,7 @@ data class UsbDiagnosticReport(
             .put("capturedAt", capturedAt)
             .put(
                 "scope",
-                "Capability inspection only; playback and bit-perfectness are not verified",
+                "Capability inspection only. Playback and bit-perfectness are not verified",
             )
             .put("usbHostSupported", hostSupported)
             .put("environment", environment)
