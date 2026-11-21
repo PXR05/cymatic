@@ -1,11 +1,12 @@
 # Cymatic
 
-A minimal Android music player with a click wheel interface, pixel typography,
-and direct USB DAC playback.
+A minimal Android music player with a classic click wheel, monochrome pixel interface, and direct USB DAC playback.
+
+**[Download the latest APK](https://github.com/PXR05/cymatic/releases/latest)** · Requires Android 12 or newer
 
 ## Screenshots
 
-| Now Playing | Main menu |
+| Now Playing | Main Menu |
 | --- | --- |
 | <img src="docs/screenshots/player-now-playing.jpg" alt="Now Playing, album art, FLAC format, direct USB output, and the click wheel" width="280"> | <img src="docs/screenshots/player-main-menu.jpg" alt="Main menu with artists, albums, playlists, queue, settings, and the click wheel" width="280"> |
 
@@ -13,111 +14,60 @@ and direct USB DAC playback.
 | --- | --- |
 | <img src="docs/screenshots/player-album-tracks.jpg" alt="Track queue with artist names, track durations, and the playback bar" width="280"> | <img src="docs/screenshots/player-interface-settings.jpg" alt="Settings page" width="280"> |
 
-## Features
+## Highlights
 
-- **Click wheel player:** rotate to browse lists or adjust playback volume; use the
-  center button to select, Menu to return home, and the outer buttons for playback.
-- **Music library:** browse tracks, artists, albums, playlists, and the current queue.
-- **Pixel interface:** monochrome light and dark themes, pixel icons, and scrolling
-  track names with ellipses at clipped edges.
-- **Interface controls:** adjust wheel size and sensitivity, screen padding, haptics,
-  text scrolling, cover-art visibility, and screen-awake behavior.
-- **Standby:** an optional idle timeout blanks the player display. Touch wakes it,
-  and the same touch can continue into a wheel gesture.
-- **Audio profiles:** remember volume per output device, with separate normal and
-  direct USB volume levels, plus equalizer presets per device.
-- **Remote library:** connect to AudioStream to browse songs and playlists, with optional
-  offline downloads and automatic storage management.
-- **DSD/DSF:** play mono/stereo DSF files through PCM conversion or bit-perfect
-  DSD over PCM (DoP) on a compatible USB DAC.
+- **Click wheel navigation:** Spin the outer ring to scroll lists or adjust volume, or tap items directly.
+- **Minimal pixel UI:** Monochrome light and dark themes with crisp pixel icons and customizable wheel size, sensitivity, padding, haptics, text scrolling, cover art, and screen-awake behavior.
+- **Standby mode:** Optional idle timeout blanks the screen to reduce distractions. Touch anywhere to wake it, and continue smoothly into a wheel gesture.
+- **Local & remote music together:** Browse tracks, artists, albums, playlists, and your queue in one place, or connect an AudioStream account to stream your remote library.
+- **Per-device audio profiles:** Automatically remembers volume (with separate normal and direct USB levels) and equalizer presets for each output device, including hardware PEQ on supported USB DACs.
+- **Direct USB DAC & DSD support:** Bypass Android audio mixing on compatible USB DACs, with support for lossless formats and DSD (PCM conversion or bit-perfect DoP).
 
-## Install
+## Getting started
 
-Requires **Android 12 or newer**.
+1. **Install:** Download `cymatic-player-v<version>.apk` from [GitHub Releases](https://github.com/PXR05/cymatic/releases/latest) and install it on your Android 12+ device.
+2. **Learn the click wheel:** On first launch, Cymatic walks you through spinning the wheel, opening items with the center button, and going back with Left or Menu. You can also tap **Skip** at any time.
+3. **Choose your music source:**
+   - **On this device:** Allow music access so Cymatic can scan your library automatically (or pick a music folder if no tracks are found).
+   - **AudioStream:** Enter your server URL, username, and password to load your remote songs and playlists. *(Local storage permission is only needed if you also play files on your device.)*
+4. **Start listening:** Once your library is ready, press Center to open **All Songs**. You can manage folders, connect another source, or customize the wheel and display later under **Settings**.
 
-Download `cymatic-player-v<version>.apk` from
-[GitHub Releases](https://github.com/PXR05/cymatic/releases/latest) and install it on your device.
+## Controls
 
-Grant music access, then use **Settings → Storage** to scan your music. You can scan
-all media or choose individual directories. **Settings → Interface**
-contains the wheel, display-padding, scrolling, and standby controls.
+Slide around the outer ring to scroll through lists, or to adjust volume on the **Now Playing** screen. You can also tap list items directly.
 
-Use **Settings → Remote library** to connect an AudioStream account. Songs and playlists
-appear in the normal library immediately after connecting. Tap a remote song to stream
-it; playback prefers a downloaded copy when one is available. Local-storage permission
-is only needed for music stored outside Cymatic.
-
-Long press a song, playlist, album, or artist and choose **Keep offline** to download it.
-You can queue more items while downloads are running. A small animated pixel icon marks
-queued or processing items in place. The download icon marks offline items, a half-filled
-circle marks partially offline items, and the cloud marks stream-only items.
-Download status updates as files complete.
-Cymatic manages storage automatically; custom folders, bulk downloads, layout, and
-scheduling remain in remote-library settings. Automatic downloads default to a daily
-Wi-Fi check when first enabled. Uninstalling the app removes its private downloads.
-Additional providers are planned; the connection UI currently supports AudioStream.
-
-Hold **Menu → Show** in a library screen to choose **All music**, **Offline only**,
-or **Not offline**. The filter is shared across library screens and remembered.
-Partially offline playlists appear under **Not offline**. Use the active-filter label
-or the same menu to return to all music.
-
-## Wheel controls
-
-Start a gesture on the outer ring and move around it to scroll. On Now Playing,
-the same motion adjusts volume. You can also tap the displayed list items directly.
-
-| Control | Browsing | Now Playing |
+| Button | Browsing | Now Playing |
 | --- | --- | --- |
-| Center | Select the highlighted item | Return to the music browser |
-| Menu | Return to the main menu | Return to the main menu |
-| Previous | Go back | Previous track |
-| Next | Select the highlighted item | Next track |
-| Play/Pause | Open Now Playing | Toggle playback |
+| **Center** | Select highlighted item | Return to library |
+| **Menu** | Return to main menu | Return to main menu |
+| **Previous** | Go back | Previous track |
+| **Next** | Select highlighted item | Next track |
+| **Play/Pause** | Open Now Playing | Play / Pause |
 
-Hold Menu for quick settings. Hold the center button on Now Playing for track
-actions, or while browsing for the selected item's context menu.
+**Long-press shortcuts:**
+- **Hold Menu** for quick settings.
+- **Hold Center** while browsing to open actions for the highlighted item.
+- **Hold Center** on Now Playing for track actions, including **Output info** to view playback/USB details or copy a diagnostic report (**Copy report**).
 
-**Track actions → Output info** has separate pages for the overview, format and
-decoder, processing, device and volume, USB stream health, and recent errors and
-events. Rotate to browse pages and scroll their details; select to return. Choose
-**Copy report** to copy the diagnostic text. Hardware details that Android cannot
-observe are marked explicitly.
+## Direct USB DAC & DSD playback
 
-## Direct USB audio
+Plug in a USB DAC, enable **Settings → Playback → USB audio → Direct USB**, and allow USB access when prompted. A hollow diamond icon indicates that direct USB output is active.
 
-Connect a USB DAC and enable **Settings → Playback → USB audio → Direct USB**, then allow USB
-access when prompted. The hollow diamond indicates that direct USB output is active.
+- **Supported formats:** WAV, FLAC (including Ogg FLAC), ALAC (M4A/MP4), MP3, Ogg Vorbis/Opus, and DSF. If a track or DAC configuration isn't supported over direct USB, Cymatic automatically falls back to standard Android playback.
+- **DSD playback (DSF):** Supports DSD64, DSD128, DSD256, and DSD512 (including 48 kHz-family rates). Standard playback converts DSD to high-res PCM. Over direct USB, Cymatic can send bit-perfect DoP for DSD64/128 on supported DACs, or convert to PCM otherwise.
+- **Per-DAC DSD setting:** Configure **Settings → Playback → USB audio → DSD output** as **Automatic**, **Convert to PCM**, or **DoP** for each DAC. **Automatic** recognizes Amanero Combo384 interfaces and uses PCM for unknown DACs; choose **DoP** if your DAC supports it. If DoP fails, Cymatic retries with PCM and falls back to Android output if needed.
+- **Missing DSF files?** If Android doesn't index your DSF files automatically, add their folder under **Settings → Storage → Add directory** and rescan. Cymatic reads DSF tags and embedded cover art directly.
 
-Direct USB supports mono/stereo PCM WAV, FLAC (including Ogg FLAC), ALAC in M4A/MP4,
-MP3, and Ogg Vorbis/Opus. Lossy formats use Android decoders with 16-bit PCM output
-at the codec's sample rate. Unsupported tracks or DAC configurations fall back to
-Android playback.
+## Credits
 
-### DSD playback
+- **Audio codecs:** [libFLAC](https://xiph.org/flac/), [Apple ALAC](https://github.com/macosforge/alac)
+- **USB DAC PEQ:** [Contour](https://github.com/Chronosauros/contour) (with protocols from [devicePEQ](https://github.com/jeromeof/devicePEQ) and [FreeDSP-Studio](https://github.com/EffectiveEquivalent/FreeDSP-Studio))
+- **Fonts:** [Departure Mono](https://departuremono.com/), [LanaPixel](https://opengameart.org/content/lanapixel-localization-friendly-pixel-font), [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
 
-DSF files support DSD64, DSD128, DSD256, and DSD512, including their 48 kHz-family
-rates. Normal playback converts DSD to 24-bit PCM at 176.4 or 192 kHz. Direct USB
-uses DoP for DSD64/128 when the DAC supports its carrier rate, and PCM conversion
-otherwise. DoP is a transport for the original DSD bits; it does not convert them
-to PCM audio. Higher DSD rates use PCM conversion with the current USB transport.
+Full third-party notices and license texts are available inside the app.
 
-Under **Settings → Playback → USB audio → DSD output**, each DAC has an Automatic, Convert to
-PCM, or DoP setting. Automatic recognizes the Amanero Combo384 interface; unknown
-DACs use PCM. Select DoP when your DAC manufacturer confirms DoP support. A failed
-DoP connection retries PCM, then falls back to Android output if needed.
+---
 
-If Android does not index your DSF files, add their folder under
-**Settings → Storage → Add directory** and rescan. DSF title, artist, album,
-duration, and embedded ID3 cover art are read by Cymatic.
+## Building from source
 
-## Project layout
-
-| Module | Purpose |
-| --- | --- |
-| `app` | Player screens, navigation, click wheel controls, themes, fonts, and UI components (`com.pxr.cymatic`) |
-| `shared/music` | Playback, library, playlists, EQ, and library sync |
-| `shared/usb` | Native USB isochronous PCM transport |
-| `shared/flac` | Integer FLAC decoding for Android and direct USB playback |
-| `shared/alac` | Integer ALAC decoding for Android and direct USB playback |
-| `shared/dsd` | DSF DSD-to-PCM conversion and bit-perfect DoP packing |
+See [docs/development.md](docs/development.md) for setup, module layout, and build instructions.

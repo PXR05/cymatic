@@ -11,8 +11,10 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioMixerAttributes
 import android.os.Build
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaLibraryInfo
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -25,6 +27,7 @@ class UsbAudioDiagnostics(private val context: Context) {
     private val usbManager = context.getSystemService(UsbManager::class.java)
     private val audioManager = context.getSystemService(AudioManager::class.java)
 
+    @OptIn(UnstableApi::class)
     suspend fun inspect(): UsbDiagnosticReport =
         withContext(Dispatchers.IO) {
             val warnings = mutableListOf<String>()
@@ -67,7 +70,7 @@ class UsbAudioDiagnostics(private val context: Context) {
                     }
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             if (devices.isEmpty())
-                warnings += "No USB audio devices enumerated; check connection, host mode and power"
+                warnings += "No USB audio devices enumerated. Check connection, host mode and power"
             UsbDiagnosticReport(
                 Instant.now().toString(),
                 context.packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST),
@@ -148,7 +151,7 @@ class UsbAudioDiagnostics(private val context: Context) {
             if (connection == null) {
                 details.put(
                     "inspectionError",
-                    "Could not open device; it may have disconnected or permission changed",
+                    "Could not open device. It may have disconnected or permission changed",
                 )
             } else {
                 try {
@@ -202,7 +205,7 @@ class UsbAudioDiagnostics(private val context: Context) {
                         .put("clockSources", clocks)
                         .put(
                             "clockAssociation",
-                            "UAC1 terminals and rates are resolved from descriptors; UAC2 uses direct clock sources. Selectors and multipliers are unsupported. Clock ranges alone are not per-format guarantees",
+                            "UAC1 terminals and rates are resolved from descriptors. UAC2 uses direct clock sources. Selectors and multipliers are unsupported. Clock ranges alone are not per-format guarantees",
                         )
                         .put("streamingVerified", false)
                 } catch (e: RuntimeException) {
