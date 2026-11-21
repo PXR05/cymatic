@@ -50,40 +50,40 @@ fun AllSongsScreen(
     val catalogProgress by LibraryCatalogManager.progress.collectAsState()
     val scanProgress by LocalLibraryScanner.progress.collectAsState()
     val remoteConnected by
-        produceState<Boolean?>(
-            run {
-                val address = LibrarySyncSettings.currentSyncUrl
-                val username = LibrarySyncSettings.currentSyncUsername
-                if (address.isBlank() || username.isBlank()) false
-                else
-                    SyncCredentialStore.cachedHasPassword(
-                        RemoteLibrarySource("audiostream", address, username).id
-                    )
-            },
-            context,
-        ) {
-            combine(
-                    LibrarySyncSettings.syncUrlFlow,
-                    LibrarySyncSettings.syncUsernameFlow,
-                ) { address, username ->
-                    address to username
-                }
-                .collect { (address, username) ->
-                    value =
-                        withContext(Dispatchers.IO) {
-                            address.isNotBlank() &&
+    produceState<Boolean?>(
+        run {
+            val address = LibrarySyncSettings.currentSyncUrl
+            val username = LibrarySyncSettings.currentSyncUsername
+            if (address.isBlank() || username.isBlank()) false
+            else
+                SyncCredentialStore.cachedHasPassword(
+                    RemoteLibrarySource("audiostream", address, username).id
+                )
+        },
+        context,
+    ) {
+        combine(
+            LibrarySyncSettings.syncUrlFlow,
+            LibrarySyncSettings.syncUsernameFlow,
+        ) { address, username ->
+            address to username
+        }
+            .collect { (address, username) ->
+                value =
+                    withContext(Dispatchers.IO) {
+                        address.isNotBlank() &&
                                 username.isNotBlank() &&
                                 runCatching {
-                                        SyncCredentialStore.hasPassword(
-                                            context,
-                                            RemoteLibrarySource("audiostream", address, username)
-                                                .id,
-                                        )
-                                    }
+                                    SyncCredentialStore.hasPassword(
+                                        context,
+                                        RemoteLibrarySource("audiostream", address, username)
+                                            .id,
+                                    )
+                                }
                                     .getOrDefault(false)
-                        }
-                }
-        }
+                    }
+            }
+    }
 
     val permission = rememberStoragePermission { granted ->
         if (granted) {
@@ -111,15 +111,15 @@ fun AllSongsScreen(
         LibraryFilterStatus(availabilityFilter)
         if (
             uiState.items.isEmpty() &&
-                (catalogProgress is CatalogProgress.Refreshing ||
+            (catalogProgress is CatalogProgress.Refreshing ||
                     scanProgress is LocalScanProgress.Scanning ||
                     remoteConnected == null)
         ) {
             LoadingState()
         } else if (
             uiState.items.isEmpty() &&
-                remoteConnected == true &&
-                catalogProgress is CatalogProgress.Failed
+            remoteConnected == true &&
+            catalogProgress is CatalogProgress.Failed
         ) {
             ErrorState(
                 message = "Could not load the remote library. Check the connection and try again.",
@@ -127,8 +127,8 @@ fun AllSongsScreen(
             )
         } else if (
             uiState.items.isEmpty() &&
-                scanProgress is LocalScanProgress.Failed &&
-                permission.granted
+            scanProgress is LocalScanProgress.Failed &&
+            permission.granted
         ) {
             ErrorState(
                 message = "Could not scan device music. Try again.",
@@ -136,9 +136,9 @@ fun AllSongsScreen(
             )
         } else if (
             !permission.granted &&
-                remoteConnected != true &&
-                availabilityFilter == LibraryFilter.ALL &&
-                uiState.items.isEmpty()
+            remoteConnected != true &&
+            availabilityFilter == LibraryFilter.ALL &&
+            uiState.items.isEmpty()
         ) {
             PermissionDeniedState(
                 onGrantClick = {
@@ -154,8 +154,8 @@ fun AllSongsScreen(
             LoadingState()
         } else if (
             availabilityFilter != LibraryFilter.ALL &&
-                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
-                uiState.items.isEmpty()
+            !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+            uiState.items.isEmpty()
         ) {
             LibraryFilteredEmptyState()
         } else if (uiState.items.isEmpty()) {

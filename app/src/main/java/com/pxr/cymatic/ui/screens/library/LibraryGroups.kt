@@ -48,7 +48,8 @@ internal class LibraryGroups(songs: List<AudioFile>) {
 
 private object LibraryGroupsCache {
     private val mutex = Mutex()
-    @Volatile private var snapshot: Pair<List<AudioFile>, LibraryGroups>? = null
+    @Volatile
+    private var snapshot: Pair<List<AudioFile>, LibraryGroups>? = null
     val empty = LibraryGroups(emptyList())
 
     fun cached(songs: List<AudioFile>?): LibraryGroups? {
@@ -71,22 +72,22 @@ internal fun rememberLibraryGroups(): LibraryGroups {
     val context = LocalContext.current.applicationContext
     val repository = remember(context) { AudioRepository.getInstance(context) }
     val groups by
-        produceState(
-            LibraryGroupsCache.cached(repository.getCachedAudio()) ?: LibraryGroupsCache.empty,
-            repository,
-        ) {
-            merge(LibraryChanges.version, SettingsStore.lastScanTimeMsFlow).collectLatest {
-                try {
-                    val songs = withContext(Dispatchers.IO) { repository.getAllAudio() }
-                    value = LibraryGroupsCache.groups(songs)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    // The screen's loader presents data errors; retain the last available
-                    // indicators.
-                }
+    produceState(
+        LibraryGroupsCache.cached(repository.getCachedAudio()) ?: LibraryGroupsCache.empty,
+        repository,
+    ) {
+        merge(LibraryChanges.version, SettingsStore.lastScanTimeMsFlow).collectLatest {
+            try {
+                val songs = withContext(Dispatchers.IO) { repository.getAllAudio() }
+                value = LibraryGroupsCache.groups(songs)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The screen's loader presents data errors; retain the last available
+                // indicators.
             }
         }
+    }
     return groups
 }
 
@@ -100,12 +101,12 @@ internal fun LibraryGroupIndicator(group: LibraryGroup?, color: Color) {
         group?.let {
             val busy =
                 it.availability != LibraryAvailability.OFFLINE &&
-                    it.songs.any { song ->
-                        com.pxr.cymatic.sync.RemoteLibraryItemKey(
-                            song.sourceId.orEmpty(),
-                            song.remoteId.orEmpty(),
-                        ) in work.tracks
-                    }
+                        it.songs.any { song ->
+                            com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                                song.sourceId.orEmpty(),
+                                song.remoteId.orEmpty(),
+                            ) in work.tracks
+                        }
             LibraryAvailabilityIcon(it.availability, color, busy = busy)
         }
         Text(">", color = color, fontSize = 20.sp)

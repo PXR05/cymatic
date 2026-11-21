@@ -123,7 +123,9 @@ fun EqBodePlot(
                 }
         }
 
-    Canvas(modifier = modifier.border(1.dp, secondaryColor).fillMaxSize()) {
+    Canvas(modifier = modifier
+        .border(1.dp, secondaryColor)
+        .fillMaxSize()) {
         val width = size.width
         val height = size.height
 

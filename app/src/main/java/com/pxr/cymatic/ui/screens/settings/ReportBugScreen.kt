@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.heading
@@ -35,7 +36,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.pxr.cymatic.playback.OutputInfoReport
 import com.pxr.cymatic.playback.OutputInfoState
+import com.pxr.cymatic.ui.components.common.EditorSubmitHint
 import com.pxr.cymatic.ui.components.common.ScreenBackHandler
+import com.pxr.cymatic.ui.components.common.WheelEditorSubmit
+import com.pxr.cymatic.ui.components.common.submitOnEnter
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.screen.BaseScreen
@@ -72,8 +76,7 @@ internal fun ReportBugScreen() {
             OutputInfoState.report.collectAsStateWithLifecycle()
         else null
     val export =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) {
-            uri ->
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
             val report = pendingExport
             pendingExport = null
             if (uri != null && report != null) {
@@ -108,10 +111,10 @@ internal fun ReportBugScreen() {
                     if (includeDiagnostics) {
                         capturedDiagnostics
                             ?: captureBugDiagnostics(
-                                    context,
-                                    selected,
-                                    playback?.value ?: OutputInfoReport(),
-                                )
+                                context,
+                                selected,
+                                playback?.value ?: OutputInfoReport(),
+                            )
                                 .also { capturedDiagnostics = it }
                     } else null
                 onReady(selected, formatBugReport(selected, summary, details, diagnostics))
@@ -140,7 +143,9 @@ internal fun ReportBugScreen() {
         Text(
             "${step.ordinal + 1}. ${step.title}",
             modifier =
-                Modifier.padding(horizontal = 24.dp, vertical = 8.dp).semantics { heading() },
+                Modifier
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
         )
         key(step) {
@@ -204,8 +209,7 @@ internal fun ReportBugScreen() {
                             add(
                                 NavigationItem(
                                     label = "Include diagnostics",
-                                    subLabel =
-                                        "App and device details",
+                                    subLabel = "App and device details",
                                     enabled = !busy,
                                     checked = includeDiagnostics,
                                 ) {
@@ -230,10 +234,10 @@ internal fun ReportBugScreen() {
                                             )
                                         ) {
                                             Toast.makeText(
-                                                    context,
-                                                    "No email app available. You can save the report instead.",
-                                                    Toast.LENGTH_LONG,
-                                                )
+                                                context,
+                                                "No email app available. You can save the report instead.",
+                                                Toast.LENGTH_LONG,
+                                            )
                                                 .show()
                                         }
                                     }
@@ -269,40 +273,38 @@ private fun ReportTextStep(
 ) {
     val requester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val canContinue = value.isNotBlank()
+    val submit = { if (value.isNotBlank()) onContinue() }
+    WheelEditorSubmit(submit)
     LaunchedEffect(Unit) {
         requester.requestFocus()
         keyboard?.show()
     }
-    Column {
-        Column(
-            Modifier.weight(1f, fill = false)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-        ) {
-            Text(
-                hint,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary,
-            )
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                label = { Text(label) },
-                modifier =
-                    Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(requester),
-                singleLine = !multiline,
-                minLines = if (multiline) 3 else 1,
-                maxLines = if (multiline) 5 else 1,
-                keyboardOptions =
-                    KeyboardOptions(
-                        imeAction = if (multiline) ImeAction.Default else ImeAction.Next
-                    ),
-                keyboardActions = KeyboardActions(onNext = { if (canContinue) onContinue() }),
-            )
-        }
-        NavigationList(
-            listOf(NavigationItem("Continue", enabled = canContinue, onClick = onContinue))
+    Column(Modifier
+        .verticalScroll(rememberScrollState())
+        .padding(horizontal = 24.dp)) {
+        Text(
+            hint,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary,
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .focusRequester(requester)
+                    .then(if (multiline) Modifier else Modifier.submitOnEnter(submit)),
+            singleLine = !multiline,
+            shape = RectangleShape,
+            minLines = if (multiline) 3 else 1,
+            maxLines = if (multiline) 5 else 1,
+            supportingText = { EditorSubmitHint("continue", keyboardSubmit = !multiline) },
+            keyboardOptions =
+                KeyboardOptions(imeAction = if (multiline) ImeAction.Default else ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { submit() }),
         )
     }
 }

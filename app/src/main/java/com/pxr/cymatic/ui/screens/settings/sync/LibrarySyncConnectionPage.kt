@@ -31,11 +31,11 @@ internal fun SyncConnectionPage(
     val normalized = runCatching { AudioStreamClient.normalizeBaseUrl(url) }.getOrNull()
     val sameAccount =
         normalized != null &&
-            runCatching {
+                runCatching {
                     RemoteLibrarySource("audiostream", normalized, username).id ==
-                        RemoteLibrarySource("audiostream", state.url, state.username).id
+                            RemoteLibrarySource("audiostream", state.url, state.username).id
                 }
-                .getOrDefault(false)
+                    .getOrDefault(false)
     val keepPassword = state.hasPassword && sameAccount
     val valid =
         normalized != null && username.isNotBlank() && (password.isNotEmpty() || keepPassword)

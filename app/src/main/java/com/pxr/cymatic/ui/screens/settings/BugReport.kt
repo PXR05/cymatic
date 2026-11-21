@@ -14,11 +14,11 @@ import com.pxr.cymatic.sync.CatalogProgress
 import com.pxr.cymatic.sync.LibraryCatalogManager
 import com.pxr.cymatic.sync.LibrarySyncManager
 import com.pxr.cymatic.sync.SyncProgress
-import java.io.IOException
-import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.IOException
+import java.time.Instant
 
 internal enum class BugCategory(val label: String) {
     PLAYBACK("Playback"),
@@ -172,28 +172,29 @@ private suspend fun libraryDiagnostics(): List<String> = buildList {
     }
     add(
         "Remote catalog: " +
-            when (val catalog = LibraryCatalogManager.progress.value) {
-                CatalogProgress.Idle -> "idle"
-                CatalogProgress.Refreshing -> "refreshing"
-                is CatalogProgress.Complete -> "${catalog.catalog.tracks.size} songs"
-                is CatalogProgress.Failed -> "failed"
-                CatalogProgress.Cancelled -> "cancelled"
-            }
+                when (val catalog = LibraryCatalogManager.progress.value) {
+                    CatalogProgress.Idle -> "idle"
+                    CatalogProgress.Refreshing -> "refreshing"
+                    is CatalogProgress.Complete -> "${catalog.catalog.tracks.size} songs"
+                    is CatalogProgress.Failed -> "failed"
+                    CatalogProgress.Cancelled -> "cancelled"
+                }
     )
     add(
         "Offline sync: " +
-            when (val sync = LibrarySyncManager.progress.value) {
-                SyncProgress.Idle -> "idle"
-                is SyncProgress.Preparing -> "preparing"
-                is SyncProgress.Downloading -> "${sync.current} of ${sync.total}"
-                SyncProgress.Cancelling -> "cancelling"
-                is SyncProgress.Complete ->
-                    with(sync.summary) {
-                        "$downloaded downloaded, $unchanged unchanged, $removed removed, $failed failed, $playlists playlists"
-                    }
-                is SyncProgress.Failed -> "failed"
-                SyncProgress.Cancelled -> "cancelled"
-            }
+                when (val sync = LibrarySyncManager.progress.value) {
+                    SyncProgress.Idle -> "idle"
+                    is SyncProgress.Preparing -> "preparing"
+                    is SyncProgress.Downloading -> "${sync.current} of ${sync.total}"
+                    SyncProgress.Cancelling -> "cancelling"
+                    is SyncProgress.Complete ->
+                        with(sync.summary) {
+                            "$downloaded downloaded, $unchanged unchanged, $removed removed, $failed failed, $playlists playlists"
+                        }
+
+                    is SyncProgress.Failed -> "failed"
+                    SyncProgress.Cancelled -> "cancelled"
+                }
     )
 }
 

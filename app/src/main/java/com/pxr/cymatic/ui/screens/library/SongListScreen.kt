@@ -71,9 +71,9 @@ internal fun SongListScreen(
         LibraryFilterStatus(availabilityFilter)
         if (
             needsStoragePermission &&
-                !permission.granted &&
-                availabilityFilter == LibraryFilter.ALL &&
-                audioFiles.isEmpty()
+            !permission.granted &&
+            availabilityFilter == LibraryFilter.ALL &&
+            audioFiles.isEmpty()
         ) {
             PermissionDeniedState(
                 onGrantClick = {

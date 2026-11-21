@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +49,7 @@ import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.LocalWheelOverlay
 import com.pxr.cymatic.ui.components.common.WheelActions
 import com.pxr.cymatic.ui.components.common.WheelSelectionNavigator
+import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -79,37 +79,51 @@ internal fun SetupPage(
     var actionIndex by remember { mutableIntStateOf(0) }
     val navigation =
         step in
-            setOf(
-                MusicSetupStep.NAVIGATE,
-                MusicSetupStep.SELECT,
-                MusicSetupStep.BACK,
-                MusicSetupStep.BROWSE,
-                MusicSetupStep.SUCCESS,
-            )
+                setOf(
+                    MusicSetupStep.NAVIGATE,
+                    MusicSetupStep.SELECT,
+                    MusicSetupStep.BACK,
+                    MusicSetupStep.BROWSE,
+                    MusicSetupStep.SUCCESS,
+                )
     val field =
         step in setOf(MusicSetupStep.ADDRESS, MusicSetupStep.USERNAME, MusicSetupStep.PASSWORD)
-    val remoteLoading =
-        step == MusicSetupStep.CONNECTING ||
-            (step == MusicSetupStep.CONNECTED && catalog == CatalogProgress.Refreshing)
+    val submitField: () -> Unit = {
+        if (!state.busy) {
+            if (step == MusicSetupStep.PASSWORD) keyboard?.hide()
+            model.next()
+        }
+    }
+    val loading =
+        when (step) {
+            MusicSetupStep.CONNECTING -> true
+            MusicSetupStep.CONNECTED -> catalog == CatalogProgress.Refreshing
+            MusicSetupStep.SCANNING ->
+                local is LocalScanProgress.Scanning || local == LocalScanProgress.Idle
+
+            else -> false
+        }
     val libraryReady =
         (step == MusicSetupStep.SCANNING &&
-            local is LocalScanProgress.Complete &&
-            local.count > 0) ||
-            (step == MusicSetupStep.CONNECTED && catalog is CatalogProgress.Complete)
+                local is LocalScanProgress.Complete &&
+                local.count > 0) ||
+                (step == MusicSetupStep.CONNECTED && catalog is CatalogProgress.Complete)
     val showCompletion = libraryReady && !state.storageError
     val showResult = step == MusicSetupStep.SUCCESS || showCompletion
     val centered =
-        step == MusicSetupStep.NAVIGATE || showResult || remoteLoading
+        step == MusicSetupStep.NAVIGATE || showResult || loading
     val number =
         when (step) {
             MusicSetupStep.NAVIGATE,
             MusicSetupStep.ADDRESS -> 1
+
             MusicSetupStep.SELECT -> if (state.backPracticed) 3 else 2
             MusicSetupStep.USERNAME -> 2
             MusicSetupStep.BACK,
             MusicSetupStep.BROWSE,
             MusicSetupStep.SUCCESS,
             MusicSetupStep.PASSWORD -> 3
+
             else -> 0
         }
     val title =
@@ -122,12 +136,14 @@ internal fun SetupPage(
             MusicSetupStep.CHOICE -> "Choose your music"
             MusicSetupStep.DEVICE ->
                 if (permissionDenied) "Music access is off" else "Allow music access"
+
             MusicSetupStep.SCANNING ->
                 when (local) {
                     is LocalScanProgress.Complete ->
                         if (local.count > 0) "Music found" else "No music found"
+
                     LocalScanProgress.Failed -> "Scan could not finish"
-                    else -> "Finding music"
+                    else -> "Scanning for music…"
                 }
 
             MusicSetupStep.ADDRESS -> "Server address"
@@ -141,6 +157,7 @@ internal fun SetupPage(
                     is CatalogProgress.Complete ->
                         if (catalog.catalog.tracks.isEmpty()) "The library is empty"
                         else "Library ready"
+
                     else -> "Connected to AudioStream"
                 }
 
@@ -164,8 +181,9 @@ internal fun SetupPage(
                             1 -> "1 song found."
                             else -> "${local.count} songs found."
                         }
+
                     LocalScanProgress.Failed -> "Try again or choose a folder."
-                    else -> "Scanning device music."
+                    else -> ""
                 }
 
             MusicSetupStep.ADDRESS -> "Your AudioStream server URL."
@@ -177,25 +195,12 @@ internal fun SetupPage(
                     is CatalogProgress.Complete ->
                         if (catalog.catalog.tracks.isEmpty())
                             "Add music on AudioStream, then refresh."
-                        else "Stream now. Keep offline from the library menu."
+                        else "Your music is ready to play."
 
                     else -> ""
                 }
 
             else -> ""
-        }
-    val skip =
-        SetupAction(
-            "Skip",
-            enabled = !state.busy || step == MusicSetupStep.CONNECTING,
-            showButton = false,
-        ) {
-            keyboard?.hide()
-            if (navigation) model.choose(MusicSetupStep.CHOICE)
-            else {
-                if (step == MusicSetupStep.CONNECTING) model.cancelConnection()
-                model.finish(false)
-            }
         }
     LaunchedEffect(step, state.navigationProgress) {
         if (step == MusicSetupStep.NAVIGATE && state.navigationProgress >= 100) {
@@ -207,11 +212,11 @@ internal fun SetupPage(
         if (libraryReady) actionIndex = 0
     }
     val wheelFill by
-        animateFloatAsState(
-            state.navigationProgress / 100f,
-            tween(160),
-            label = "Wheel progress",
-        )
+    animateFloatAsState(
+        state.navigationProgress / 100f,
+        tween(160),
+        label = "Wheel progress",
+    )
     val actions = buildList {
         if (libraryReady) {
             add(
@@ -300,36 +305,25 @@ internal fun SetupPage(
                 }
 
             MusicSetupStep.ADDRESS,
-            MusicSetupStep.USERNAME ->
-                add(
-                    SetupAction(
-                        "Continue",
-                        !state.busy,
-                        showButton = false,
-                    ) {
-                        model.next()
-                    }
-                )
-
+            MusicSetupStep.USERNAME,
             MusicSetupStep.PASSWORD ->
                 add(
                     SetupAction(
-                        "Connect",
+                        if (step == MusicSetupStep.PASSWORD) "Connect" else "Continue",
                         !state.busy,
                         showButton = false,
-                    ) {
-                        keyboard?.hide()
-                        model.next()
-                    }
+                        run = submitField,
+                    )
                 )
 
             MusicSetupStep.CONNECTING ->
                 add(SetupAction("Cancel connection") { model.cancelConnection() })
+
             MusicSetupStep.CONNECTED -> {
                 if (
                     catalog is CatalogProgress.Failed ||
-                        catalog == CatalogProgress.Cancelled ||
-                        catalog == CatalogProgress.Idle
+                    catalog == CatalogProgress.Cancelled ||
+                    catalog == CatalogProgress.Idle
                 )
                     add(SetupAction("Try again", !state.busy) { model.retryCatalog() })
             }
@@ -399,9 +393,13 @@ internal fun SetupPage(
     val pageInsets =
         if (listStep) Modifier else Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
     val headerInsets = if (listStep) Modifier.padding(horizontal = 24.dp) else Modifier
-    Column(Modifier.fillMaxSize().then(pageInsets)) {
+    Column(Modifier
+        .fillMaxSize()
+        .then(pageInsets)) {
         Row(
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp)
                 .then(
                     if (tutorialList) Modifier.padding(start = 8.dp, end = 24.dp)
                     else headerInsets
@@ -436,27 +434,36 @@ internal fun SetupPage(
                 color = secondary,
                 fontSize = 11.sp,
             )
-            Text(
-                "Skip",
-                modifier =
-                    Modifier.heightIn(min = 40.dp)
-                        .clickable(enabled = skip.enabled, onClick = skip.run)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                color = secondary,
-                fontSize = 12.sp,
-                lineHeight = 20.sp,
-            )
+            if (!loading && !state.busy) {
+                Text(
+                    "Skip",
+                    modifier =
+                        Modifier
+                            .heightIn(min = 40.dp)
+                            .clickable {
+                                keyboard?.hide()
+                                if (navigation) model.choose(MusicSetupStep.CHOICE)
+                                else model.finish(false)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    color = secondary,
+                    fontSize = 12.sp,
+                    lineHeight = 20.sp,
+                )
+            }
         }
         if (number > 0)
             Row(
-                Modifier.fillMaxWidth()
+                Modifier
+                    .fillMaxWidth()
                     .then(headerInsets)
                     .padding(top = if (tutorialList) 0.dp else 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 repeat(3) { index ->
                     Box(
-                        Modifier.weight(1f)
+                        Modifier
+                            .weight(1f)
                             .height(2.dp)
                             .background(
                                 foreground.copy(alpha = if (index < number) 0.8f else 0.15f)
@@ -464,7 +471,7 @@ internal fun SetupPage(
                     )
                 }
             }
-        if (!listStep && !showResult && !remoteLoading) {
+        if (!listStep && !showResult && !loading) {
             Spacer(Modifier.height(16.dp))
             Text(title, fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Medium)
             if (description.isNotBlank()) {
@@ -474,7 +481,8 @@ internal fun SetupPage(
             Spacer(Modifier.height(12.dp))
         }
         Column(
-            Modifier.weight(1f)
+            Modifier
+                .weight(1f)
                 .fillMaxWidth()
                 .then(if (centered) Modifier else Modifier.verticalScroll(rememberScrollState()))
                 .then(if (listStep) Modifier.padding(bottom = 12.dp) else Modifier),
@@ -488,7 +496,9 @@ internal fun SetupPage(
             if (showResult) {
                 Text(
                     title,
-                    Modifier.align(Alignment.CenterHorizontally).semantics { heading() },
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { heading() },
                     fontSize = 23.sp,
                     lineHeight = 29.sp,
                     textAlign = TextAlign.Center,
@@ -516,7 +526,9 @@ internal fun SetupPage(
             }
             if (listStep) {
                 Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
@@ -542,11 +554,9 @@ internal fun SetupPage(
                         lineHeight = 48.sp,
                     )
                     Spacer(Modifier.height(16.dp))
-                    LinearProgressIndicator(
-                        progress = { wheelFill },
-                        modifier = Modifier.fillMaxWidth().height(6.dp),
-                        color = foreground,
-                        trackColor = foreground.copy(alpha = 0.12f),
+                    CymaticSlider(
+                        value = wheelFill,
+                        modifier = Modifier.progressSemantics(wheelFill),
                     )
                 }
 
@@ -577,7 +587,8 @@ internal fun SetupPage(
                         Text(
                             it,
                             modifier =
-                                Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                                Modifier
+                                    .padding(horizontal = 24.dp, vertical = 8.dp)
                                     .semantics { liveRegion = LiveRegionMode.Polite },
                             color = secondary,
                             style = MaterialTheme.typography.bodyMedium,
@@ -607,20 +618,21 @@ internal fun SetupPage(
                 MusicSetupStep.ADDRESS,
                 MusicSetupStep.USERNAME,
                 MusicSetupStep.PASSWORD ->
-                    SetupField(
-                        state,
-                        model,
-                    )
+                    SetupField(state, model, onSubmit = submitField)
 
+                MusicSetupStep.SCANNING,
                 MusicSetupStep.CONNECTING,
                 MusicSetupStep.CONNECTED ->
-                    if (remoteLoading) {
+                    if (loading) {
                         Column(
                             Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             LoadingState(
-                                Modifier.size(48.dp).progressSemantics(),
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .progressSemantics(),
                                 delayMillis = 0,
                             )
                             Spacer(Modifier.height(12.dp))
@@ -632,14 +644,6 @@ internal fun SetupPage(
                             )
                         }
                     }
-
-                MusicSetupStep.SCANNING ->
-                    if (local is LocalScanProgress.Scanning || local == LocalScanProgress.Idle)
-                        LinearProgressIndicator(
-                            Modifier.fillMaxWidth().padding(top = 16.dp),
-                            color = foreground,
-                            trackColor = foreground.copy(alpha = 0.12f),
-                        )
 
                 else -> Unit
             }
@@ -666,7 +670,8 @@ internal fun SetupPage(
                     if (state.busy && step != MusicSetupStep.CONNECTING) "Saving…"
                     else action.label,
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .then(headerInsets)
                             .heightIn(min = 40.dp)
                             .background(if (selected && action.enabled) foreground else background)

@@ -59,12 +59,12 @@ fun PlaylistsScreen(
                             color,
                             busy =
                                 playlist.availability !=
-                                    com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
-                                    (playlist.id in work.localPlaylists ||
-                                        com.pxr.cymatic.sync.RemoteLibraryItemKey(
-                                            playlist.sourceId.orEmpty(),
-                                            playlist.remoteId.orEmpty(),
-                                        ) in work.playlists),
+                                        com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
+                                        (playlist.id in work.localPlaylists ||
+                                                com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                                                    playlist.sourceId.orEmpty(),
+                                                    playlist.remoteId.orEmpty(),
+                                                ) in work.playlists),
                         )
                         Text(">", color = color, fontSize = 20.sp)
                     }
@@ -99,8 +99,8 @@ fun PlaylistsScreen(
             LoadingState()
         } else if (
             availabilityFilter != LibraryFilter.ALL &&
-                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
-                uiState.items.isEmpty()
+            !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+            uiState.items.isEmpty()
         ) {
             LibraryFilteredEmptyState()
         } else if (uiState.items.isEmpty()) {

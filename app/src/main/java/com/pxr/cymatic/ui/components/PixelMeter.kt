@@ -53,16 +53,16 @@ internal fun PixelMeter(
         if (isBuffering) {
             val transition = rememberInfiniteTransition(label = "Playback buffering")
             val phase by
-                transition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 1f,
-                    animationSpec =
-                        infiniteRepeatable(
-                            tween(650, easing = LinearEasing),
-                            RepeatMode.Reverse,
-                        ),
-                    label = "Buffering pulse",
-                )
+            transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec =
+                    infiniteRepeatable(
+                        tween(650, easing = LinearEasing),
+                        RepeatMode.Reverse,
+                    ),
+                label = "Buffering pulse",
+            )
             phase
         } else 0f
     Box(
@@ -104,7 +104,9 @@ internal fun PixelMeter(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxWidth().height(20.dp)) {
+        Canvas(Modifier
+            .fillMaxWidth()
+            .height(20.dp)) {
             drawRect(color.copy(alpha = if (isBuffering) 0.10f + loadingPhase * 0.20f else 0.10f))
             val pixel = 1.dp.toPx()
             val gap = 3.dp.toPx()

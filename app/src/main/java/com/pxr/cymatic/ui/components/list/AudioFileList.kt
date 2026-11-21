@@ -103,10 +103,10 @@ fun AudioFileItem(
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
     val busy =
         audioFile.availability != com.pxr.cymatic.data.model.LibraryAvailability.OFFLINE &&
-            com.pxr.cymatic.sync.RemoteLibraryItemKey(
-                audioFile.sourceId.orEmpty(),
-                audioFile.remoteId.orEmpty(),
-            ) in work.tracks
+                com.pxr.cymatic.sync.RemoteLibraryItemKey(
+                    audioFile.sourceId.orEmpty(),
+                    audioFile.remoteId.orEmpty(),
+                ) in work.tracks
 
     @SuppressLint("DefaultLocale")
     fun parseDuration(durationMs: Long?): String {
@@ -214,20 +214,29 @@ fun AudioFileItemPreview() {
             isCurrent = false,
             onClick = {},
         )
-        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
+        Box(modifier = Modifier
+            .height(1.dp)
+            .background(Color.Gray)
+            .fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCJK,
             isCurrent = false,
             onClick = {},
             modifier = Modifier.heightIn(min = 76.dp),
         )
-        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
+        Box(modifier = Modifier
+            .height(1.dp)
+            .background(Color.Gray)
+            .fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCB1,
             isCurrent = false,
             onClick = {},
         )
-        Box(modifier = Modifier.height(1.dp).background(Color.Gray).fillMaxWidth())
+        Box(modifier = Modifier
+            .height(1.dp)
+            .background(Color.Gray)
+            .fillMaxWidth())
         AudioFileItem(
             audioFile = sampleAudioFileCB2,
             isCurrent = false,

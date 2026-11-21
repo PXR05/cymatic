@@ -41,7 +41,8 @@ fun LibraryFilterStatus(filter: LibraryFilter) {
         fontSize = 11.sp,
         color = MaterialTheme.colorScheme.secondary,
         modifier =
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
                 .clickable { LibraryFilterStore.select(LibraryFilter.ALL) }
                 .padding(horizontal = 24.dp, vertical = 6.dp),
     )

@@ -40,13 +40,13 @@ fun SettingsScreen(
                         onClick = { navController.navigate(Screen.LibrarySyncSettings.route) },
                     ),
                 ) +
-                    additionalItems +
-                    listOf(
-                        NavigationItem(
-                            label = "About",
-                            onClick = { navController.navigate(Screen.AboutSettings.route) },
-                        ),
-                    )
+                        additionalItems +
+                        listOf(
+                            NavigationItem(
+                                label = "About",
+                                onClick = { navController.navigate(Screen.AboutSettings.route) },
+                            ),
+                        )
         )
     }
 }

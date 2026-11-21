@@ -108,7 +108,9 @@ internal fun SyncHint(text: String, modifier: Modifier = Modifier) {
         text,
         color = MaterialTheme.colorScheme.secondary,
         fontSize = 12.sp,
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     )
 }
 
@@ -163,6 +165,7 @@ internal fun SyncStatusPage(
                             !state.hasOfflineSelection -> "No music selected to keep offline"
                             state.nextStep == SyncSetupStep.FOLDER ->
                                 "Restore access to your custom folder"
+
                             else -> "Download ${state.musicLabel.lowercase()}"
                         },
                     enabled = state.canEdit && state.hasOfflineSelection,
@@ -241,8 +244,8 @@ internal fun SyncStatusPage(
         val lastRunText =
             if (state.lastTime > 0) {
                 DateFormat.getMediumDateFormat(context).format(Date(state.lastTime)) +
-                    " " +
-                    DateFormat.getTimeFormat(context).format(Date(state.lastTime))
+                        " " +
+                        DateFormat.getTimeFormat(context).format(Date(state.lastTime))
             } else {
                 null
             }

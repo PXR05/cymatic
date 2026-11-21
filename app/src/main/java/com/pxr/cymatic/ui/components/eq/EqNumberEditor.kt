@@ -1,8 +1,6 @@
 package com.pxr.cymatic.ui.components.eq
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import com.pxr.cymatic.ui.components.common.WheelNumberEditor
 
 @Composable

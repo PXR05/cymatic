@@ -23,11 +23,11 @@ import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.playback.formatSampleRate
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 internal fun SongInfoScreen(mediaId: Long) {
@@ -96,7 +96,9 @@ private fun InfoItem(
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             letterSpacing = letterSpacing,
-            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
         )
     }
 }

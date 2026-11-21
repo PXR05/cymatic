@@ -28,10 +28,10 @@ internal data class HardwareEqUiState(
     val canApply: Boolean
         get() =
             device != null &&
-                permission &&
-                !busy &&
-                !permissionPending &&
-                !pendingVerification &&
-                target?.readOnly == false &&
-                issues.isEmpty()
+                    permission &&
+                    !busy &&
+                    !permissionPending &&
+                    !pendingVerification &&
+                    target?.readOnly == false &&
+                    issues.isEmpty()
 }

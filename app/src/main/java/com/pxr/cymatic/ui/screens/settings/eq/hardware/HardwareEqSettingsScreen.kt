@@ -126,7 +126,7 @@ internal fun HardwareEqSettingsScreen(
                                                     "DAC preamp",
                                                     state.draft.preamp,
                                                     target.preampMin.toFloat()..target.preampMax
-                                                            .toFloat(),
+                                                        .toFloat(),
                                                     target.preampStep.toFloat(),
                                                     ::formatEqGain,
                                                     save = {
@@ -174,6 +174,7 @@ internal fun HardwareEqSettingsScreen(
                                     )
                             }
                         }
+
                         Screen.HardwareEqPresets.route -> {
                             if (state.devices.size > 1)
                                 add(
@@ -202,6 +203,7 @@ internal fun HardwareEqSettingsScreen(
                                 }
                             )
                         }
+
                         Screen.HardwareEqBands.route -> {
                             add(
                                 NavigationItem("Response graph") {
@@ -227,7 +229,7 @@ internal fun HardwareEqSettingsScreen(
                                     "Add band",
                                     enabled =
                                         editable &&
-                                            state.draft.bands.size < (target?.caps?.bands ?: 0),
+                                                state.draft.bands.size < (target?.caps?.bands ?: 0),
                                     onClick = model::addBand,
                                 )
                             )
@@ -240,11 +242,11 @@ internal fun HardwareEqSettingsScreen(
 
     if (
         page in
-            listOf(
-                Screen.HardwareEq.route,
-                Screen.HardwareEqPresets.route,
-                Screen.HardwareEqBands.route,
-            )
+        listOf(
+            Screen.HardwareEq.route,
+            Screen.HardwareEqPresets.route,
+            Screen.HardwareEqBands.route,
+        )
     ) {
         val title =
             when (page) {
@@ -341,7 +343,7 @@ internal fun HardwareEqSettingsScreen(
     }
     if (
         page == Screen.HardwareEqBand.route &&
-            (bandIndex !in state.draft.bands.indices || target == null)
+        (bandIndex !in state.draft.bands.indices || target == null)
     ) {
         BaseScreen("Band unavailable", { nav.popBackStack() }) {
             Text("This band or DAC is no longer available.")
@@ -361,7 +363,9 @@ internal fun HardwareEqSettingsScreen(
             }
         ReadingScreen("DAC response", { nav.popBackStack() }) {
             if (response != null)
-                EqBodePlot(state.draft, Modifier.fillMaxWidth().aspectRatio(16f / 9f), response)
+                EqBodePlot(state.draft, Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f), response)
             else Text("This filter has no valid response. Adjust gain or Q before applying.")
         }
     }

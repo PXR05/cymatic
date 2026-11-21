@@ -83,12 +83,19 @@ private fun WheelDialogPage(
         }
         Column(Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxWidth().weight(1f).clipToBounds().padding(vertical = 12.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clipToBounds()
+                    .padding(vertical = 12.dp),
                 content = content,
             )
             CompositionLocalProvider(LocalWheelDialogActions provides dialogActions) {
                 Row(
-                    Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 16.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     content = buttons,

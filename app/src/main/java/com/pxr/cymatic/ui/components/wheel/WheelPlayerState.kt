@@ -67,9 +67,9 @@ internal class WheelPlayerState(
         private set
 
     var browserRoot by
-        mutableStateOf(
-            if (browserRoot == MUSIC_BROWSER_ROUTE) libraryRoot(this.browserRoute) else browserRoot
-        )
+    mutableStateOf(
+        if (browserRoot == MUSIC_BROWSER_ROUTE) libraryRoot(this.browserRoute) else browserRoot
+    )
         private set
 
     private var seeking = false
@@ -132,7 +132,7 @@ internal class WheelPlayerState(
         val previous = nav.currentBackStackEntry
         if (
             nav.currentDestination?.route != Screen.Home.route &&
-                !nav.popBackStack(Screen.Home.route, false, saveState = true)
+            !nav.popBackStack(Screen.Home.route, false, saveState = true)
         ) {
             nav.navigate(Screen.Home.route) {
                 popUpTo(nav.graph.id) { saveState = true }
@@ -217,10 +217,13 @@ private fun libraryRoot(route: String): String =
     when (route.substringBefore('/').substringBefore('?')) {
         "artist",
         "artists" -> Screen.Artists.route
+
         "album",
         "albums" -> Screen.Albums.route
+
         "playlist",
         "playlists" -> Screen.Playlists.route
+
         else -> Screen.AllSongs.createRoute()
     }
 
@@ -317,30 +320,30 @@ internal fun rememberWheelPlayerState(
             state.needsBackStackRestore = false
         }
         combine(
-                snapshotFlow {
-                    listOf(
-                        state.panel.name,
-                        state.previousPanel.name,
-                        state.browserRoute,
-                        state.browserRoot,
-                    )
-                },
-                navigator.backStack,
-            ) { stateFields, backStackEntries ->
-                val routes =
-                    backStackEntries
-                        .mapNotNull { it.resolvedRoute() }
-                        .ifEmpty {
-                            listOf(Screen.Home.route)
-                        }
-                WheelPageState(
-                    panel = stateFields[0],
-                    previousPanel = stateFields[1],
-                    browserRoute = stateFields[2],
-                    browserRoot = stateFields[3],
-                    backStack = routes,
+            snapshotFlow {
+                listOf(
+                    state.panel.name,
+                    state.previousPanel.name,
+                    state.browserRoute,
+                    state.browserRoot,
                 )
-            }
+            },
+            navigator.backStack,
+        ) { stateFields, backStackEntries ->
+            val routes =
+                backStackEntries
+                    .mapNotNull { it.resolvedRoute() }
+                    .ifEmpty {
+                        listOf(Screen.Home.route)
+                    }
+            WheelPageState(
+                panel = stateFields[0],
+                previousPanel = stateFields[1],
+                browserRoute = stateFields[2],
+                browserRoot = stateFields[3],
+                backStack = routes,
+            )
+        }
             .distinctUntilChanged()
             .collectLatest { pageState -> SettingsStore.setWheelPageState(pageState) }
     }

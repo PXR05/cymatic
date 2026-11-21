@@ -9,7 +9,6 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -71,11 +70,11 @@ fun MusicSetupScreen(model: MusicSetupViewModel, modifier: Modifier = Modifier) 
                     onPermission = {
                         val blocked =
                             denied &&
-                                activity != null &&
-                                !ActivityCompat.shouldShowRequestPermissionRationale(
-                                    activity,
-                                    permission,
-                                )
+                                    activity != null &&
+                                    !ActivityCompat.shouldShowRequestPermissionRationale(
+                                        activity,
+                                        permission,
+                                    )
                         if (blocked)
                             context.startActivity(
                                 Intent(
@@ -88,11 +87,11 @@ fun MusicSetupScreen(model: MusicSetupViewModel, modifier: Modifier = Modifier) 
                     permissionDenied = denied,
                     permissionBlocked =
                         denied &&
-                            activity != null &&
-                            !ActivityCompat.shouldShowRequestPermissionRationale(
-                                activity,
-                                permission,
-                            ),
+                                activity != null &&
+                                !ActivityCompat.shouldShowRequestPermissionRationale(
+                                    activity,
+                                    permission,
+                                ),
                     onFolder = { folder.launch(null) },
                 )
             }

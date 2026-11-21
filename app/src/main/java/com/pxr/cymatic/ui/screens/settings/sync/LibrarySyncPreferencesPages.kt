@@ -166,7 +166,7 @@ internal fun SyncSchedulePage(
                             "Allowed network",
                             syncNetworkLabel(state.network),
                             state.canEdit &&
-                                (state.nextStep == null || state.network != SyncNetwork.NEVER),
+                                    (state.nextStep == null || state.network != SyncNetwork.NEVER),
                             SyncNetwork.entries.map(::syncNetworkLabel),
                             onChoose = { value ->
                                 onNetwork(

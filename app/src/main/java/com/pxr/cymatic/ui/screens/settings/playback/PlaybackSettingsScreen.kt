@@ -46,10 +46,10 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     var notificationsAllowed by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT < 33 ||
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) == PackageManager.PERMISSION_GRANTED
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) == PackageManager.PERMISSION_GRANTED
         )
     }
     val notificationPermission =
@@ -63,10 +63,10 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
             if (event == Lifecycle.Event.ON_RESUME)
                 notificationsAllowed =
                     Build.VERSION.SDK_INT < 33 ||
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.POST_NOTIFICATIONS,
-                        ) == PackageManager.PERMISSION_GRANTED
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) == PackageManager.PERMISSION_GRANTED
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -87,11 +87,11 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     }
 
     val resumeOnBt by
-        SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
-            initial = SettingsStore.currentResumeOnBluetoothReconnect
-        )
+    SettingsStore.resumeOnBluetoothReconnectFlow.collectAsState(
+        initial = SettingsStore.currentResumeOnBluetoothReconnect
+    )
     val fadeEnabled by
-        SettingsStore.fadeEnabledFlow.collectAsState(initial = SettingsStore.currentFadeEnabled)
+    SettingsStore.fadeEnabledFlow.collectAsState(initial = SettingsStore.currentFadeEnabled)
 
     val audioManager =
         remember(context) {
@@ -126,9 +126,9 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
 
     fun openOutputSwitcherFallback() {
         listOf(
-                Settings.Panel.ACTION_VOLUME,
-                Settings.ACTION_SOUND_SETTINGS,
-            )
+            Settings.Panel.ACTION_VOLUME,
+            Settings.ACTION_SOUND_SETTINGS,
+        )
             .forEach {
                 try {
                     val intent = Intent(it)

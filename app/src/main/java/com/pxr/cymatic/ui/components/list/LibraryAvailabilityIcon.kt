@@ -20,8 +20,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.R
+import com.pxr.cymatic.data.model.LibraryAvailability
 
 @Composable
 fun LibraryAvailabilityIcon(

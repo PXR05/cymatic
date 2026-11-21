@@ -75,7 +75,7 @@ internal fun usbSettingsReport(
         state.probeReports
             .filter {
                 it.optInt("vendorId") == device.device.vendorId &&
-                    it.optInt("productId") == device.device.productId
+                        it.optInt("productId") == device.device.productId
             }
             .takeLast(2)
     if (checks.isNotEmpty()) {
@@ -97,7 +97,7 @@ internal fun usbSettingsReport(
         .mapNotNull { runCatching { JSONObject(it) }.getOrNull() }
         .lastOrNull {
             it.optInt("vendorId") == device.device.vendorId &&
-                it.optInt("productId") == device.device.productId
+                    it.optInt("productId") == device.device.productId
         }
         ?.let { session ->
             appendLine()

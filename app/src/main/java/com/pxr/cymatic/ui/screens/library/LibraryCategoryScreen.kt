@@ -89,8 +89,8 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
         LibraryFilterStatus(availabilityFilter)
         if (
             !permission.granted &&
-                availabilityFilter == LibraryFilter.ALL &&
-                uiState.items.isEmpty()
+            availabilityFilter == LibraryFilter.ALL &&
+            uiState.items.isEmpty()
         ) {
             PermissionDeniedState(
                 onGrantClick = {
@@ -106,8 +106,8 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
             LoadingState()
         } else if (
             availabilityFilter != LibraryFilter.ALL &&
-                !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
-                uiState.items.isEmpty()
+            !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
+            uiState.items.isEmpty()
         ) {
             LibraryFilteredEmptyState()
         } else if (uiState.items.isEmpty()) {

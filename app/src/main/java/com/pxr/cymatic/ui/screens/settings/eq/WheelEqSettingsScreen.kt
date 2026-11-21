@@ -249,7 +249,9 @@ internal fun WheelEqSettingsScreen(
         ReadingScreen("Response graph", { nav.popBackStack() }) {
             EqBodePlot(
                 preset,
-                Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f),
             )
         }
     }

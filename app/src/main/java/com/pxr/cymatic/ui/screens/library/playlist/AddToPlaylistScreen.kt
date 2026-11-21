@@ -44,7 +44,7 @@ internal fun AddToPlaylistScreen(audioId: Long) {
     var loaded by remember(audioId) {
         mutableStateOf(
             cachedPlaylists != null &&
-                cachedPlaylists.all { repo.getCachedPlaylistAudio(it.id) != null }
+                    cachedPlaylists.all { repo.getCachedPlaylistAudio(it.id) != null }
         )
     }
 
@@ -64,8 +64,8 @@ internal fun AddToPlaylistScreen(audioId: Long) {
             val all = repo.getPlaylists().filter { it.sourceId == null }
             val members =
                 all.filter { playlist ->
-                        repo.getPlaylistAudio(playlist.id).any { it.id == audioId }
-                    }
+                    repo.getPlaylistAudio(playlist.id).any { it.id == audioId }
+                }
                     .map { it.id }
                     .toSet()
             playlists = all
@@ -77,7 +77,12 @@ internal fun AddToPlaylistScreen(audioId: Long) {
     BaseScreen("Add to Playlist", onDismiss) {
         NavigationList(
             buildList {
-                if (loaded && playlists.isEmpty()) add(NavigationItem("No playlists yet", enabled = false))
+                if (loaded && playlists.isEmpty()) add(
+                    NavigationItem(
+                        "No playlists yet",
+                        enabled = false
+                    )
+                )
                 playlists.forEach { playlist ->
                     add(
                         NavigationItem(

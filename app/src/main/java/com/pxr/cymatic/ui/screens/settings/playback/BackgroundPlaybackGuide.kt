@@ -18,9 +18,9 @@ internal object BackgroundPlaybackGuide {
         try {
             context.startActivity(
                 Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                        Uri.parse("package:${context.packageName}"),
-                    )
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:${context.packageName}"),
+                )
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         } catch (_: Exception) {
@@ -43,13 +43,13 @@ internal object BackgroundPlaybackGuide {
             "xiaomi" in manufacturer -> "Xiaomi"
             "samsung" in manufacturer -> "Samsung"
             manufacturer in
-                setOf(
-                    "oneplus",
-                    "oppo",
-                    "realme",
-                    "vivo",
-                    "iqoo",
-                ) -> "OnePlus / Oppo / Vivo"
+                    setOf(
+                        "oneplus",
+                        "oppo",
+                        "realme",
+                        "vivo",
+                        "iqoo",
+                    ) -> "OnePlus / Oppo / Vivo"
 
             manufacturer in setOf("huawei", "honor") -> "Huawei / Honor"
             else -> "This device"
@@ -91,7 +91,7 @@ internal object BackgroundPlaybackGuide {
                     )
             }
         return ("Direct USB stops the moment the OS freezes the app in the background. " +
-            "Whitelisting keeps it scheduled.\n\n" +
-            steps.mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n"))
+                "Whitelisting keeps it scheduled.\n\n" +
+                steps.mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n"))
     }
 }

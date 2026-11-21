@@ -19,7 +19,6 @@ import io.github.chronosauros.contour.usb.DacHandle
 import io.github.chronosauros.contour.usb.DacSnapshot
 import io.github.chronosauros.contour.usb.UsbAudioKeepAlive
 import io.github.chronosauros.contour.usb.UsbLog
-import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,13 +28,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 internal class HardwareEqViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
     private val drafts = HardwareEqStore(context)
     private val presets = EqPresetRepository()
-    @Volatile private var operation: Job? = null
-    @Volatile private var closed = false
+    @Volatile
+    private var operation: Job? = null
+    @Volatile
+    private var closed = false
     private val mutableState = MutableStateFlow(HardwareEqUiState())
     val state = mutableState.asStateFlow()
     private var pending: PendingDacVerification? = null
@@ -54,8 +56,8 @@ internal class HardwareEqViewModel(application: Application) : AndroidViewModel(
                     val device = handle.usb
                     if (
                         device == null ||
-                            manager.deviceList[device.deviceName]?.deviceId != device.deviceId ||
-                            !manager.hasPermission(device)
+                        manager.deviceList[device.deviceName]?.deviceId != device.deviceId ||
+                        !manager.hasPermission(device)
                     )
                         throw IOException("DAC disconnected or USB access changed")
                 }
@@ -170,11 +172,11 @@ internal class HardwareEqViewModel(application: Application) : AndroidViewModel(
             current.draft.copy(
                 bands =
                     current.draft.bands +
-                        target
-                            .emptyDraft()
-                            .bands
-                            .single()
-                            .copy(id = (current.draft.bands.maxOfOrNull { it.id } ?: -1) + 1)
+                            target
+                                .emptyDraft()
+                                .bands
+                                .single()
+                                .copy(id = (current.draft.bands.maxOfOrNull { it.id } ?: -1) + 1)
             )
         )
     }

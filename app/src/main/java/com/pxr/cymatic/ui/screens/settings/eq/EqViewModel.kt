@@ -30,13 +30,13 @@ class EqViewModel : ViewModel() {
 
     val uiState: StateFlow<EqUiState> =
         combine(
-                repository.enabled,
-                repository.presets,
-                repository.selectedName,
-                repository.activeDevice,
-                repository.devicePresets,
-                ::buildState,
-            )
+            repository.enabled,
+            repository.presets,
+            repository.selectedName,
+            repository.activeDevice,
+            repository.devicePresets,
+            ::buildState,
+        )
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
@@ -91,13 +91,13 @@ class EqViewModel : ViewModel() {
             preset.copy(
                 bands =
                     preset.bands +
-                        EqBand(
-                            id = (preset.bands.maxOfOrNull { it.id } ?: -1) + 1,
-                            type = FilterType.PEAKING,
-                            frequency = 1000f,
-                            gain = 0f,
-                            q = 1f,
-                        )
+                            EqBand(
+                                id = (preset.bands.maxOfOrNull { it.id } ?: -1) + 1,
+                                type = FilterType.PEAKING,
+                                frequency = 1000f,
+                                gain = 0f,
+                                q = 1f,
+                            )
             )
     }
 

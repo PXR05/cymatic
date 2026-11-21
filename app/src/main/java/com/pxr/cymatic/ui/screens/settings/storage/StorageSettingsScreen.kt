@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.rememberStoragePermission
@@ -15,9 +14,9 @@ fun StorageSettingsScreen(modifier: Modifier = Modifier) {
     val permission = rememberStoragePermission()
 
     val directories by
-        SettingsStore.scanDirectoriesFlow.collectAsState(
-            initial = SettingsStore.currentScanDirectories
-        )
+    SettingsStore.scanDirectoriesFlow.collectAsState(
+        initial = SettingsStore.currentScanDirectories
+    )
 
     WheelStorageSettingsScreen(
         directories,

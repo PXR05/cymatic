@@ -16,8 +16,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.R
+import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.ui.components.trackTextHeight
 
 @Composable
@@ -33,7 +33,8 @@ internal fun WheelUsbIndicator(boxed: Boolean = false) {
                         1,
                         FontWeight.SemiBold,
                     )
-                Modifier.height(textHeight + 4.dp)
+                Modifier
+                    .height(textHeight + 4.dp)
                     .background(MaterialTheme.colorScheme.onBackground)
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             } else Modifier

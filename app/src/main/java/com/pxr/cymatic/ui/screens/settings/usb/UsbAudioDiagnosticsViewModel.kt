@@ -28,7 +28,6 @@ import com.pxr.cymatic.audio.usb.UsbConnectionManager
 import com.pxr.cymatic.audio.usb.UsbOutputOwnership
 import com.pxr.cymatic.audio.usb.UsbStreamingProbe
 import com.pxr.cymatic.audio.usb.isUsbAudioDevice
-import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -41,6 +40,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
+import java.time.Instant
 
 @OptIn(UnstableApi::class)
 internal class UsbAudioDiagnosticsViewModel(application: Application) :
@@ -73,13 +73,13 @@ internal class UsbAudioDiagnosticsViewModel(application: Application) :
                     permissionAction -> {
                         if (
                             device == null ||
-                                state.value.permissionDeviceId == null ||
-                                device.deviceId != state.value.permissionDeviceId
+                            state.value.permissionDeviceId == null ||
+                            device.deviceId != state.value.permissionDeviceId
                         )
                             return
                         val granted =
                             intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) &&
-                                usbManager.hasPermission(device)
+                                    usbManager.hasPermission(device)
                         clearPermissionRequest()
                         if (granted) UsbConnectionManager.refresh(context)
                         message(if (granted) "USB access granted" else "USB access denied")

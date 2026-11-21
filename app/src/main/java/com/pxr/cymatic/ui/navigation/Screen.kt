@@ -192,6 +192,7 @@ fun legacyPlayerRoutes(
             "TRACK_ACTIONS" -> Screen.TrackActions.route
             else -> null
         }
+
     val playerRoutes =
         setOf(Screen.NowPlaying.route, Screen.QuickSettings.route, Screen.TrackActions.route)
     if (backStack.any { it in playerRoutes }) return emptyList()

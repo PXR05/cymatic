@@ -31,8 +31,8 @@ fun rememberBatteryState(): BatteryState {
                 BatteryState(
                     if (level >= 0 && scale > 0) (level * 100 / scale).coerceIn(0, 100) else null,
                     plugged &&
-                        (status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                            status == BatteryManager.BATTERY_STATUS_FULL),
+                            (status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                                    status == BatteryManager.BATTERY_STATUS_FULL),
                 )
         }
 

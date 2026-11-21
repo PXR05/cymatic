@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -47,8 +46,8 @@ internal fun OutputInfoScreen(selected: String? = null) {
                 onClick = { nav.navigate(Screen.OutputInfoSection.createRoute(page.title)) },
             )
         } +
-            NavigationItem("Copy report", onClick = copy) +
-            NavigationItem("Return", onClick = onDismissRequest)
+                NavigationItem("Copy report", onClick = copy) +
+                NavigationItem("Return", onClick = onDismissRequest)
     if (selected == null) {
         BaseScreen("Output info", onDismissRequest) {
             if (report.sections.isEmpty())

@@ -55,13 +55,15 @@ internal fun WheelSearchableScreenHeader(
             onMenuLongClick = null,
             actions = {
                 Box(
-                    Modifier.size(40.dp).clickable {
-                        if (searchQuery.isNotEmpty()) {
-                            onSearchQueryChange("")
-                        } else {
-                            closeSearch()
-                        }
-                    },
+                    Modifier
+                        .size(40.dp)
+                        .clickable {
+                            if (searchQuery.isNotEmpty()) {
+                                onSearchQueryChange("")
+                            } else {
+                                closeSearch()
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text("X", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
@@ -91,7 +93,9 @@ internal fun WheelSearchableScreenHeader(
                     }
                     innerTextField()
                 },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
             )
         }
     } else {
@@ -103,7 +107,9 @@ internal fun WheelSearchableScreenHeader(
                 actions()
                 if (showSearchAction) {
                     Box(
-                        Modifier.size(48.dp).clickable { onSearchActiveChange(true) },
+                        Modifier
+                            .size(48.dp)
+                            .clickable { onSearchActiveChange(true) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(

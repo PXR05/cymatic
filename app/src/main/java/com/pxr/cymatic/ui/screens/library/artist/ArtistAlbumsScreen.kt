@@ -63,8 +63,8 @@ fun ArtistAlbumsScreen(
         LibraryFilterStatus(availabilityFilter)
         when {
             !permission.granted &&
-                availabilityFilter == LibraryFilter.ALL &&
-                state.albums.isEmpty() ->
+                    availabilityFilter == LibraryFilter.ALL &&
+                    state.albums.isEmpty() ->
                 PermissionDeniedState(
                     onGrantClick = {
                         permission.request()
@@ -106,28 +106,28 @@ fun ArtistAlbumsScreen(
                                 },
                             )
                         ) +
-                            state.albums.map { album ->
-                                NavigationItem(
-                                    label = album.name,
-                                    trailingContent = { color ->
-                                        LibraryGroupIndicator(
-                                            albums[album.name],
-                                            color,
-                                        )
-                                    },
-                                    onLongClick = { selectedAlbum = album.name },
-                                    subLabel =
-                                        "${album.trackCount} ${trackLabel(album.trackCount)}",
-                                    onClick = {
-                                        navController.navigate(
-                                            Screen.ArtistAlbumSongs.createRoute(
-                                                artistName,
-                                                album.name,
+                                state.albums.map { album ->
+                                    NavigationItem(
+                                        label = album.name,
+                                        trailingContent = { color ->
+                                            LibraryGroupIndicator(
+                                                albums[album.name],
+                                                color,
                                             )
-                                        )
-                                    },
-                                )
-                            }
+                                        },
+                                        onLongClick = { selectedAlbum = album.name },
+                                        subLabel =
+                                            "${album.trackCount} ${trackLabel(album.trackCount)}",
+                                        onClick = {
+                                            navController.navigate(
+                                                Screen.ArtistAlbumSongs.createRoute(
+                                                    artistName,
+                                                    album.name,
+                                                )
+                                            )
+                                        },
+                                    )
+                                }
                 )
         }
     }

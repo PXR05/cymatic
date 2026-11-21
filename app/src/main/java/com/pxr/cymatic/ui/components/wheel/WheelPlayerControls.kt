@@ -33,6 +33,7 @@ internal class WheelPlayerControls(
 
                 WheelButton.SELECT,
                 WheelButton.NEXT -> selectItem()
+
                 WheelButton.PLAY -> if (controller?.isPlaying == true) controller.pause()
             }
             return
@@ -80,7 +81,7 @@ internal class WheelPlayerControls(
                 } else if (state.wheel.overlay == null) {
                     if (
                         state.panel == WheelPanel.QUICK_SETTINGS ||
-                            state.panel == WheelPanel.TRACK_ACTIONS
+                        state.panel == WheelPanel.TRACK_ACTIONS
                     ) {
                         state.back()
                     } else {

@@ -54,7 +54,8 @@ internal fun WheelPlayerLayout(
     val screenPadding = settings.screenPaddingDp.dp
 
     BoxWithConstraints(
-        Modifier.fillMaxSize()
+        Modifier
+            .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Vertical))
             .imePadding()
@@ -65,11 +66,11 @@ internal fun WheelPlayerLayout(
         val baseWheelSize = minOf(MaxWheelSize, wheelAreaSize * 0.72f)
         val screenWidth =
             (if (landscape) maxWidth - wheelAreaSize - screenPadding
-                else maxWidth - screenPadding * 2)
+            else maxWidth - screenPadding * 2)
                 .coerceAtLeast(1.dp)
         val availableScreenHeight =
             (if (landscape) maxHeight - screenPadding * 2
-                else maxHeight - wheelAreaSize - screenPadding)
+            else maxHeight - wheelAreaSize - screenPadding)
                 .coerceAtLeast(1.dp)
         val screenHeight = minOf(screenWidth, availableScreenHeight)
         val wheelHeight =
@@ -91,7 +92,8 @@ internal fun WheelPlayerLayout(
         if (landscape && !keyboardVisible) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 PlayerDisplay(
-                    Modifier.weight(1f)
+                    Modifier
+                        .weight(1f)
                         .fillMaxWidth()
                         .padding(start = screenPadding, top = screenPadding, bottom = screenPadding)
                         .height(screenHeight)
@@ -121,7 +123,8 @@ internal fun WheelPlayerLayout(
         } else {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 PlayerDisplay(
-                    Modifier.fillMaxWidth()
+                    Modifier
+                        .fillMaxWidth()
                         .padding(start = screenPadding, end = screenPadding, top = screenPadding)
                         .height(displayHeight)
                         .onGloballyPositioned { coordinates ->
@@ -134,7 +137,9 @@ internal fun WheelPlayerLayout(
                 )
                 if (!keyboardVisible) {
                     PlayerWheel(
-                        Modifier.weight(1f).fillMaxWidth(),
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         wheelSize,
                         controls,
                         onWheelPositioned = { coordinates ->
@@ -178,9 +183,9 @@ private fun PlayerWheel(
 ) {
     val settings = LocalInterfaceSettings.current
     val sensitivity by
-        SettingsStore.wheelSensitivityFlow.collectAsState(
-            initial = SettingsStore.currentWheelSensitivity
-        )
+    SettingsStore.wheelSensitivityFlow.collectAsState(
+        initial = SettingsStore.currentWheelSensitivity
+    )
     Box(modifier, contentAlignment = Alignment.Center) {
         ClickWheel(
             diameter,

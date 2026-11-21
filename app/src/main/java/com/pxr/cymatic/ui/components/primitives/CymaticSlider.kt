@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CymaticSlider(
     value: Float,
-    onValueChange: (Float) -> Unit,
+    onValueChange: ((Float) -> Unit)? = null,
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
 ) {
@@ -38,62 +38,76 @@ fun CymaticSlider(
     var dragPositionPx by remember { mutableIntStateOf(0) }
     val barWidthDp = with(density) { barWidthPx.toDp() }
 
-    val seekModifier = modifier
-        .fillMaxWidth()
-        .height(16.dp)
-        .onSizeChanged { barWidthPx = it.width }
-        .pointerInput(valueRange, barWidthPx) {
-            awaitEachGesture {
-                val down = awaitFirstDown()
-                val width = barWidthPx.toFloat().coerceAtLeast(1f)
-                val startX = down.position.x.coerceIn(0f, width)
+    val seekModifier =
+        if (onValueChange == null) Modifier
+        else
+            Modifier.pointerInput(valueRange, barWidthPx) {
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val width = barWidthPx.toFloat().coerceAtLeast(1f)
+                    val startX = down.position.x.coerceIn(0f, width)
 
-                val fraction = startX / width
-                val targetValue =
-                    valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
+                    val fraction = startX / width
+                    val targetValue =
+                        valueRange.start + fraction * (valueRange.endInclusive - valueRange.start)
 
-                isDragging = true
-                dragPositionPx = startX.toInt()
-                changeValue(targetValue)
+                    isDragging = true
+                    dragPositionPx = startX.toInt()
+                    try {
+                        changeValue?.invoke(targetValue)
+                        drag(down.id) { event ->
+                            val x = event.position.x.coerceIn(0f, width)
+                            val currentFraction = x / width
+                            val currentValue =
+                                valueRange.start +
+                                        currentFraction * (valueRange.endInclusive - valueRange.start)
 
-                drag(down.id) { change ->
-                    val x = change.position.x.coerceIn(0f, width)
-                    val currentFraction = x / width
-                    val currentValue =
-                        valueRange.start + currentFraction * (valueRange.endInclusive - valueRange.start)
-
-                    dragPositionPx = x.toInt()
-                    changeValue(currentValue)
-                    change.consume()
+                            dragPositionPx = x.toInt()
+                            changeValue?.invoke(currentValue)
+                            event.consume()
+                        }
+                    } finally {
+                        isDragging = false
+                    }
                 }
-                isDragging = false
             }
-        }
 
-    Box(modifier = seekModifier) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .onSizeChanged { barWidthPx = it.width }
+                .then(seekModifier)
+    ) {
         Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.secondary.let {
-                    Color(it.red, it.green, it.blue, 0.5f)
-                })
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        MaterialTheme.colorScheme.secondary.let {
+                            Color(it.red, it.green, it.blue, 0.5f)
+                        }
+                    )
         )
 
         if (barWidthPx > 0) {
-            val fraction = if (isDragging) {
-                dragPositionPx.toFloat() / barWidthPx.toFloat()
-            } else {
-                (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
-            }
+            val fraction =
+                if (isDragging) {
+                    dragPositionPx.toFloat() / barWidthPx.toFloat()
+                } else {
+                    (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
+                }
 
             val safeFraction = fraction.coerceIn(0f, 1f)
             val progressWidth = barWidthDp * safeFraction
 
             Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(progressWidth.coerceIn(0.dp, barWidthDp))
-                    .background(MaterialTheme.colorScheme.onBackground)
+                modifier =
+                    Modifier
+                        .fillMaxHeight()
+                        .width(progressWidth.coerceIn(0.dp, barWidthDp))
+                        .background(MaterialTheme.colorScheme.onBackground)
             )
         }
     }

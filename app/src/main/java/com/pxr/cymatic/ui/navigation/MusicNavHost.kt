@@ -73,63 +73,63 @@ fun MusicNavHost(
         mapOf<String, @Composable (NavBackStackEntry) -> Unit>(
             Screen.Home.route to { home() },
             Screen.AllSongs.route to
-                { entry ->
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    AllSongsScreen(scrollTargetId = scrollId?.toLongOrNull())
-                },
+                    { entry ->
+                        val scrollId = entry.arguments?.getString("scrollId")
+                        AllSongsScreen(scrollTargetId = scrollId?.toLongOrNull())
+                    },
             Screen.Artists.route to { LibraryCategoryScreen(LibraryCategory.ARTISTS) },
             Screen.ArtistAlbums.route to
-                { entry ->
-                    val artistName = entry.arguments?.getString("artistName") ?: UnknownArtist
-                    ArtistAlbumsScreen(artistName = artistName)
-                },
+                    { entry ->
+                        val artistName = entry.arguments?.getString("artistName") ?: UnknownArtist
+                        ArtistAlbumsScreen(artistName = artistName)
+                    },
             Screen.ArtistSongs.route to
-                { entry ->
-                    val rawName = entry.arguments?.getString("artistName")
-                    val artistName = rawName ?: UnknownArtist
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    ArtistSongsScreen(
-                        artistName = artistName,
-                        scrollTargetId = scrollId?.toLongOrNull(),
-                    )
-                },
+                    { entry ->
+                        val rawName = entry.arguments?.getString("artistName")
+                        val artistName = rawName ?: UnknownArtist
+                        val scrollId = entry.arguments?.getString("scrollId")
+                        ArtistSongsScreen(
+                            artistName = artistName,
+                            scrollTargetId = scrollId?.toLongOrNull(),
+                        )
+                    },
             Screen.ArtistAlbumSongs.route to
-                { entry ->
-                    val artistName = entry.arguments?.getString("artistName") ?: UnknownArtist
-                    val albumName = entry.arguments?.getString("albumName") ?: UnknownAlbum
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    AlbumSongsScreen(
-                        albumName = albumName,
-                        artistName = artistName,
-                        scrollTargetId = scrollId?.toLongOrNull(),
-                    )
-                },
+                    { entry ->
+                        val artistName = entry.arguments?.getString("artistName") ?: UnknownArtist
+                        val albumName = entry.arguments?.getString("albumName") ?: UnknownAlbum
+                        val scrollId = entry.arguments?.getString("scrollId")
+                        AlbumSongsScreen(
+                            albumName = albumName,
+                            artistName = artistName,
+                            scrollTargetId = scrollId?.toLongOrNull(),
+                        )
+                    },
             Screen.Albums.route to { LibraryCategoryScreen(LibraryCategory.ALBUMS) },
             Screen.AlbumSongs.route to
-                { entry ->
-                    val rawName = entry.arguments?.getString("albumName")
-                    val albumName = rawName ?: UnknownAlbum
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    AlbumSongsScreen(
-                        albumName = albumName,
-                        scrollTargetId = scrollId?.toLongOrNull(),
-                    )
-                },
+                    { entry ->
+                        val rawName = entry.arguments?.getString("albumName")
+                        val albumName = rawName ?: UnknownAlbum
+                        val scrollId = entry.arguments?.getString("scrollId")
+                        AlbumSongsScreen(
+                            albumName = albumName,
+                            scrollTargetId = scrollId?.toLongOrNull(),
+                        )
+                    },
             Screen.Playlists.route to { PlaylistsScreen() },
             Screen.PlaylistSongs.route to
-                { entry ->
-                    val playlistId =
-                        entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
-                    val scrollId = entry.arguments?.getString("scrollId")
-                    PlaylistSongsScreen(
-                        playlistId = playlistId,
-                        scrollTargetId = scrollId?.toLongOrNull(),
-                    )
-                },
+                    { entry ->
+                        val playlistId =
+                            entry.arguments?.getString("playlistId")?.toLongOrNull() ?: return@to
+                        val scrollId = entry.arguments?.getString("scrollId")
+                        PlaylistSongsScreen(
+                            playlistId = playlistId,
+                            scrollTargetId = scrollId?.toLongOrNull(),
+                        )
+                    },
             Screen.Settings.route to
-                {
-                    SettingsScreen(additionalItems = settingsItems)
-                },
+                    {
+                        SettingsScreen(additionalItems = settingsItems)
+                    },
             Screen.PlaybackSettings.route to { PlaybackSettingsScreen() },
             Screen.StorageSettings.route to { StorageSettingsScreen() },
             Screen.AboutSettings.route to { AboutSettingsScreen() },
@@ -145,7 +145,9 @@ fun MusicNavHost(
     fun NavGraphBuilder.page(route: String, content: @Composable (NavBackStackEntry) -> Unit) {
         composable(route) { entry ->
             Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) {
+                Box(Modifier
+                    .weight(1f)
+                    .fillMaxWidth()) {
                     Box(currentContentModifier.value.fillMaxSize()) { content(entry) }
                     currentOverlay.value()
                 }
@@ -155,6 +157,7 @@ fun MusicNavHost(
             }
         }
     }
+
     val graph =
         remember(nav, startDestination, routes.keys) {
             nav.createGraph(startDestination = startDestination) {
@@ -195,10 +198,10 @@ fun MusicNavHost(
                     route = Screen.UsbGraph.route,
                 ) {
                     listOf(
-                            Screen.UsbSettings,
-                            Screen.UsbDeviceReport,
-                            Screen.BackgroundPlaybackHelp,
-                        )
+                        Screen.UsbSettings,
+                        Screen.UsbDeviceReport,
+                        Screen.BackgroundPlaybackHelp,
+                    )
                         .forEach { screen ->
                             page(screen.route) { entry ->
                                 val model: UsbAudioDiagnosticsViewModel =
@@ -223,12 +226,12 @@ fun MusicNavHost(
                     route = Screen.EqGraph.route,
                 ) {
                     listOf(
-                            Screen.EQSettings,
-                            Screen.EqPresets,
-                            Screen.EqBands,
-                            Screen.EqBand,
-                            Screen.EqGraphPage,
-                        )
+                        Screen.EQSettings,
+                        Screen.EqPresets,
+                        Screen.EqBands,
+                        Screen.EqBand,
+                        Screen.EqGraphPage,
+                    )
                         .forEach { screen ->
                             page(screen.route) { entry ->
                                 val model: EqViewModel = graphViewModel(Screen.EqGraph.route, entry)
@@ -242,14 +245,14 @@ fun MusicNavHost(
                             }
                         }
                     listOf(
-                            Screen.HardwareEq,
-                            Screen.HardwareEqPresets,
-                            Screen.HardwareEqBands,
-                            Screen.HardwareEqBand,
-                            Screen.HardwareEqGraphPage,
-                            Screen.HardwareEqDevice,
-                            Screen.HardwareEqIssues,
-                        )
+                        Screen.HardwareEq,
+                        Screen.HardwareEqPresets,
+                        Screen.HardwareEqBands,
+                        Screen.HardwareEqBand,
+                        Screen.HardwareEqGraphPage,
+                        Screen.HardwareEqDevice,
+                        Screen.HardwareEqIssues,
+                    )
                         .forEach { screen ->
                             page(screen.route) { entry ->
                                 val playerModel: EqViewModel =
@@ -277,17 +280,17 @@ fun MusicNavHost(
                     route = Screen.SyncGraph.route,
                 ) {
                     listOf(
-                            Screen.LibrarySyncSettings,
-                            Screen.SyncConnection,
-                            Screen.SyncLibrary,
-                            Screen.SyncBulkDownloads,
-                            Screen.SyncAdvanced,
-                            Screen.SyncSchedule,
-                            Screen.SyncStatus,
-                            Screen.SyncPlaylists,
-                            Screen.SyncHelp,
-                            Screen.SyncError,
-                        )
+                        Screen.LibrarySyncSettings,
+                        Screen.SyncConnection,
+                        Screen.SyncLibrary,
+                        Screen.SyncBulkDownloads,
+                        Screen.SyncAdvanced,
+                        Screen.SyncSchedule,
+                        Screen.SyncStatus,
+                        Screen.SyncPlaylists,
+                        Screen.SyncHelp,
+                        Screen.SyncError,
+                    )
                         .forEach { screen ->
                             page(screen.route) { entry ->
                                 val model: LibrarySyncSettingsViewModel =

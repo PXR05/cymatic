@@ -26,10 +26,10 @@ import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
-import kotlinx.coroutines.launch
 
 private data class InterfaceNumberEdit(
     val title: String,
@@ -55,9 +55,9 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
     val scope = rememberCoroutineScope()
     val settings = LocalInterfaceSettings.current
     val sensitivity by
-        SettingsStore.wheelSensitivityFlow.collectAsState(
-            initial = SettingsStore.currentWheelSensitivity
-        )
+    SettingsStore.wheelSensitivityFlow.collectAsState(
+        initial = SettingsStore.currentWheelSensitivity
+    )
     var number by remember { mutableStateOf<InterfaceNumberEdit?>(null) }
     var showScreenAwake by remember { mutableStateOf(false) }
     var showStandby by remember { mutableStateOf(false) }

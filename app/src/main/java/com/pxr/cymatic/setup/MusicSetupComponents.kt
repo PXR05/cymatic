@@ -1,6 +1,5 @@
 package com.pxr.cymatic.setup
 
-import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -30,6 +29,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.ui.components.common.EditorSubmitHint
+import com.pxr.cymatic.ui.components.common.submitOnEnter
 import com.pxr.cymatic.ui.components.list.ListItem
 
 @Composable
@@ -42,7 +43,8 @@ internal fun SetupListItem(
 ) {
     ListItem(
         modifier =
-            Modifier.heightIn(min = if (subLabel == null) 52.dp else 64.dp)
+            Modifier
+                .heightIn(min = if (subLabel == null) 52.dp else 64.dp)
                 .revealWhenSelected(selected),
         label = label,
         subLabel = subLabel,
@@ -61,7 +63,7 @@ private fun Modifier.revealWhenSelected(selected: Boolean): Modifier {
 }
 
 @Composable
-internal fun SetupField(state: MusicSetupState, model: MusicSetupViewModel) {
+internal fun SetupField(state: MusicSetupState, model: MusicSetupViewModel, onSubmit: () -> Unit) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = remember { FocusRequester() }
     var visible by remember { mutableStateOf(false) }
@@ -85,7 +87,10 @@ internal fun SetupField(state: MusicSetupState, model: MusicSetupViewModel) {
                 else -> model::editPassword
             },
         singleLine = true,
-        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+        modifier = Modifier
+            .fillMaxWidth()
+            .submitOnEnter(onSubmit)
+            .focusRequester(focus),
         shape = RectangleShape,
         placeholder = {
             Text(
@@ -109,14 +114,8 @@ internal fun SetupField(state: MusicSetupState, model: MusicSetupViewModel) {
                     },
                 imeAction = if (password) ImeAction.Done else ImeAction.Next,
             ),
-        keyboardActions =
-            KeyboardActions(
-                onNext = { model.next() },
-                onDone = {
-                    keyboard?.hide()
-                    model.next()
-                },
-            ),
+        keyboardActions = KeyboardActions(onNext = { onSubmit() }, onDone = { onSubmit() }),
+        supportingText = { EditorSubmitHint(if (password) "connect" else "continue") },
         trailingIcon =
             if (password) {
                 {

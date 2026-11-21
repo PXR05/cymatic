@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -47,8 +48,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.pxr.cymatic.ui.components.list.NavigationItem
-import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticSlider
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import kotlinx.coroutines.CancellationException
@@ -133,6 +132,7 @@ fun WheelNumberEditor(
         error = null
         return draft
     }
+
     val commit by rememberUpdatedState(::commitInput)
     WheelSettingsOverlay(title, onDismiss) {
         val wheel = LocalWheelNavigation.current
@@ -176,7 +176,9 @@ fun WheelNumberEditor(
             onDispose { wheel?.unregister(actions) }
         }
         Column(
-            Modifier.fillMaxSize().padding(24.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -196,7 +198,8 @@ fun WheelNumberEditor(
                         error = null
                     },
                     modifier =
-                        Modifier.width(IntrinsicSize.Min)
+                        Modifier
+                            .width(IntrinsicSize.Min)
                             .onFocusChanged { if (!it.isFocused && input != null) commit() }
                             .semantics { contentDescription = title },
                     enabled = !saving,
@@ -256,7 +259,23 @@ fun WheelTextEditor(
     val focus = LocalFocusManager.current
     val requester = remember { FocusRequester() }
     var requested by remember { mutableStateOf(false) }
-    WheelSettingsOverlay(title, onDismiss) {
+    val dismiss = {
+        if (wheel?.activeOwner == null || wheel.activeOwner === owner) {
+            keyboard?.hide()
+            focus.clearFocus()
+        }
+        onDismiss()
+    }
+    val submit = {
+        keyboard?.hide()
+        focus.clearFocus()
+        onSave(draft)
+        if (wheel?.activeOwner == null || wheel.activeOwner === owner) {
+            onDismiss()
+        }
+    }
+    WheelSettingsOverlay(title, dismiss) {
+        WheelEditorSubmit(submit)
         LaunchedEffect(Unit) {
             if (!requested) {
                 requested = true
@@ -264,13 +283,21 @@ fun WheelTextEditor(
                 keyboard?.show()
             }
         }
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)) {
             OutlinedTextField(
                 value = draft,
                 placeholder = { if (hint != null) Text(hint) },
                 onValueChange = { draft = it },
-                modifier = Modifier.fillMaxWidth().padding(24.dp).focusRequester(requester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .submitOnEnter(submit)
+                    .focusRequester(requester),
                 singleLine = true,
+                shape = RectangleShape,
+                supportingText = { EditorSubmitHint("save") },
                 visualTransformation =
                     if (password) PasswordVisualTransformation() else VisualTransformation.None,
                 keyboardOptions =
@@ -278,30 +305,7 @@ fun WheelTextEditor(
                         keyboardType = if (password) KeyboardType.Password else KeyboardType.Text,
                         imeAction = ImeAction.Done,
                     ),
-                keyboardActions =
-                    KeyboardActions(
-                        onDone = {
-                            keyboard?.hide()
-                            focus.clearFocus()
-                        }
-                    ),
-            )
-            NavigationList(
-                listOf(
-                    NavigationItem("Save") {
-                        keyboard?.hide()
-                        focus.clearFocus()
-                        onSave(draft)
-                        if (wheel?.activeOwner == null || wheel.activeOwner === owner) {
-                            onDismiss()
-                        }
-                    },
-                    NavigationItem("Cancel") {
-                        keyboard?.hide()
-                        focus.clearFocus()
-                        onDismiss()
-                    },
-                )
+                keyboardActions = KeyboardActions(onDone = { submit() }),
             )
         }
     }
@@ -331,5 +335,8 @@ private fun ReadingContent(onDismiss: () -> Unit, content: @Composable () -> Uni
         wheel?.register(actions, overlay)
         onDispose { wheel?.unregister(actions) }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp)) { content() }
+    Column(Modifier
+        .fillMaxSize()
+        .verticalScroll(scroll)
+        .padding(24.dp)) { content() }
 }

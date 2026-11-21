@@ -19,17 +19,16 @@ internal class SearchableLibraryCollection<T>(
         LibraryCollectionLoader(scope, cachedItems, changes, failureMessage, loadItems)
 
     val state =
-        combine(loader.items, loader.isLoading, loader.errorMessage, search.changes) {
-                items,
-                loading,
-                error,
-                query ->
-                LibraryListState(
-                    isLoading = loading && items.isEmpty(),
-                    items = query.filter(items, matches),
-                    errorMessage = error,
-                )
-            }
+        combine(loader.items, loader.isLoading, loader.errorMessage, search.changes) { items,
+                                                                                       loading,
+                                                                                       error,
+                                                                                       query ->
+            LibraryListState(
+                isLoading = loading && items.isEmpty(),
+                items = query.filter(items, matches),
+                errorMessage = error,
+            )
+        }
             .stateIn(
                 scope,
                 SharingStarted.WhileSubscribed(5000),

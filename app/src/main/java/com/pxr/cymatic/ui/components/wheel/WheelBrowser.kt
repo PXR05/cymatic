@@ -40,32 +40,32 @@ internal fun WheelBrowser(
         additionalRoutes =
             mapOf(
                 Screen.NowPlaying.route to
-                    {
-                        WheelNowPlaying(
-                            playback,
-                            volume,
-                            maxVolume,
-                            state.coverVisible,
-                            onToggleCover = state::toggleCover,
-                            onSeek = { controller?.seekTo(it) },
-                            onSeekStart = { state.beginSeek(controller) },
-                            onSeekEnd = { state.endSeek(controller) },
-                        )
-                    },
+                        {
+                            WheelNowPlaying(
+                                playback,
+                                volume,
+                                maxVolume,
+                                state.coverVisible,
+                                onToggleCover = state::toggleCover,
+                                onSeek = { controller?.seekTo(it) },
+                                onSeekStart = { state.beginSeek(controller) },
+                                onSeekEnd = { state.endSeek(controller) },
+                            )
+                        },
                 Screen.QuickSettings.route to
-                    {
-                        WheelPlayerMenu(state, playback, controller, trackActions = false)
-                    },
+                        {
+                            WheelPlayerMenu(state, playback, controller, trackActions = false)
+                        },
                 Screen.TrackActions.route to
-                    {
-                        WheelPlayerMenu(state, playback, controller, trackActions = true)
-                    },
+                        {
+                            WheelPlayerMenu(state, playback, controller, trackActions = true)
+                        },
                 Screen.Queue.route to { WheelQueueScreen(onNowPlaying = state::nowPlaying) },
                 Screen.InterfaceSettings.route to { InterfaceSettingsScreen() },
                 Screen.TextScrollingSettings.route to
-                    {
-                        InterfaceSettingsScreen(Screen.TextScrollingSettings.route)
-                    },
+                        {
+                            InterfaceSettingsScreen(Screen.TextScrollingSettings.route)
+                        },
             ),
     )
 }

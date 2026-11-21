@@ -1,8 +1,6 @@
 package com.pxr.cymatic.ui.components.list
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryAvailability
@@ -25,8 +23,8 @@ fun AudioFileContextMenu(
     val context = LocalContext.current
     val canDownload =
         audioFile.sourceId != null &&
-            audioFile.remoteId != null &&
-            audioFile.availability != LibraryAvailability.OFFLINE
+                audioFile.remoteId != null &&
+                audioFile.availability != LibraryAvailability.OFFLINE
     val keepOffline = {
         LibraryOfflineManager.keepTrack(
             context,

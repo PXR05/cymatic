@@ -45,33 +45,39 @@ internal fun readingBlocks(source: String): List<ReadingBlock> = buildList {
                 }
                 fenced = !fenced
             }
+
             fenced -> code += raw
             line.isEmpty() || line.matches(Regex("[-=]{3,}")) -> flush()
             line.matches(Regex("#{1,6} .*")) -> {
                 flush()
                 add(ReadingBlock(line.trimStart('#', ' '), heading = true))
             }
+
             line.matches(Regex("[0-9]+\\. [A-Z][^.]{0,75}\\.")) ||
-                (line.length < 100 &&
-                    line.any(Char::isLetter) &&
-                    line == line.uppercase() &&
-                    line.none(Char::isLowerCase)) -> {
+                    (line.length < 100 &&
+                            line.any(Char::isLetter) &&
+                            line == line.uppercase() &&
+                            line.none(Char::isLowerCase)) -> {
                 flush()
                 add(ReadingBlock(line, heading = true))
             }
+
             line.matches(Regex("[-*•] .*")) || line.matches(Regex("[0-9]+[.)] .*")) -> {
                 flush()
                 paragraph += line
             }
+
             line.matches(Regex("[A-Z][A-Za-z /-]{1,30}: .*")) -> {
                 flush()
                 paragraph += line
                 flush()
             }
+
             isEmpty() &&
-                paragraph.isEmpty() &&
-                line.length < 80 &&
-                !line.startsWith("Copyright", true) -> add(ReadingBlock(line, heading = true))
+                    paragraph.isEmpty() &&
+                    line.length < 80 &&
+                    !line.startsWith("Copyright", true) -> add(ReadingBlock(line, heading = true))
+
             else -> paragraph += line
         }
     }
@@ -100,14 +106,17 @@ fun ReadingDocument(text: String, modifier: Modifier = Modifier) {
                                         withLink(LinkAnnotation.Url(match.groupValues[2])) {
                                             append(match.groupValues[1])
                                         }
+
                                     match.value.startsWith("http") ->
                                         withLink(LinkAnnotation.Url(match.value)) {
                                             append(match.value)
                                         }
+
                                     match.groupValues[3].isNotEmpty() ->
                                         withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
                                             append(match.groupValues[3])
                                         }
+
                                     else -> append(match.groupValues[4])
                                 }
                                 offset = match.range.last + 1
@@ -120,7 +129,7 @@ fun ReadingDocument(text: String, modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxWidth(),
                     style =
                         (if (block.heading) MaterialTheme.typography.titleMedium
-                            else MaterialTheme.typography.bodyMedium)
+                        else MaterialTheme.typography.bodyMedium)
                             .copy(lineHeight = if (block.heading) 24.sp else 20.sp),
                     color = MaterialTheme.colorScheme.onBackground,
                 )

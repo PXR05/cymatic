@@ -59,10 +59,10 @@ internal data class LibrarySyncSettingsState(
     val running: Boolean
         get() =
             refreshingCatalog ||
-                starting ||
-                progress is SyncProgress.Preparing ||
-                progress is SyncProgress.Downloading ||
-                progress is SyncProgress.Cancelling
+                    starting ||
+                    progress is SyncProgress.Preparing ||
+                    progress is SyncProgress.Downloading ||
+                    progress is SyncProgress.Cancelling
 
     val canEdit: Boolean
         get() = !loading && !saving && !running
@@ -97,6 +97,7 @@ internal data class LibrarySyncSettingsState(
             when (contentMode) {
                 SyncContentMode.NONE ->
                     if (hasPinnedMusic) "Chosen songs and playlists" else "Stream only"
+
                 SyncContentMode.ALL -> "All music"
                 SyncContentMode.SELECTED_PLAYLISTS ->
                     if (selection.isNotEmpty()) "${selection.size} playlists"
@@ -112,6 +113,7 @@ internal data class LibrarySyncSettingsState(
 
                     is SyncProgress.Downloading ->
                         "Downloading ${current.current} of ${current.total}"
+
                     SyncProgress.Cancelling -> "Stopping…"
                     is SyncProgress.Failed -> "Sync needs attention"
                     SyncProgress.Cancelled -> "Stopped"
@@ -148,7 +150,7 @@ internal data class LibrarySyncSettingsState(
                                 "Synced"
 
                             lastResult.contains("fail", ignoreCase = true) ||
-                                lastResult.contains("incomplete", ignoreCase = true) ->
+                                    lastResult.contains("incomplete", ignoreCase = true) ->
                                 "Needs attention"
 
                             lastResult.contains("stopped", ignoreCase = true) -> "Stopped"

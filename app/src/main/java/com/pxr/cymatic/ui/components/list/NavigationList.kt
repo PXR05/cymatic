@@ -129,7 +129,8 @@ fun NavigationList(
                 isActive = index == selectedIndex,
                 enabled = item.enabled,
                 modifier =
-                    Modifier.semantics {
+                    Modifier
+                        .semantics {
                             if (item.checked != null) {
                                 role = Role.Checkbox
                                 toggleableState =
@@ -162,7 +163,8 @@ fun NavigationListPreview() {
         separator = {
             Box(
                 modifier =
-                    Modifier.fillMaxWidth()
+                    Modifier
+                        .fillMaxWidth()
                         .height(1.dp)
                         .background(MaterialTheme.colorScheme.onSurface)
             )

@@ -42,7 +42,7 @@ internal fun UsbSettingsScreen(
 ) {
     val state by model.state.collectAsState()
     val enabled by
-        UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
+    UsbPlaybackSettings.enabledFlow.collectAsState(initial = UsbPlaybackSettings.enabled)
     val active by UsbPlaybackState.active.collectAsState()
     val playbackStatus by UsbPlaybackState.status.collectAsState()
     val sessions by UsbPlaybackState.sessionReports.collectAsState()
@@ -169,7 +169,7 @@ internal fun UsbSettingsScreen(
                                 state.probeReports
                                     .filter {
                                         it.optInt("vendorId") == device.device.vendorId &&
-                                            it.optInt("productId") == device.device.productId
+                                                it.optInt("productId") == device.device.productId
                                     }
                                     .takeLast(2)
                             val checkLabel =

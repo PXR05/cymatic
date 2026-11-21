@@ -142,14 +142,14 @@ fun rememberWheelSelection(
                 onSelect = {
                     if (
                         count > 0 &&
-                            (availableIndices == null || selection in availableIndices.orEmpty())
+                        (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         select(selection.coerceIn(0, count - 1))
                 },
                 onContext = {
                     if (
                         count > 0 &&
-                            (availableIndices == null || selection in availableIndices.orEmpty())
+                        (availableIndices == null || selection in availableIndices.orEmpty())
                     )
                         context(selection.coerceIn(0, count - 1))
                 },

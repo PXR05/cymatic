@@ -7,9 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import android.text.TextUtils
 import androidx.core.content.FileProvider
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 private const val ReportRecipient = "pxr0@proton.me"
 private const val ReportFileName = "cymatic-bug-report.txt"
@@ -44,15 +44,17 @@ internal suspend fun openBugReportEmail(
                     putExtra(
                         Intent.EXTRA_TEXT,
                         formatBugReport(category, summary, details) +
-                            "\nThe full report and diagnostics are attached.",
+                                "\nThe full report and diagnostics are attached.",
                     )
                     putExtra(
                         Intent.EXTRA_HTML_TEXT,
                         "<h2>Cymatic bug report</h2>" +
-                            "<p><b>Category:</b> ${TextUtils.htmlEncode(category.label)}<br>" +
-                            "<b>Summary:</b> ${TextUtils.htmlEncode(cleanSummary)}</p>" +
-                            "<h3>What happened</h3><p>${TextUtils.htmlEncode(details.trim()).replace("\n", "<br>")}</p>" +
-                            "<p>The full report and diagnostics are attached.</p>",
+                                "<p><b>Category:</b> ${TextUtils.htmlEncode(category.label)}<br>" +
+                                "<b>Summary:</b> ${TextUtils.htmlEncode(cleanSummary)}</p>" +
+                                "<h3>What happened</h3><p>${
+                                    TextUtils.htmlEncode(details.trim()).replace("\n", "<br>")
+                                }</p>" +
+                                "<p>The full report and diagnostics are attached.</p>",
                     )
                 }
             if (attachmentDraft.resolveActivity(context.packageManager) != null) {

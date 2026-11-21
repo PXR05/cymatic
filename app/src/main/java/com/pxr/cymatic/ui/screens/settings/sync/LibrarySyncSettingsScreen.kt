@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
@@ -31,9 +30,11 @@ internal fun LibrarySyncSettingsScreen(
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
             it?.let(model::setDirectory)
         }
+
     fun open(route: String) {
         nav.navigate(route) { launchSingleTop = true }
     }
+
     fun close() {
         if (pageRoute == Screen.SyncConnection.route || pageRoute == Screen.SyncPlaylists.route) {
             if (state.saving) return
@@ -54,10 +55,12 @@ internal fun LibrarySyncSettingsScreen(
     fun chooseFolder() {
         folderPicker.launch(state.directory.takeIf(String::isNotBlank)?.let(Uri::parse))
     }
+
     fun openBulkDownloads() {
         open(Screen.SyncBulkDownloads.route)
         if (state.catalog == null) model.refreshLibrary()
     }
+
     fun download() {
         when (state.nextStep) {
             SyncSetupStep.CONNECTION -> open(Screen.SyncConnection.route)
@@ -65,6 +68,7 @@ internal fun LibrarySyncSettingsScreen(
             SyncSetupStep.MUSIC ->
                 if (state.contentMode == SyncContentMode.NONE) open(Screen.AllSongs.createRoute())
                 else openBulkDownloads()
+
             null -> model.startSync()
         }
     }
@@ -123,8 +127,10 @@ internal fun LibrarySyncSettingsScreen(
                 )
             }
         }
+
         Screen.SyncLibrary.route ->
             SyncRemoteLibraryPage(state, ::close, model::refreshLibrary, model::cancel)
+
         Screen.SyncBulkDownloads.route ->
             SyncBulkDownloadsPage(
                 state,
@@ -137,6 +143,7 @@ internal fun LibrarySyncSettingsScreen(
                 onDownload = ::download,
                 onSchedule = { open(Screen.SyncSchedule.route) },
             )
+
         Screen.SyncAdvanced.route ->
             SyncAdvancedPage(
                 state,
@@ -147,8 +154,10 @@ internal fun LibrarySyncSettingsScreen(
                 ::openBulkDownloads,
                 { open(Screen.SyncSchedule.route) },
             )
+
         Screen.SyncSchedule.route ->
             SyncSchedulePage(state, ::close, ::download, model::setNetwork, model::setInterval)
+
         Screen.SyncStatus.route ->
             SyncStatusPage(
                 state,
@@ -160,12 +169,14 @@ internal fun LibrarySyncSettingsScreen(
                     open(Screen.AllSongs.createRoute())
                 },
             )
+
         Screen.SyncHelp.route -> SyncHelpPage(::close)
         Screen.SyncError.route ->
             SyncErrorPage(
                 model.errorDetails ?: error ?: "No error details available",
                 ::close,
             )
+
         Screen.SyncConnection.route ->
             SyncConnectionPage(
                 state,
@@ -180,6 +191,7 @@ internal fun LibrarySyncSettingsScreen(
                 password = model.connectionPassword,
                 onPasswordChange = { model.connectionPassword = it },
             )
+
         Screen.SyncPlaylists.route ->
             SyncPlaylistsPage(state, ::close, model::setPlaylists, model::refreshLibrary)
     }

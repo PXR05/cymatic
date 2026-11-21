@@ -78,17 +78,17 @@ fun LoadingState(
         )
         val infiniteTransition = rememberInfiniteTransition(label = "loading")
         val frame by
-            infiniteTransition.animateValue(
-                initialValue = 0,
-                targetValue = frames.size,
-                typeConverter = Int.VectorConverter,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(durationMillis = 800, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart,
-                    ),
-                label = "frame",
-            )
+        infiniteTransition.animateValue(
+            initialValue = 0,
+            targetValue = frames.size - 1,
+            typeConverter = Int.VectorConverter,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 800, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "frame",
+        )
         val chars = frames[frame]
 
         Box(
@@ -116,7 +116,9 @@ fun EmptyState(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -151,7 +153,8 @@ fun EmptyState(
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier =
-                        Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground)
+                        Modifier
+                            .border(1.dp, MaterialTheme.colorScheme.onBackground)
                             .clickable(onClick = onActionClick)
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -206,7 +209,7 @@ val audioStoragePermission: String
 
 fun hasStoragePermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, audioStoragePermission) ==
-        PackageManager.PERMISSION_GRANTED
+            PackageManager.PERMISSION_GRANTED
 
 class StoragePermissionState(val granted: Boolean, val request: () -> Unit)
 

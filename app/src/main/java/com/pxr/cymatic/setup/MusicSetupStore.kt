@@ -39,9 +39,9 @@ internal object MusicSetupStore {
                 val source = RemoteLibraries.currentSource()
                 val existing =
                     prefs.contains(stringPreferencesKey("WHEEL_LAST_PANEL")) ||
-                        SettingsStore.getLastScanTimeMs() > 0 ||
-                        SettingsStore.getScanDirectories().isNotEmpty() ||
-                        SyncCredentialStore.hasPassword(context, source.id)
+                            SettingsStore.getLastScanTimeMs() > 0 ||
+                            SettingsStore.getScanDirectories().isNotEmpty() ||
+                            SyncCredentialStore.hasPassword(context, source.id)
                 if (!existing) LibrarySyncSettings.setSyncConnection("", "", resetSelection = true)
                 SettingsStore.store.edit {
                     it[complete] = existing

@@ -110,9 +110,9 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     musicConfigured = LibrarySyncSettings.getSyncContentConfigured(),
                     hasPinnedMusic =
                         !com.pxr.cymatic.sync.OfflineSelectionStore.read(
-                                context,
-                                source.id,
-                            )
+                            context,
+                            source.id,
+                        )
                             .isEmpty,
                     selectedPlaylists = LibrarySyncSettings.getSyncSelectedPlaylists(),
                     catalog = catalog,
@@ -158,8 +158,8 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                             catalog =
                                 if (
                                     completed?.source?.id == source.id &&
-                                        completed.catalog.refreshedAt >=
-                                            (it.catalog?.refreshedAt ?: 0L)
+                                    completed.catalog.refreshedAt >=
+                                    (it.catalog?.refreshedAt ?: 0L)
                                 )
                                     completed.catalog
                                 else it.catalog,
@@ -174,8 +174,8 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             LibrarySyncManager.progress.collect { progress ->
                 val active =
                     progress is SyncProgress.Preparing ||
-                        progress is SyncProgress.Downloading ||
-                        progress is SyncProgress.Cancelling
+                            progress is SyncProgress.Downloading ||
+                            progress is SyncProgress.Cancelling
                 val requestFinished =
                     requestBaseline != null && progress !== requestBaseline && !active
                 mutableState.update {
@@ -207,9 +207,9 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
 
     private fun hasFolderAccess(directory: String): Boolean =
         directory.isBlank() ||
-            context.contentResolver.persistedUriPermissions.any {
-                it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
-            }
+                context.contentResolver.persistedUriPermissions.any {
+                    it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
+                }
 
     fun setDirectory(uri: Uri) {
         save {
@@ -270,9 +270,9 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     musicConfigured = if (changed) false else it.musicConfigured,
                     hasPinnedMusic =
                         !com.pxr.cymatic.sync.OfflineSelectionStore.read(
-                                context,
-                                source.id,
-                            )
+                            context,
+                            source.id,
+                        )
                             .isEmpty,
                 )
             }

@@ -76,9 +76,9 @@ abstract class MusicActivity : ComponentActivity() {
                     LocalMediaController provides mediaController,
                     LocalNavController provides navController,
                     com.pxr.cymatic.ui.components.screen.LocalScreenNotice provides
-                        {
-                            com.pxr.cymatic.ui.components.common.OfflineQueueNotice()
-                        },
+                            {
+                                com.pxr.cymatic.ui.components.common.OfflineQueueNotice()
+                            },
                 ) {
                     HeaderClockProvider { AppContent() }
                 }
@@ -86,7 +86,8 @@ abstract class MusicActivity : ComponentActivity() {
         }
     }
 
-    @Composable protected abstract fun AppContent()
+    @Composable
+    protected abstract fun AppContent()
 
     @OptIn(UnstableApi::class)
     override fun onResume() {
@@ -100,7 +101,7 @@ abstract class MusicActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (
             UsbPlaybackState.volumeActive.value &&
-                (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
                     event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
         ) {
             if (event.action == KeyEvent.ACTION_DOWN) {
