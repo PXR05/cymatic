@@ -7,9 +7,13 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.media.LocalLibraryScanner
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.sync.AudioStreamConnection
+import com.pxr.cymatic.sync.ConnectionInput
 import com.pxr.cymatic.sync.LibraryCatalogManager
+import com.pxr.cymatic.sync.RemoteProvider
+import com.pxr.cymatic.sync.RemoteSourceConnector
+import com.pxr.cymatic.sync.SyncCredentialStore
 import com.pxr.cymatic.sync.connectionError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -42,7 +46,7 @@ class MusicSetupViewModel(application: Application) : AndroidViewModel(applicati
     val state = mutableState.asStateFlow()
     private var draftJob: Job? = null
     private var operation: Job? = null
-    private var connection: AudioStreamConnection? = null
+    private var connection: RemoteSourceConnector? = null
 
     init {
         load()
@@ -75,12 +79,12 @@ class MusicSetupViewModel(application: Application) : AndroidViewModel(applicati
                     backPracticed = draft.backPracticed
                 )
                 if (step == MusicSetupStep.CONNECTED) {
-                    val source = com.pxr.cymatic.sync.RemoteLibraries.currentSource()
-                    val hasPassword =
+                    val hasRemote =
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            com.pxr.cymatic.sync.SyncCredentialStore.hasPassword(context, source.id)
+                            RemoteSourceRegistry.all(context)
+                                .any { it.enabled && SyncCredentialStore.has(context, it.id) }
                         }
-                    if (hasPassword) LibraryCatalogManager.refresh(context)
+                    if (hasRemote) LibraryCatalogManager.refresh(context)
                     else mutableState.update {
                         it.copy(
                             step = MusicSetupStep.PASSWORD,
@@ -240,7 +244,15 @@ class MusicSetupViewModel(application: Application) : AndroidViewModel(applicati
         if (state.value.busy) return
         val details = state.value
         val attempt =
-            AudioStreamConnection(context, details.address, details.username, details.password)
+            RemoteSourceConnector(
+                context,
+                ConnectionInput(
+                    provider = RemoteProvider.AUDIOSTREAM,
+                    address = details.address,
+                    username = details.username,
+                    password = details.password,
+                ),
+            )
         connection = attempt
         draftJob?.cancel()
         mutableState.update { it.copy(step = MusicSetupStep.CONNECTING, busy = true, error = null) }
@@ -248,7 +260,7 @@ class MusicSetupViewModel(application: Application) : AndroidViewModel(applicati
             try {
                 MusicSetupStore.saveDraft(details.address, details.username)
                 MusicSetupStore.saveStep("password")
-                attempt.save()
+                val created = attempt.connect()
                 MusicSetupStore.saveStep("connected")
                 mutableState.update {
                     it.copy(
@@ -257,7 +269,7 @@ class MusicSetupViewModel(application: Application) : AndroidViewModel(applicati
                         busy = false
                     )
                 }
-                LibraryCatalogManager.refresh(context)
+                LibraryCatalogManager.refresh(context, created.id)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

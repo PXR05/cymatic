@@ -363,9 +363,11 @@ internal fun HardwareEqSettingsScreen(
             }
         ReadingScreen("DAC response", { nav.popBackStack() }) {
             if (response != null)
-                EqBodePlot(state.draft, Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f), response)
+                EqBodePlot(
+                    state.draft, Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f), response
+                )
             else Text("This filter has no valid response. Adjust gain or Q before applying.")
         }
     }

@@ -27,6 +27,7 @@ import com.pxr.cymatic.audio.usb.UsbPlaybackCoordinator
 import com.pxr.cymatic.audio.usb.UsbRenderersFactory
 import com.pxr.cymatic.auto.AutoMediaLibraryCallback
 import com.pxr.cymatic.data.media.AudioRepository
+import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.model.selectedOrDefault
@@ -42,6 +43,7 @@ import com.pxr.cymatic.playback.PlaybackStateLogger
 import com.pxr.cymatic.playback.PlaybackStatePersistence
 import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
 import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
+import com.pxr.cymatic.sync.RemoteLibraryDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -102,7 +104,7 @@ class PlaybackService : MediaLibraryService() {
                 .setMediaSourceFactory(
                     DefaultMediaSourceFactory(this, UsbExtractorsFactory())
                         .setDataSourceFactory(
-                            com.pxr.cymatic.sync.RemoteLibraryDataSource.Factory(this)
+                            RemoteLibraryDataSource.Factory(this)
                         )
                 )
                 .setAudioAttributes(audioAttributes, true)
@@ -324,7 +326,7 @@ class PlaybackService : MediaLibraryService() {
         }
         persistence.restore()
         serviceScope.launch {
-            com.pxr.cymatic.data.media.LibraryChanges.version.collect {
+            LibraryChanges.version.collect {
                 refreshCurrentLibraryMetadata()
             }
         }

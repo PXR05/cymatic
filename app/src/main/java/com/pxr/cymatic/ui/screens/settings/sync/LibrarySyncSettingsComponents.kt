@@ -33,6 +33,7 @@ internal data class SyncSetting(
     val enabled: Boolean = true,
     val options: List<String> = emptyList(),
     val selectedOption: String? = detail,
+    val key: String = title,
     val onChoose: (String) -> Unit = {},
     val onClick: () -> Unit = {},
 )
@@ -47,14 +48,15 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
                 setting.detail,
                 enabled = setting.enabled,
                 showIndicator = setting.enabled,
+                key = setting.key,
             ) {
-                if (setting.options.isEmpty()) setting.onClick() else choice = setting.title
+                if (setting.options.isEmpty()) setting.onClick() else choice = setting.key
             }
         },
         modifier,
     )
     settings
-        .firstOrNull { it.title == choice }
+        .firstOrNull { it.key == choice }
         ?.let { setting ->
             val options =
                 setting.options.map { option ->
@@ -123,12 +125,17 @@ internal fun SyncErrorPage(error: String, onDismiss: () -> Unit) {
                     "Could not sign in. Check your username and password in Connection."
 
                 error.contains("(404)") ->
-                    "AudioStream was not found. Check the server address in Connection."
+                    "The server was not found. Check the server address in Connection."
 
                 else -> error
             }
         Text(explanation)
         if (explanation != error) Text(error)
+        Text(
+            "Press Center or Back to go back.",
+            color = MaterialTheme.colorScheme.secondary,
+            fontSize = 12.sp,
+        )
     }
 }
 
@@ -166,7 +173,7 @@ internal fun SyncStatusPage(
                             state.nextStep == SyncSetupStep.FOLDER ->
                                 "Restore access to your custom folder"
 
-                            else -> "Download ${state.musicLabel.lowercase()}"
+                            else -> "Download selected offline music"
                         },
                     enabled = state.canEdit && state.hasOfflineSelection,
                     showIndicator = true,
@@ -211,6 +218,10 @@ internal fun SyncStatusPage(
                             } else 0f
                         val percent = (fraction * 100).toInt()
                         buildString {
+                            progress.sourceName?.let {
+                                append(it)
+                                append(" · ")
+                            }
                             append("${progress.current} of ${progress.total} tracks ($percent%)")
                             if (progress.totalBytes > 0 || progress.bytesDownloaded > 0) {
                                 append(" · ")
@@ -225,7 +236,9 @@ internal fun SyncStatusPage(
                         }
                     }
 
-                    is SyncProgress.Preparing -> progress.message
+                    is SyncProgress.Preparing ->
+                        progress.sourceName?.let { "$it · ${progress.message}" } ?: progress.message
+
                     is SyncProgress.Cancelling -> "Stopping sync and cleaning up temporary files…"
                     else -> if (state.lastTime > 0) "Completed" else "No active transfer"
                 }

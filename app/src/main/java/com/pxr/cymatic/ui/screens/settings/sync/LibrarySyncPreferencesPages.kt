@@ -17,7 +17,7 @@ import com.pxr.cymatic.sync.SyncNetwork
 
 @Composable
 internal fun SyncBulkDownloadsPage(
-    state: LibrarySyncSettingsState,
+    state: RemoteSourceState,
     onDismiss: () -> Unit,
     onMode: (SyncContentMode) -> Unit,
     onPlaylists: () -> Unit,
@@ -83,7 +83,6 @@ internal fun SyncAdvancedPage(
     onFolder: () -> Unit,
     onManagedStorage: () -> Unit,
     onLayout: (SyncLayout) -> Unit,
-    onBulkDownloads: () -> Unit,
     onSchedule: () -> Unit,
 ) {
     SyncSettingsPage("Advanced", onDismiss) {
@@ -117,14 +116,6 @@ internal fun SyncAdvancedPage(
                         onChoose = { value ->
                             onLayout(SyncLayout.entries.first { it.label == value })
                         },
-                    )
-                )
-                add(
-                    SyncSetting(
-                        "Bulk downloads",
-                        state.musicLabel,
-                        state.canEdit,
-                        onClick = onBulkDownloads,
                     )
                 )
                 add(

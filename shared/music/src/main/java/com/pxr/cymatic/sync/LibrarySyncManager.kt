@@ -4,7 +4,9 @@ import android.content.Context
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.util.Log
+import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -33,12 +35,21 @@ data class SyncSummary(
     val removed: Int,
     val failed: Int,
     val playlists: Int = 0,
-)
+) {
+    operator fun plus(other: SyncSummary) =
+        SyncSummary(
+            downloaded = downloaded + other.downloaded,
+            unchanged = unchanged + other.unchanged,
+            removed = removed + other.removed,
+            failed = failed + other.failed,
+            playlists = playlists + other.playlists,
+        )
+}
 
 sealed interface SyncProgress {
     data object Idle : SyncProgress
 
-    data class Preparing(val message: String) : SyncProgress
+    data class Preparing(val message: String, val sourceName: String? = null) : SyncProgress
 
     data class Downloading(
         val current: Int,
@@ -46,6 +57,7 @@ sealed interface SyncProgress {
         val title: String,
         val bytesDownloaded: Long,
         val totalBytes: Long,
+        val sourceName: String? = null,
     ) : SyncProgress
 
     data object Cancelling : SyncProgress
@@ -67,6 +79,7 @@ object LibrarySyncManager {
     private val running = AtomicBoolean(false)
     private val cancelRequested = AtomicBoolean(false)
     private val activeClient = AtomicReference<RemoteLibraryClient?>(null)
+    private val currentSourceId = AtomicReference<String?>(null)
     private val _progress = MutableStateFlow<SyncProgress>(SyncProgress.Idle)
     val progress: StateFlow<SyncProgress> = _progress.asStateFlow()
     private val manualScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -74,10 +87,22 @@ object LibrarySyncManager {
     val isRunning: Boolean
         get() = running.get()
 
-    fun start(context: Context): Boolean {
+    val activeSourceId: String?
+        get() = currentSourceId.get()
+
+    fun start(context: Context, sourceId: String? = null): Boolean {
         if (!begin()) return false
         manualScope.launch {
-            runCatching { syncAcquired(context.applicationContext) }
+            runCatching {
+                if (sourceId != null) {
+                    val config =
+                        RemoteSourceRegistry.get(sourceId, context.applicationContext)
+                            ?: throw IllegalStateException("Remote library not found")
+                    syncAcquiredSingle(context.applicationContext, config)
+                } else {
+                    syncAcquiredAll(context.applicationContext)
+                }
+            }
         }
         return true
     }
@@ -93,10 +118,23 @@ object LibrarySyncManager {
         if (!running.get()) _progress.value = SyncProgress.Idle
     }
 
-    suspend fun sync(context: Context, source: RemoteLibrarySource? = null): SyncSummary =
+    suspend fun sync(context: Context, source: RemoteLibrarySource): SyncSummary =
         withContext(Dispatchers.IO) {
             check(begin()) { "A library sync is already running" }
-            syncAcquired(context.applicationContext, source)
+            val config =
+                RemoteSourceRegistry.get(source.id, context.applicationContext)
+                    ?: run {
+                        running.set(false)
+                        _progress.value = SyncProgress.Idle
+                        throw IllegalStateException("Remote library not found")
+                    }
+            syncAcquiredSingle(context.applicationContext, config)
+        }
+
+    suspend fun syncAll(context: Context): SyncSummary =
+        withContext(Dispatchers.IO) {
+            check(begin()) { "A library sync is already running" }
+            syncAcquiredAll(context.applicationContext)
         }
 
     private fun begin(): Boolean {
@@ -106,14 +144,122 @@ object LibrarySyncManager {
         return true
     }
 
-    private suspend fun syncAcquired(
+    private suspend fun syncAcquiredSingle(
         context: Context,
-        source: RemoteLibrarySource? = null,
+        config: RemoteSourceConfig,
     ): SyncSummary {
         return try {
-            syncBlocking(context.applicationContext, source).also {
+            currentSourceId.set(config.id)
+            syncBlocking(context, config).also {
                 _progress.value = SyncProgress.Complete(it)
             }
+        } catch (_: SyncCancelledException) {
+            _progress.value = SyncProgress.Cancelled
+            val now = System.currentTimeMillis()
+            RemoteSourceRegistry.setResult(config.id, now, "Sync stopped", lastError = null)
+            LibrarySyncSettings.setSyncResult(now, "Sync stopped")
+            throw SyncCancelledException()
+        } catch (error: Throwable) {
+            val now = System.currentTimeMillis()
+            if (cancelRequested.get()) {
+                _progress.value = SyncProgress.Cancelled
+                RemoteSourceRegistry.setResult(config.id, now, "Sync stopped", lastError = null)
+                LibrarySyncSettings.setSyncResult(now, "Sync stopped")
+                throw SyncCancelledException()
+            }
+            val message = error.message ?: "Sync failed"
+            _progress.value = SyncProgress.Failed(message)
+            RemoteSourceRegistry.setResult(
+                config.id,
+                now,
+                "Sync failed: $message",
+                lastError = LibraryCatalogManager.classifyError(error),
+            )
+            LibrarySyncSettings.setSyncResult(now, "Sync failed: $message")
+            throw error
+        } finally {
+            LibraryOfflineManager.setSyncWork(OfflineWorkItems())
+            activeClient.set(null)
+            currentSourceId.set(null)
+            running.set(false)
+        }
+    }
+
+    private suspend fun syncAcquiredAll(context: Context): SyncSummary {
+        return try {
+            val configs = RemoteSourceRegistry.all(context)
+            val eligible =
+                configs.filter { config ->
+                    val hasCreds = SyncCredentialStore.has(context, config.id)
+                    val pins = OfflineSelectionStore.read(context, config.id)
+                    SyncEligibility.isEligible(config, hasCreds, pins)
+                }
+            if (eligible.isEmpty()) {
+                val now = System.currentTimeMillis()
+                LibrarySyncSettings.setSyncResult(now, "No music selected for download")
+                val empty = SyncSummary(0, 0, 0, 0, 0)
+                _progress.value = SyncProgress.Complete(empty)
+                return empty
+            }
+
+            var total = SyncSummary(0, 0, 0, 0, 0)
+            var succeededCount = 0
+            val failures = mutableListOf<Pair<String, String>>()
+
+            for (config in eligible) {
+                checkCancelled()
+                currentSourceId.set(config.id)
+                try {
+                    val summary = syncBlocking(context, config)
+                    total += summary
+                    succeededCount++
+                } catch (error: SyncCancelledException) {
+                    throw error
+                } catch (error: Throwable) {
+                    if (cancelRequested.get()) throw SyncCancelledException()
+                    val reason = connectionError(error, RemoteProvider.from(config.provider))
+                    failures += config.displayName to reason
+                    RemoteSourceRegistry.setResult(
+                        config.id,
+                        System.currentTimeMillis(),
+                        "Sync failed: $reason",
+                        lastError = LibraryCatalogManager.classifyError(error),
+                    )
+                    Log.e("LibrarySync", "Sync failed for ${config.id}", error)
+                } finally {
+                    activeClient.set(null)
+                    LibraryOfflineManager.setSyncWork(OfflineWorkItems())
+                }
+            }
+
+            val now = System.currentTimeMillis()
+            val summaryMessage =
+                when {
+                    failures.isEmpty() ->
+                        if (eligible.size == 1) {
+                            "Synced: ${total.downloaded} downloaded, ${total.unchanged} unchanged, ${total.playlists} playlists"
+                        } else {
+                            "Synced ${eligible.size} libraries · ${total.downloaded} downloaded, ${total.unchanged} unchanged"
+                        }
+
+                    succeededCount == 0 -> {
+                        val (name, reason) = failures.first()
+                        if (failures.size == 1) "Sync failed: $name: $reason"
+                        else "Sync failed for ${failures.size} libraries · $name: $reason"
+                    }
+
+                    else -> {
+                        val (name, reason) = failures.first()
+                        "Synced $succeededCount ${if (succeededCount == 1) "library" else "libraries"} · ${failures.size} failed: $name: $reason"
+                    }
+                }
+            LibrarySyncSettings.setSyncResult(now, summaryMessage)
+            if (failures.isNotEmpty()) {
+                _progress.value = SyncProgress.Failed(summaryMessage)
+                throw IOException(summaryMessage)
+            }
+            _progress.value = SyncProgress.Complete(total)
+            total
         } catch (_: SyncCancelledException) {
             _progress.value = SyncProgress.Cancelled
             LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), "Sync stopped")
@@ -124,30 +270,32 @@ object LibrarySyncManager {
                 LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), "Sync stopped")
                 throw SyncCancelledException()
             }
-            _progress.value = SyncProgress.Failed(error.message ?: "Sync failed")
-            LibrarySyncSettings.setSyncResult(
-                System.currentTimeMillis(),
-                "Sync failed: ${error.message ?: "unknown error"}",
-            )
+            if (_progress.value !is SyncProgress.Failed) {
+                val message = error.message ?: "Sync failed"
+                _progress.value = SyncProgress.Failed(message)
+                LibrarySyncSettings.setSyncResult(
+                    System.currentTimeMillis(),
+                    "Sync failed: $message"
+                )
+            }
             throw error
         } finally {
             LibraryOfflineManager.setSyncWork(OfflineWorkItems())
             activeClient.set(null)
+            currentSourceId.set(null)
             running.set(false)
         }
     }
 
     private suspend fun syncBlocking(
         context: Context,
-        requestedSource: RemoteLibrarySource?,
+        config: RemoteSourceConfig,
     ): SyncSummary {
-        val currentSource = RemoteLibraries.currentSource()
-        val source = requestedSource ?: currentSource
-        val current = source.id == currentSource.id
-        SyncCredentialStore.migrateLegacy(context, source.id)
-        SyncCatalogStore.migrateLegacy(context, source)
+        val source = config.toSource()
+        val label = config.displayName
         LibrarySyncSettings.migrateSyncPlaylistIds(source.id)
-        val client = RemoteLibraries.client(context, source)
+        _progress.value = SyncProgress.Preparing("Updating library", label)
+        val client = RemoteLibraries.client(context, source, ClientPurpose.DOWNLOAD)
         activeClient.set(client)
         val catalog =
             RemoteLibraries.catalogRepository(context).refresh(source, client, ::checkCancelled)
@@ -156,12 +304,10 @@ object LibrarySyncManager {
         val remotePlaylists = catalog.playlists
 
         val mode =
-            if (current) SyncContentMode.from(LibrarySyncSettings.getSyncContentMode())
+            if (config.contentConfigured) SyncContentMode.from(config.contentMode)
             else SyncContentMode.NONE
         val pins = OfflineSelectionStore.read(context, source.id)
-        val selectedIds =
-            (if (current) LibrarySyncSettings.getSyncSelectedPlaylists() else emptySet()) +
-                    pins.playlists
+        val selectedIds = config.selectedPlaylists + pins.playlists
         val playlistsToSync =
             when (mode) {
                 SyncContentMode.NONE -> remotePlaylists.filter { it.id in pins.playlists }
@@ -173,15 +319,19 @@ object LibrarySyncManager {
         val tracksToSync =
             if (mode == SyncContentMode.ALL) tracks else tracks.filter { it.id in selectedTrackIds }
         if (tracksToSync.isEmpty()) {
-            LibrarySyncSettings.setSyncResult(
-                System.currentTimeMillis(),
+            val now = System.currentTimeMillis()
+            RemoteSourceRegistry.setResult(
+                source.id,
+                now,
                 "No music selected for download",
+                lastError = null
             )
+            LibrarySyncSettings.setSyncResult(now, "No music selected for download")
             return SyncSummary(0, 0, 0, 0, 0)
         }
 
         val offline =
-            com.pxr.cymatic.data.media.AudioRepository.getInstance(context)
+            AudioRepository.getInstance(context)
                 .getAllAudio()
                 .filter { it.sourceId == source.id && it.offlineUri != null }
                 .mapNotNullTo(mutableSetOf()) { it.remoteId }
@@ -195,15 +345,10 @@ object LibrarySyncManager {
             )
         )
 
-        val directory = if (current) LibrarySyncSettings.getSyncDirectory() else ""
-        val tree: SyncStorage =
-            if (directory.isBlank()) {
-                ManagedSyncStorage(java.io.File(context.filesDir, "library-downloads/${source.id}"))
-            } else {
-                SafTree(context.contentResolver, Uri.parse(directory))
-            }
+        val directory = LibrarySyncSettings.getSyncDirectory()
+        val (tree, folderName) = SyncStorages.forSource(context, config, directory)
         val layout = SyncLayout.from(LibrarySyncSettings.getSyncLayout())
-        _progress.value = SyncProgress.Preparing("Planning local files")
+        _progress.value = SyncProgress.Preparing("Planning local files", label)
         checkCancelled()
         val placements =
             if (layout == SyncLayout.PLAYLIST_TRACKS) {
@@ -219,12 +364,7 @@ object LibrarySyncManager {
                 emptyMap()
             }
 
-        val manifestStore =
-            SyncManifestStore(
-                context,
-                (if (source.provider == "audiostream") "" else "${source.provider}\n") +
-                        "${source.address}\n${source.account}\n$directory",
-            )
+        val manifestStore = SyncManifestStore.forSource(context, source, directory, folderName)
         val folderManifest = readManifest(tree, source.id)
         val previous = manifestStore.read() ?: folderManifest
         manifestStore.write(previous)
@@ -264,7 +404,7 @@ object LibrarySyncManager {
 
         suspend fun indexCompletedTracks() {
             if (pendingPaths.isEmpty()) return
-            _progress.value = SyncProgress.Preparing("Adding downloaded tracks to playlists")
+            _progress.value = SyncProgress.Preparing("Adding downloaded tracks to playlists", label)
             writeManifest(tree, reuse.entries, source.id)
             val paths = pendingPaths.keys.mapNotNull(tree::absolutePath)
             scanMediaFiles(context, paths)
@@ -280,12 +420,16 @@ object LibrarySyncManager {
             desired.forEachIndexed { index, target ->
                 checkCancelled()
                 _progress.value =
-                    SyncProgress.Preparing("Checking local files (${index + 1}/${desired.size})")
+                    SyncProgress.Preparing(
+                        "Checking local files (${index + 1}/${desired.size})",
+                        label,
+                    )
                 val result = runCatching {
                     if (reuse.reuse(target)) return@runCatching null
                     reuse.prepareWrite(target)
-                    val received = downloadTrack(client, tree, target, index + 1, desired.size)
-                    _progress.value = SyncProgress.Preparing("Saving ${target.track.title}")
+                    val received =
+                        downloadTrack(client, tree, target, index + 1, desired.size, label)
+                    _progress.value = SyncProgress.Preparing("Saving ${target.track.title}", label)
                     received
                 }
                 result.exceptionOrNull()?.let {
@@ -341,7 +485,7 @@ object LibrarySyncManager {
         }
 
         var removed = 0
-        _progress.value = SyncProgress.Preparing("Finishing sync")
+        _progress.value = SyncProgress.Preparing("Finishing sync", label)
         checkCancelled()
         val entries = reuse.entries
         val next = entries.toMutableMap()
@@ -374,7 +518,14 @@ object LibrarySyncManager {
             } else {
                 "Sync incomplete: $downloaded downloaded, $failed failed. $firstFailure"
             }
-        LibrarySyncSettings.setSyncResult(System.currentTimeMillis(), message)
+        val now = System.currentTimeMillis()
+        RemoteSourceRegistry.setResult(
+            source.id,
+            now,
+            message,
+            lastError = if (failed == 0) null else "unreachable",
+        )
+        LibrarySyncSettings.setSyncResult(now, message)
         if (failed > 0) throw IOException(message)
         return summary
     }
@@ -385,6 +536,7 @@ object LibrarySyncManager {
         target: SyncTarget,
         current: Int,
         total: Int,
+        sourceName: String?,
     ): Long {
         repeat(3) { attempt ->
             checkCancelled()
@@ -395,6 +547,7 @@ object LibrarySyncManager {
                     target.track.title,
                     0L,
                     target.track.size.coerceAtLeast(0L),
+                    sourceName,
                 )
             try {
                 val connection = client.openDownload(target.track.id)
@@ -408,7 +561,14 @@ object LibrarySyncManager {
                     val totalBytes = expected.coerceAtLeast(0L)
                     var copied = 0L
                     _progress.value =
-                        SyncProgress.Downloading(current, total, target.track.title, 0L, totalBytes)
+                        SyncProgress.Downloading(
+                            current,
+                            total,
+                            target.track.title,
+                            0L,
+                            totalBytes,
+                            sourceName,
+                        )
                     val input = connection.input.buffered()
                     try {
                         tree.write(target.relativePath, mimeType(target.track.filename)) { output ->
@@ -429,12 +589,14 @@ object LibrarySyncManager {
                                             target.track.title,
                                             copied,
                                             totalBytes,
+                                            sourceName,
                                         )
                                     lastUpdate = now
                                 }
                             }
                             SyncDownloadValidation.validate(copied, expected)
-                            _progress.value = SyncProgress.Preparing("Saving ${target.track.title}")
+                            _progress.value =
+                                SyncProgress.Preparing("Saving ${target.track.title}", sourceName)
                         }
                     } finally {
                         runCatching { input.close() }
@@ -454,7 +616,7 @@ object LibrarySyncManager {
                 checkCancelled()
                 val retryable =
                     when (error) {
-                        is AudioStreamRequestException ->
+                        is RemoteRequestException ->
                             error.status == 408 || error.status == 429 || error.status >= 500
 
                         is SocketException,
@@ -467,14 +629,15 @@ object LibrarySyncManager {
                 if (!retryable || attempt == 2) throw error
                 _progress.value =
                     SyncProgress.Preparing(
-                        "Retrying ${target.track.title}: ${error.message ?: "transfer interrupted"}"
+                        "Retrying ${target.track.title}: ${error.message ?: "transfer interrupted"}",
+                        sourceName,
                     )
                 Log.w(
                     "LibrarySync",
                     "Retrying ${target.track.id} after transfer attempt ${attempt + 1}",
                     error,
                 )
-                val retryAfter = (error as? AudioStreamRequestException)?.retryAfterMillis ?: 0L
+                val retryAfter = (error as? RemoteRequestException)?.retryAfterMillis ?: 0L
                 delay(maxOf(1000L shl attempt, retryAfter))
             }
         }

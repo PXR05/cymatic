@@ -145,9 +145,11 @@ fun MusicNavHost(
     fun NavGraphBuilder.page(route: String, content: @Composable (NavBackStackEntry) -> Unit) {
         composable(route) { entry ->
             Column(Modifier.fillMaxSize()) {
-                Box(Modifier
-                    .weight(1f)
-                    .fillMaxWidth()) {
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
                     Box(currentContentModifier.value.fillMaxSize()) { content(entry) }
                     currentOverlay.value()
                 }
@@ -281,13 +283,17 @@ fun MusicNavHost(
                 ) {
                     listOf(
                         Screen.LibrarySyncSettings,
-                        Screen.SyncConnection,
-                        Screen.SyncLibrary,
-                        Screen.SyncBulkDownloads,
+                        Screen.SyncAddSource,
+                        Screen.SyncAddSourceConnection,
+                        Screen.SyncSource,
+                        Screen.SyncSourceConnection,
+                        Screen.SyncSourceLibrary,
+                        Screen.SyncSourceBulkDownloads,
+                        Screen.SyncSourcePlaylists,
+                        Screen.SyncSourceRemove,
                         Screen.SyncAdvanced,
                         Screen.SyncSchedule,
                         Screen.SyncStatus,
-                        Screen.SyncPlaylists,
                         Screen.SyncHelp,
                         Screen.SyncError,
                     )
@@ -295,7 +301,12 @@ fun MusicNavHost(
                             page(screen.route) { entry ->
                                 val model: LibrarySyncSettingsViewModel =
                                     graphViewModel(Screen.SyncGraph.route, entry)
-                                LibrarySyncSettingsScreen(model, pageRoute = screen.route)
+                                LibrarySyncSettingsScreen(
+                                    model = model,
+                                    pageRoute = screen.route,
+                                    sourceId = entry.arguments?.getString("sourceId"),
+                                    providerArg = entry.arguments?.getString("provider"),
+                                )
                             }
                         }
                 }

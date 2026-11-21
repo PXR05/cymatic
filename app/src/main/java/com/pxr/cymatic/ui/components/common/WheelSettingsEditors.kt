@@ -251,6 +251,7 @@ fun WheelTextEditor(
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
     hint: String? = null,
+    instruction: String? = null,
 ) {
     val wheel = LocalWheelNavigation.current
     val owner = LocalLifecycleOwner.current
@@ -283,12 +284,21 @@ fun WheelTextEditor(
                 keyboard?.show()
             }
         }
-        Column(Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = instruction ?: title,
+                color = MaterialTheme.colorScheme.secondary,
+                fontSize = 13.sp,
+            )
             OutlinedTextField(
                 value = draft,
+                label = { Text(title) },
                 placeholder = { if (hint != null) Text(hint) },
                 onValueChange = { draft = it },
                 modifier = Modifier
@@ -335,8 +345,10 @@ private fun ReadingContent(onDismiss: () -> Unit, content: @Composable () -> Uni
         wheel?.register(actions, overlay)
         onDispose { wheel?.unregister(actions) }
     }
-    Column(Modifier
-        .fillMaxSize()
-        .verticalScroll(scroll)
-        .padding(24.dp)) { content() }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(scroll)
+            .padding(24.dp)
+    ) { content() }
 }

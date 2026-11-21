@@ -12,6 +12,7 @@ import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.CymaticDatabase
 import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.runBlocking
 import java.io.EOFException
 import java.io.IOException
@@ -25,7 +26,6 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
     private var remaining = C.LENGTH_UNSET.toLong()
     private var started = false
     private var network = false
-    private var streamClient: Pair<String, RemoteLibraryClient>? = null
 
     override fun addTransferListener(transferListener: TransferListener) {
         if (transferListener !in listeners) listeners += transferListener
@@ -41,6 +41,19 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
                     dataSpec.uri.pathSegments.single()
                 )
             } else null
+            if (key != null) {
+                val config =
+                    RemoteSourceRegistry.cached(key.sourceId)
+                        ?: runBlocking {
+                            RemoteSourceRegistry.get(
+                                key.sourceId,
+                                context
+                            )
+                        }
+                if (config == null || !config.enabled) {
+                    throw IOException("This library is disabled.")
+                }
+            }
             val record = key?.let {
                 runBlocking {
                     CymaticDatabase.getInstance(context).audioDao().getAudio(it.audioId())
@@ -64,9 +77,7 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
             } else {
                 val source = SyncCatalogStore.source(context, key!!.sourceId)
                     ?: throw IOException("This library connection is unavailable. Reconnect in Settings.")
-                val client = streamClient?.takeIf { it.first == source.id }?.second
-                    ?: RemoteLibraries.client(context, source)
-                        .also { streamClient = source.id to it }
+                val client = RemoteLibraries.client(context, source, ClientPurpose.STREAM)
                 val response = client.openStream(key.remoteId, dataSpec.position, dataSpec.length)
                 remote = response
                 val size = response.contentLength?.toLongOrNull()?.takeIf { it >= 0L }

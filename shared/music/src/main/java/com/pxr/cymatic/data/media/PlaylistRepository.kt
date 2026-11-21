@@ -29,23 +29,37 @@ class PlaylistRepository private constructor(
 
     private val playlistMutex = Mutex()
 
+    private suspend fun disabledSourceIds(): Set<String> =
+        runCatching {
+            com.pxr.cymatic.data.store.RemoteSourceRegistry.all()
+                .filterNot { it.enabled }
+                .mapTo(mutableSetOf()) { it.id }
+        }.getOrDefault(emptySet())
+
     private suspend fun loadPlaylistsFromDb(): List<Playlist> {
+        val disabledIds = disabledSourceIds()
         val counts = playlistDao.availability().associateBy { it.playlistId }
-        return playlistDao.getPlaylists().map { entity ->
-            val count = counts[entity.id]
-            entity.toPlaylist().copy(
-                availability =
-                    LibraryAvailability.fromCounts(
-                        count?.offline ?: 0,
-                        count?.total ?: 0,
-                        entity.sourceId != null,
-                    )
-            )
-        }
+        return playlistDao.getPlaylists()
+            .filter { it.sourceId == null || it.sourceId !in disabledIds }
+            .map { entity ->
+                val count = counts[entity.id]
+                entity.toPlaylist().copy(
+                    availability =
+                        LibraryAvailability.fromCounts(
+                            count?.offline ?: 0,
+                            count?.total ?: 0,
+                            entity.sourceId != null,
+                        )
+                )
+            }
     }
 
-    private suspend fun loadPlaylistAudioFromDb(playlistId: Long): List<AudioFile> =
-        playlistDao.getPlaylistAudio(playlistId).map { it.toAudioFile() }
+    private suspend fun loadPlaylistAudioFromDb(playlistId: Long): List<AudioFile> {
+        val disabledIds = disabledSourceIds()
+        return playlistDao.getPlaylistAudio(playlistId)
+            .filter { it.sourceId == null || it.sourceId !in disabledIds }
+            .map { it.toAudioFile() }
+    }
 
     suspend fun getPlaylists(): List<Playlist> {
         val cached = cachedPlaylists

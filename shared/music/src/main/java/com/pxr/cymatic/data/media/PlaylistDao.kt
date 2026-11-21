@@ -12,6 +12,9 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
     suspend fun getRemotePlaylist(sourceId: String, remoteId: String): PlaylistEntity?
 
+    @Query("DELETE FROM playlists WHERE sourceId = :sourceId")
+    suspend fun deleteRemotePlaylists(sourceId: String)
+
     @Query(
         """
         SELECT playlists.id AS playlistId, COUNT(audio_files.id) AS total,

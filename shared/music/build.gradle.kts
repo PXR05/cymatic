@@ -6,6 +6,9 @@ plugins {
 android {
     namespace = "com.pxr.cymatic.music"
     buildFeatures.compose = false
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
     sourceSets.named("debug") {
         kotlin.directories += "build/generated/ksp/debug/kotlin"
     }
@@ -35,6 +38,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.kotlinx.coroutines.guava)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockwebserver)
+    testImplementation(libs.orgjson)
 }
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }

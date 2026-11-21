@@ -1,30 +1,44 @@
 package com.pxr.cymatic.sync
 
 import android.content.Context
-import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
+import java.util.concurrent.ConcurrentHashMap
 
 object RemoteLibraries {
-    fun cachedCurrentSource() =
-        RemoteLibrarySource(
-            LibrarySyncSettings.currentSyncAdapter,
-            LibrarySyncSettings.currentSyncUrl,
-            LibrarySyncSettings.currentSyncUsername,
-        )
+    private val cachedClients = ConcurrentHashMap<String, RemoteLibraryClient>()
 
-    suspend fun currentSource() =
-        RemoteLibrarySource(
-            LibrarySyncSettings.getSyncAdapter(),
-            LibrarySyncSettings.getSyncUrl(),
-            LibrarySyncSettings.getSyncUsername(),
-        )
+    fun cachedSource(sourceId: String): RemoteLibrarySource? =
+        RemoteSourceRegistry.cached(sourceId)?.toSource()
 
-    fun client(context: Context, source: RemoteLibrarySource): RemoteLibraryClient {
-        SyncCredentialStore.migrateLegacy(context, source.id)
-        return when (source.provider) {
-            "audiostream" -> {
+    suspend fun source(sourceId: String, context: Context? = null): RemoteLibrarySource? =
+        RemoteSourceRegistry.get(sourceId, context)?.toSource()
+
+    fun invalidate(sourceId: String) {
+        cachedClients.remove(sourceId)
+    }
+
+    fun client(
+        context: Context,
+        source: RemoteLibrarySource,
+        purpose: ClientPurpose = ClientPurpose.CATALOG,
+    ): RemoteLibraryClient {
+        if (purpose == ClientPurpose.ARTWORK || purpose == ClientPurpose.STREAM) {
+            return cachedClients.computeIfAbsent(source.id) {
+                createClient(context.applicationContext, source)
+            }
+        }
+        return createClient(context.applicationContext, source)
+    }
+
+    private fun createClient(context: Context, source: RemoteLibrarySource): RemoteLibraryClient {
+        val label = source.displayName.ifBlank {
+            RemoteProvider.from(source.provider)?.label ?: source.provider
+        }
+        return when (RemoteProvider.from(source.provider)) {
+            RemoteProvider.AUDIOSTREAM -> {
                 val password =
-                    SyncCredentialStore.getPassword(context, source.id)
-                        ?: throw IllegalStateException("Enter your library password first")
+                    SyncCredentialStore.get(context, source.id)?.password
+                        ?: throw IllegalStateException("Sign in to $label first")
                 AudioStreamClient(source.address, source.account, password)
             }
 

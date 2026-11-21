@@ -26,7 +26,7 @@ import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 internal fun SyncPlaylistsPage(
-    state: LibrarySyncSettingsState,
+    state: RemoteSourceState,
     onDismiss: () -> Unit,
     onChange: (Set<String>) -> Unit,
     onRefresh: () -> Unit,
@@ -47,7 +47,7 @@ internal fun SyncPlaylistsPage(
                         SyncSetting(
                             if (state.refreshingCatalog) "Loading…" else "Reload playlists",
                             if (state.catalog == null)
-                                "Connect to AudioStream to load your playlists"
+                                "Connect to load your playlists"
                             else "No playlists found",
                             enabled = state.connected && !state.running && !state.saving,
                             onClick = onRefresh,

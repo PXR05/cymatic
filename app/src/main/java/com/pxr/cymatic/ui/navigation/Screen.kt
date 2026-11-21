@@ -141,19 +141,46 @@ sealed class Screen(val route: String) {
 
     object SyncGraph : Screen("sync_graph")
 
-    object SyncConnection : Screen("setting/library-sync/connection")
+    object SyncAddSource : Screen("setting/library-sync/add")
 
-    object SyncLibrary : Screen("setting/library-sync/library")
+    object SyncAddSourceConnection : Screen("setting/library-sync/add/{provider}") {
+        fun createRoute(provider: String) = "setting/library-sync/add/${Uri.encode(provider)}"
+    }
 
-    object SyncBulkDownloads : Screen("setting/library-sync/bulk")
+    object SyncSource : Screen("setting/library-sync/source/{sourceId}") {
+        fun createRoute(sourceId: String) = "setting/library-sync/source/${Uri.encode(sourceId)}"
+    }
+
+    object SyncSourceConnection : Screen("setting/library-sync/source/{sourceId}/connection") {
+        fun createRoute(sourceId: String) =
+            "setting/library-sync/source/${Uri.encode(sourceId)}/connection"
+    }
+
+    object SyncSourceLibrary : Screen("setting/library-sync/source/{sourceId}/library") {
+        fun createRoute(sourceId: String) =
+            "setting/library-sync/source/${Uri.encode(sourceId)}/library"
+    }
+
+    object SyncSourceBulkDownloads : Screen("setting/library-sync/source/{sourceId}/bulk") {
+        fun createRoute(sourceId: String) =
+            "setting/library-sync/source/${Uri.encode(sourceId)}/bulk"
+    }
+
+    object SyncSourcePlaylists : Screen("setting/library-sync/source/{sourceId}/playlists") {
+        fun createRoute(sourceId: String) =
+            "setting/library-sync/source/${Uri.encode(sourceId)}/playlists"
+    }
+
+    object SyncSourceRemove : Screen("setting/library-sync/source/{sourceId}/remove") {
+        fun createRoute(sourceId: String) =
+            "setting/library-sync/source/${Uri.encode(sourceId)}/remove"
+    }
 
     object SyncAdvanced : Screen("setting/library-sync/advanced")
 
     object SyncSchedule : Screen("setting/library-sync/schedule")
 
     object SyncStatus : Screen("setting/library-sync/status")
-
-    object SyncPlaylists : Screen("setting/library-sync/playlists")
 
     object SyncError : Screen("setting/library-sync/error")
 

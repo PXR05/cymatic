@@ -99,9 +99,11 @@ fun ScrollingTrackText(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            Canvas(Modifier
-                .fillMaxWidth()
-                .height(height)) {
+            Canvas(
+                Modifier
+                    .fillMaxWidth()
+                    .height(height)
+            ) {
                 val position = offset.value.coerceIn(0f, distance)
                 clipRect {
                     drawText(layout, topLeft = Offset(-position, 0f))

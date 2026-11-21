@@ -48,6 +48,7 @@ internal class LibraryGroups(songs: List<AudioFile>) {
 
 private object LibraryGroupsCache {
     private val mutex = Mutex()
+
     @Volatile
     private var snapshot: Pair<List<AudioFile>, LibraryGroups>? = null
     val empty = LibraryGroups(emptyList())

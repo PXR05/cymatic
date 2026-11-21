@@ -5,10 +5,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.data.store.SettingsStore
-import com.pxr.cymatic.sync.RemoteLibraries
-import com.pxr.cymatic.sync.SyncCredentialStore
+import com.pxr.cymatic.sync.RemoteSourceMigration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -36,13 +35,12 @@ internal object MusicSetupStore {
         withContext(Dispatchers.IO) {
             var prefs = SettingsStore.store.data.first()
             if (!prefs.contains(complete) && !prefs.contains(step)) {
-                val source = RemoteLibraries.currentSource()
+                RemoteSourceMigration.migrate(context)
                 val existing =
                     prefs.contains(stringPreferencesKey("WHEEL_LAST_PANEL")) ||
                             SettingsStore.getLastScanTimeMs() > 0 ||
                             SettingsStore.getScanDirectories().isNotEmpty() ||
-                            SyncCredentialStore.hasPassword(context, source.id)
-                if (!existing) LibrarySyncSettings.setSyncConnection("", "", resetSelection = true)
+                            RemoteSourceRegistry.all(context).isNotEmpty()
                 SettingsStore.store.edit {
                     it[complete] = existing
                     it[step] = "navigate"

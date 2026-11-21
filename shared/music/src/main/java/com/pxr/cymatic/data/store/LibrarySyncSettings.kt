@@ -242,6 +242,11 @@ object LibrarySyncSettings {
             prefs[stringPreferencesKey("SYNC_PLAYLIST_IDS_$sourceId")] = json.toString()
         }
 
+    suspend fun clearSyncPlaylistIds(sourceId: String) =
+        SettingsStore.store.edit { prefs ->
+            prefs.remove(stringPreferencesKey("SYNC_PLAYLIST_IDS_$sourceId"))
+        }
+
     private fun parseLongMap(jsonStr: String?): Map<String, Long> {
         if (jsonStr.isNullOrBlank()) return emptyMap()
         return runCatching {

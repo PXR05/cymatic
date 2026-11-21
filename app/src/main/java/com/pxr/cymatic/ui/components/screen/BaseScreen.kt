@@ -53,9 +53,11 @@ fun BaseScreen(
 
     val background = MaterialTheme.colorScheme.background
     CompositionLocalProvider(LocalContentColor provides contentColorFor(background)) {
-        Column(modifier
-            .fillMaxSize()
-            .background(background)) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .background(background)
+        ) {
             if (
                 searchQuery != null && onSearchQueryChange != null && onSearchActiveChange != null
             ) {

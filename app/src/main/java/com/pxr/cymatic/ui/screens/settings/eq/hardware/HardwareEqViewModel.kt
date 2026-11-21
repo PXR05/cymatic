@@ -34,8 +34,10 @@ internal class HardwareEqViewModel(application: Application) : AndroidViewModel(
     private val context = application.applicationContext
     private val drafts = HardwareEqStore(context)
     private val presets = EqPresetRepository()
+
     @Volatile
     private var operation: Job? = null
+
     @Volatile
     private var closed = false
     private val mutableState = MutableStateFlow(HardwareEqUiState())

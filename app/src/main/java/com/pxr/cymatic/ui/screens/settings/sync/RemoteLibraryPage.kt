@@ -6,7 +6,7 @@ import com.pxr.cymatic.ui.navigation.Screen
 
 @Composable
 internal fun SyncRemoteLibraryPage(
-    state: LibrarySyncSettingsState,
+    state: RemoteSourceState,
     onDismiss: () -> Unit,
     onRefresh: () -> Unit,
     onCancel: () -> Unit,
@@ -18,7 +18,7 @@ internal fun SyncRemoteLibraryPage(
             .orEmpty()
             .distinctBy { it.album.trim().ifBlank { "Unknown Album" } }
             .size
-    SyncSettingsPage("Library", onDismiss) {
+    SyncSettingsPage(state.displayName, onDismiss) {
         SyncSettingsList(
             listOf(
                 SyncSetting(

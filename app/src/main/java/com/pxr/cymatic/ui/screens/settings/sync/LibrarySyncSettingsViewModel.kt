@@ -8,23 +8,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.sync.CatalogProgress
+import com.pxr.cymatic.sync.ConnectionInput
 import com.pxr.cymatic.sync.LibraryCatalogManager
 import com.pxr.cymatic.sync.LibrarySyncJobService
 import com.pxr.cymatic.sync.LibrarySyncManager
-import com.pxr.cymatic.sync.RemoteLibraries
+import com.pxr.cymatic.sync.OfflineSelectionStore
+import com.pxr.cymatic.sync.RemoteProvider
+import com.pxr.cymatic.sync.RemoteSourceConfig
+import com.pxr.cymatic.sync.RemoteSourceConnector
+import com.pxr.cymatic.sync.RemoteSourceMigration
 import com.pxr.cymatic.sync.SyncCatalogStore
-import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncCredentialStore
 import com.pxr.cymatic.sync.SyncLayout
 import com.pxr.cymatic.sync.SyncNetwork
 import com.pxr.cymatic.sync.SyncProgress
+import com.pxr.cymatic.sync.connectionError
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -37,34 +42,25 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
     private val mutableState = MutableStateFlow(initialState())
     val state = mutableState.asStateFlow()
     private var requestBaseline: SyncProgress? = null
-    private var playlistsDirty = false
+
+    internal var connectionPassword by mutableStateOf("")
+    internal var lastPresentedError: String? = null
+    internal var errorDetails by mutableStateOf<String?>(null)
 
     private fun initialState(): LibrarySyncSettingsState {
         if (com.pxr.cymatic.data.store.SettingsStore.currentPreferences == null) {
             return LibrarySyncSettingsState()
         }
         val directory = LibrarySyncSettings.currentSyncDirectory
-        val source = RemoteLibraries.cachedCurrentSource()
-        val configured = LibrarySyncSettings.currentSyncContentConfigured
+        val configs = RemoteSourceRegistry.currentSources
         return LibrarySyncSettingsState(
             loading = false,
-            url = LibrarySyncSettings.currentSyncUrl,
-            username = LibrarySyncSettings.currentSyncUsername,
-            hasPassword = SyncCredentialStore.cachedHasPassword(source.id) ?: false,
+            sources = configs.map { cachedSummary(it) },
             directory = directory,
             folderAccessible = hasFolderAccess(directory),
             network = SyncNetwork.from(LibrarySyncSettings.currentSyncNetwork),
             interval = LibrarySyncSettings.currentSyncIntervalHours,
             layout = SyncLayout.from(LibrarySyncSettings.currentSyncLayout),
-            contentMode =
-                if (configured) SyncContentMode.from(LibrarySyncSettings.currentSyncContentMode)
-                else SyncContentMode.NONE,
-            musicConfigured = configured,
-            hasPinnedMusic =
-                com.pxr.cymatic.sync.OfflineSelectionStore.cached(source.id)?.let { !it.isEmpty }
-                    ?: false,
-            selectedPlaylists = LibrarySyncSettings.currentSyncSelectedPlaylists,
-            catalog = SyncCatalogStore.cached(source),
             progress = LibrarySyncManager.progress.value,
             catalogProgress = LibraryCatalogManager.progress.value,
             lastTime = LibrarySyncSettings.currentSyncLastTime,
@@ -72,70 +68,79 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         )
     }
 
+    private fun cachedSummary(config: RemoteSourceConfig) =
+        RemoteSourceSummary(
+            config = config,
+            hasCredentials = SyncCredentialStore.cachedHas(config.id) ?: false,
+            catalog = SyncCatalogStore.cached(config.id),
+            hasPinnedMusic = OfflineSelectionStore.cached(config.id)?.let { !it.isEmpty } ?: false,
+        )
+
+    private suspend fun loadSummaries(configs: List<RemoteSourceConfig>): List<RemoteSourceSummary> =
+        withContext(Dispatchers.IO) {
+            configs.map { config ->
+                RemoteSourceSummary(
+                    config = config,
+                    hasCredentials = SyncCredentialStore.has(context, config.id),
+                    catalog = SyncCatalogStore.read(context, config.id),
+                    hasPinnedMusic = !OfflineSelectionStore.read(context, config.id).isEmpty,
+                )
+            }
+        }
+
     init {
         viewModelScope.launch {
+            runCatching { RemoteSourceMigration.migrate(context) }
             val directory = LibrarySyncSettings.getSyncDirectory()
-            val source = RemoteLibraries.currentSource()
-            val migrationError = runCatching {
-                LibrarySyncSettings.migrateSyncPlaylistIds(source.id)
-                withContext(Dispatchers.IO) {
-                    SyncCredentialStore.migrateLegacy(context, source.id)
-                    SyncCatalogStore.migrateLegacy(context, source)
-                }
-            }
-                .exceptionOrNull()
-            val catalog = withContext(Dispatchers.IO) { SyncCatalogStore.read(context, source) }
+            val configs = RemoteSourceRegistry.all(context)
             mutableState.value =
                 LibrarySyncSettingsState(
                     loading = false,
-                    message = migrationError?.message,
-                    url = LibrarySyncSettings.getSyncUrl(),
-                    username = LibrarySyncSettings.getSyncUsername(),
-                    hasPassword =
-                        withContext(Dispatchers.IO) {
-                            SyncCredentialStore.hasPassword(
-                                context,
-                                source.id,
-                            )
-                        },
+                    sources = loadSummaries(configs),
                     directory = directory,
                     folderAccessible = hasFolderAccess(directory),
                     network = SyncNetwork.from(LibrarySyncSettings.getSyncNetwork()),
                     interval = LibrarySyncSettings.getSyncIntervalHours(),
                     layout = SyncLayout.from(LibrarySyncSettings.getSyncLayout()),
-                    contentMode =
-                        if (LibrarySyncSettings.getSyncContentConfigured())
-                            SyncContentMode.from(LibrarySyncSettings.getSyncContentMode())
-                        else SyncContentMode.NONE,
-                    musicConfigured = LibrarySyncSettings.getSyncContentConfigured(),
-                    hasPinnedMusic =
-                        !com.pxr.cymatic.sync.OfflineSelectionStore.read(
-                            context,
-                            source.id,
-                        )
-                            .isEmpty,
-                    selectedPlaylists = LibrarySyncSettings.getSyncSelectedPlaylists(),
-                    catalog = catalog,
                     progress = LibrarySyncManager.progress.value,
                     catalogProgress = LibraryCatalogManager.progress.value,
                     lastTime = LibrarySyncSettings.currentSyncLastTime,
                     lastResult = LibrarySyncSettings.currentSyncLastResult,
                 )
+
             launch {
-                com.pxr.cymatic.data.media.LibraryChanges.version.collect {
-                    val pins =
-                        withContext(Dispatchers.IO) {
-                            com.pxr.cymatic.sync.OfflineSelectionStore.read(
-                                context,
-                                RemoteLibraries.currentSource().id,
-                            )
-                        }
-                    mutableState.update { it.copy(hasPinnedMusic = !pins.isEmpty) }
+                RemoteSourceRegistry.sourcesFlow.collect { updatedConfigs ->
+                    val summaries = loadSummaries(updatedConfigs)
+                    mutableState.update { it.copy(sources = summaries) }
+                }
+            }
+            launch {
+                LibraryChanges.version.collect {
+                    val configsNow = RemoteSourceRegistry.all(context)
+                    val summaries = loadSummaries(configsNow)
+                    mutableState.update { it.copy(sources = summaries) }
                 }
             }
             launch {
                 LibrarySyncSettings.syncNetworkFlow.collect { network ->
                     mutableState.update { it.copy(network = SyncNetwork.from(network)) }
+                }
+            }
+            launch {
+                LibrarySyncSettings.syncIntervalHoursFlow.collect { interval ->
+                    mutableState.update { it.copy(interval = interval) }
+                }
+            }
+            launch {
+                LibrarySyncSettings.syncLayoutFlow.collect { layout ->
+                    mutableState.update { it.copy(layout = SyncLayout.from(layout)) }
+                }
+            }
+            launch {
+                LibrarySyncSettings.syncDirectoryFlow.collect { dir ->
+                    mutableState.update {
+                        it.copy(directory = dir, folderAccessible = hasFolderAccess(dir))
+                    }
                 }
             }
             launch {
@@ -150,19 +155,14 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             }
             launch {
                 LibraryCatalogManager.progress.collect { progress ->
-                    val source = RemoteLibraries.currentSource()
+                    val summaries =
+                        if (progress is CatalogProgress.Complete) {
+                            loadSummaries(RemoteSourceRegistry.all(context))
+                        } else null
                     mutableState.update {
-                        val completed = progress as? CatalogProgress.Complete
                         it.copy(
                             catalogProgress = progress,
-                            catalog =
-                                if (
-                                    completed?.source?.id == source.id &&
-                                    completed.catalog.refreshedAt >=
-                                    (it.catalog?.refreshedAt ?: 0L)
-                                )
-                                    completed.catalog
-                                else it.catalog,
+                            sources = summaries ?: it.sources,
                             message =
                                 if (progress is CatalogProgress.Failed) progress.message
                                 else if (progress is CatalogProgress.Refreshing) null
@@ -185,17 +185,8 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                     )
                 }
                 if (progress is SyncProgress.Complete) {
-                    val source = state.value.url to state.value.username
-                    val updated =
-                        withContext(Dispatchers.IO) {
-                            SyncCatalogStore.read(
-                                context,
-                                RemoteLibraries.currentSource(),
-                            )
-                        }
-                    mutableState.update {
-                        if (source == (it.url to it.username)) it.copy(catalog = updated) else it
-                    }
+                    val summaries = loadSummaries(RemoteSourceRegistry.all(context))
+                    mutableState.update { it.copy(sources = summaries) }
                 }
                 if (requestFinished) {
                     requestBaseline = null
@@ -210,6 +201,46 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                 context.contentResolver.persistedUriPermissions.any {
                     it.uri.toString() == directory && it.isReadPermission && it.isWritePermission
                 }
+
+    fun addSource(
+        provider: RemoteProvider,
+        url: String,
+        username: String,
+        password: String,
+        displayName: String,
+        onAdded: (RemoteSourceConfig) -> Unit,
+    ) {
+        if (state.value.running || state.value.saving) return
+        var created: RemoteSourceConfig? = null
+        save(
+            onSaved = {
+                connectionPassword = ""
+                created?.let { config ->
+                    onAdded(config)
+                    LibraryCatalogManager.refresh(context, config.id)
+                }
+            }
+        ) {
+            created =
+                try {
+                    RemoteSourceConnector(
+                        context,
+                        ConnectionInput(
+                            provider = provider,
+                            address = url,
+                            username = username,
+                            password = password,
+                            displayName = displayName,
+                        ),
+                    )
+                        .connect()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    throw IllegalArgumentException(connectionError(error, provider))
+                }
+        }
+    }
 
     fun setDirectory(uri: Uri) {
         save {
@@ -227,99 +258,9 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         }
     }
 
-    internal var connectionPassword by mutableStateOf("")
-    internal var lastPresentedError: String? = null
-    internal var errorDetails by mutableStateOf<String?>(null)
-
-    fun saveConnection(url: String, username: String, password: String, onSaved: () -> Unit) {
-        if (state.value.running) return
-        save(
-            onSaved = {
-                connectionPassword = ""
-                onSaved()
-                refreshLibrary()
-            }
-        ) {
-            val previous = RemoteLibraries.currentSource()
-            val source =
-                try {
-                    com.pxr.cymatic.sync
-                        .AudioStreamConnection(context, url, username, password)
-                        .save()
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    throw IllegalArgumentException(com.pxr.cymatic.sync.connectionError(error))
-                }
-            val normalized = source.address
-            val changed = source.id != previous.id
-            val catalog = withContext(Dispatchers.IO) { SyncCatalogStore.read(context, source) }
-            mutableState.update {
-                it.copy(
-                    url = normalized,
-                    username = username.trim(),
-                    hasPassword = true,
-                    catalog = catalog,
-                    directory = if (changed) "" else it.directory,
-                    folderAccessible = if (changed) true else it.folderAccessible,
-                    network = if (changed) SyncNetwork.NEVER else it.network,
-                    contentMode = if (changed) SyncContentMode.NONE else it.contentMode,
-                    catalogProgress = CatalogProgress.Idle,
-                    progress = if (changed) SyncProgress.Idle else it.progress,
-                    selectedPlaylists = if (changed) emptySet() else it.selectedPlaylists,
-                    musicConfigured = if (changed) false else it.musicConfigured,
-                    hasPinnedMusic =
-                        !com.pxr.cymatic.sync.OfflineSelectionStore.read(
-                            context,
-                            source.id,
-                        )
-                            .isEmpty,
-                )
-            }
-        }
-    }
-
-    fun setContentMode(mode: SyncContentMode) =
-        save(
-            onSaved = {
-                if (mode == SyncContentMode.SELECTED_PLAYLISTS && state.value.catalog == null)
-                    refreshLibrary()
-            }
-        ) {
-            val network =
-                if (!state.value.musicConfigured && mode != SyncContentMode.NONE) SyncNetwork.WIFI
-                else state.value.network
-            LibrarySyncSettings.setSyncContentMode(mode.value)
-            LibrarySyncSettings.setSyncNetwork(network.value)
-            mutableState.update {
-                it.copy(
-                    contentMode = mode,
-                    musicConfigured = it.musicConfigured || mode != SyncContentMode.NONE,
-                    network = network,
-                )
-            }
-        }
-
-    fun setPlaylists(selection: Set<String>) {
-        if (selection == state.value.selectedPlaylists) return
-        playlistsDirty = true
-        save(reschedule = false) {
-            LibrarySyncSettings.setSyncSelectedPlaylists(selection)
-            mutableState.update {
-                it.copy(
-                    selectedPlaylists = selection,
-                    musicConfigured = it.musicConfigured || selection.isNotEmpty(),
-                )
-            }
-        }
-    }
-
-    fun commitPlaylists() {
-        if (!playlistsDirty) return
-        playlistsDirty = false
-        viewModelScope.launch {
-            withContext(NonCancellable) { LibrarySyncJobService.reschedule(context) }
-        }
+    fun useManagedStorage() = save {
+        LibrarySyncSettings.setSyncDirectory("")
+        mutableState.update { it.copy(directory = "", folderAccessible = true) }
     }
 
     fun setLayout(layout: SyncLayout) = save {
@@ -340,6 +281,21 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         mutableState.update { it.copy(interval = interval) }
     }
 
+    fun startSyncAll() {
+        if (state.value.nextStep != null || state.value.running || state.value.saving) return
+        requestBaseline = LibrarySyncManager.progress.value
+        mutableState.update { it.copy(starting = true, message = null) }
+        if (!LibrarySyncManager.start(context)) {
+            requestBaseline = null
+            mutableState.update { it.copy(starting = false, message = "A sync is already running") }
+        }
+    }
+
+    fun cancel() {
+        if (state.value.refreshingCatalog) LibraryCatalogManager.cancel()
+        else LibrarySyncManager.cancel()
+    }
+
     private fun save(
         reschedule: Boolean = true,
         onSaved: () -> Unit = {},
@@ -353,7 +309,6 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                 withContext(NonCancellable) {
                     action()
                     if (reschedule) {
-                        playlistsDirty = false
                         LibrarySyncJobService.reschedule(context)
                     }
                 }
@@ -367,43 +322,5 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
             }
             if (succeeded) onSaved()
         }
-    }
-
-    override fun onCleared() {
-        if (playlistsDirty) {
-            playlistsDirty = false
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                LibrarySyncJobService.reschedule(context)
-            }
-        }
-        super.onCleared()
-    }
-
-    fun refreshLibrary() {
-        if (!state.value.connected || state.value.running || state.value.saving) return
-        mutableState.update { it.copy(message = null) }
-        if (!LibraryCatalogManager.refresh(context)) {
-            mutableState.update { it.copy(message = "A library refresh is already running") }
-        }
-    }
-
-    fun useManagedStorage() = save {
-        LibrarySyncSettings.setSyncDirectory("")
-        mutableState.update { it.copy(directory = "", folderAccessible = true) }
-    }
-
-    fun startSync() {
-        if (state.value.nextStep != null || state.value.running || state.value.saving) return
-        requestBaseline = LibrarySyncManager.progress.value
-        mutableState.update { it.copy(starting = true, message = null) }
-        if (!LibrarySyncManager.start(context)) {
-            requestBaseline = null
-            mutableState.update { it.copy(starting = false, message = "A sync is already running") }
-        }
-    }
-
-    fun cancel() {
-        if (state.value.refreshingCatalog) LibraryCatalogManager.cancel()
-        else LibrarySyncManager.cancel()
     }
 }

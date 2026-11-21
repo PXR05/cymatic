@@ -1,9 +1,19 @@
 package com.pxr.cymatic
 
 import android.app.Application
+import com.pxr.cymatic.data.licenses.LicenseCatalog
+import com.pxr.cymatic.data.media.AudioRepository
+import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.data.store.PlaybackStore
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.sync.LibrarySyncJobService
+import com.pxr.cymatic.sync.OfflineSelectionStore
+import com.pxr.cymatic.sync.RemoteLibraryRepository
+import com.pxr.cymatic.sync.RemoteSourceMigration
+import com.pxr.cymatic.sync.SyncCatalogStore
+import com.pxr.cymatic.sync.SyncCredentialStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,25 +23,32 @@ open class CymaticApp : Application() {
     override fun onCreate() {
         super.onCreate()
         SettingsStore.init(this)
-        com.pxr.cymatic.data.store.LibraryFilterStore.initialize()
+        LibraryFilterStore.initialize()
         PlaybackStore.init(this)
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             runCatching {
-                com.pxr.cymatic.data.media.AudioRepository.getInstance(this@CymaticApp)
+                AudioRepository.getInstance(this@CymaticApp)
                     .getAllAudio()
-                com.pxr.cymatic.data.media.PlaylistRepository.getInstance(this@CymaticApp)
+                PlaylistRepository.getInstance(this@CymaticApp)
                     .getPlaylists()
             }
             runCatching {
-                com.pxr.cymatic.data.licenses.LicenseCatalog.getInstance(this@CymaticApp.assets)
+                LicenseCatalog.getInstance(this@CymaticApp.assets)
             }
             runCatching {
-                val source = com.pxr.cymatic.sync.RemoteLibraries.currentSource()
-                com.pxr.cymatic.sync.SyncCredentialStore.hasPassword(this@CymaticApp, source.id)
-                com.pxr.cymatic.sync.OfflineSelectionStore.read(this@CymaticApp, source.id)
-                com.pxr.cymatic.sync.SyncCatalogStore.read(this@CymaticApp, source)
+                RemoteSourceMigration.migrate(this@CymaticApp)
+            }.onFailure {
+                android.util.Log.w("RemoteLibrary", "Could not migrate remote libraries", it)
             }
-            runCatching { com.pxr.cymatic.sync.RemoteLibraryRepository.restore(this@CymaticApp) }
+            runCatching {
+                RemoteSourceRegistry.all(this@CymaticApp).forEach { config ->
+                    val source = config.toSource()
+                    SyncCredentialStore.has(this@CymaticApp, source.id)
+                    OfflineSelectionStore.read(this@CymaticApp, source.id)
+                    SyncCatalogStore.read(this@CymaticApp, source)
+                }
+            }
+            runCatching { RemoteLibraryRepository.restore(this@CymaticApp) }
                 .onFailure {
                     android.util.Log.w(
                         "RemoteLibrary",

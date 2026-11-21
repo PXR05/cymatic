@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -18,19 +19,23 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
         if (cached != null) return cached
         return cacheMutex.withLock {
             val doubleChecked = cachedAudio
-            if (doubleChecked != null) {
-                doubleChecked
-            } else {
-                loadFromDb().also { cachedAudio = it }
-            }
+            doubleChecked ?: loadFromDb().also { cachedAudio = it }
         }
     }
 
     private suspend fun loadFromDb(): List<AudioFile> =
         audioDao.getAllAudio().let { records ->
+            val disabledIds =
+                runCatching {
+                    RemoteSourceRegistry.all()
+                        .filterNot { it.enabled }
+                        .mapTo(mutableSetOf()) { it.id }
+                }.getOrDefault(emptySet())
+            val enabledRecords =
+                records.filter { it.sourceId == null || it.sourceId !in disabledIds }
             val remoteCopies =
-                records.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
-            records.filter { it.sourceId != null || it.uri !in remoteCopies }
+                enabledRecords.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
+            enabledRecords.filter { it.sourceId != null || it.uri !in remoteCopies }
                 .map { it.toAudioFile() }
         }
 

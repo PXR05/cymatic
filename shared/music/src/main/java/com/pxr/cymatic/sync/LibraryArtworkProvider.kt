@@ -104,7 +104,10 @@ class LibraryArtworkProvider : ContentProvider() {
                     else {
                         val source = SyncCatalogStore.source(context, key.sourceId)
                             ?: throw FileNotFoundException("Library connection unavailable")
-                        RemoteLibraries.client(context, source).openArtwork(key.remoteId)
+                        val artworkId =
+                            SyncCatalogStore.track(context, key.sourceId, key.remoteId)?.artworkId
+                        RemoteLibraries.client(context, source, ClientPurpose.ARTWORK)
+                            .openArtwork(key.remoteId, artworkId)
                             .use { response ->
                                 val type = response.contentType.orEmpty().substringBefore(';')
                                 if (!type.startsWith("image/")) throw IOException("The server did not return cover art")

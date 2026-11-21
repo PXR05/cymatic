@@ -10,6 +10,7 @@ import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistEntity
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -18,25 +19,34 @@ internal object RemoteLibraryRepository {
     private val mutex = Mutex()
 
     suspend fun restore(context: Context) {
-        val current = RemoteLibraries.currentSource()
-        SyncCredentialStore.migrateLegacy(context, current.id)
-        SyncCatalogStore.migrateLegacy(context, current)
-        val currentCatalog = SyncCatalogStore.read(context, current)
-        val refreshMetadata = SyncCatalogStore.needsMetadataRefresh(context, current)
-        if (currentCatalog != null && SyncCatalogStore.source(context, current.id) == null)
-            SyncCatalogStore.write(context, current, currentCatalog, metadataVersion = 1)
+        val configs = RemoteSourceRegistry.all(context)
+        val knownIds = configs.mapTo(mutableSetOf()) { it.id }
+
+        // Remove orphaned catalog files left over from an interrupted source removal.
         File(context.filesDir, "library-catalogs")
             .listFiles()
             .orEmpty()
-            .filter { it.extension == "json" }
-            .forEach { file ->
-                val source =
-                    SyncCatalogStore.source(context, file.nameWithoutExtension) ?: return@forEach
-                val catalog = SyncCatalogStore.read(context, source) ?: return@forEach
+            .filter { it.isFile && it.extension == "json" && it.nameWithoutExtension !in knownIds }
+            .forEach { it.delete() }
+
+        val needsRefresh = mutableListOf<String>()
+        configs.forEach { config ->
+            val source = config.toSource()
+            val catalog = SyncCatalogStore.read(context, source)
+            if (catalog != null) {
                 publish(context, source, catalog)
             }
-        if (refreshMetadata && SyncCredentialStore.hasPassword(context, current.id))
-            LibraryCatalogManager.refresh(context)
+            if (
+                config.enabled &&
+                SyncCatalogStore.needsMetadataRefresh(context, source) &&
+                SyncCredentialStore.has(context, source.id)
+            ) {
+                needsRefresh += source.id
+            }
+        }
+        needsRefresh.forEach { sourceId ->
+            LibraryCatalogManager.refresh(context, sourceId)
+        }
     }
 
     fun uri(key: RemoteLibraryItemKey): Uri =
@@ -59,9 +69,9 @@ internal object RemoteLibraryRepository {
             val managed =
                 ManagedSyncStorage(File(context.filesDir, "library-downloads/${source.id}"))
             collectOffline(managed, source.id, catalog, offline)
-            val current = RemoteLibraries.currentSource()
             val directory = LibrarySyncSettings.getSyncDirectory()
-            if (source.id == current.id && directory.isNotBlank()) {
+            val config = RemoteSourceRegistry.get(source.id, context)
+            if (directory.isNotBlank() && config != null) {
                 runCatching {
                     val mediaUris = mutableMapOf<String, String>()
                     val collection = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -85,8 +95,9 @@ internal object RemoteLibraryRepository {
                                 }
                             }
                     }
+                    val (safStorage, _) = SyncStorages.forSource(context, config, directory)
                     collectOffline(
-                        SafTree(context.contentResolver, Uri.parse(directory)),
+                        safStorage,
                         source.id,
                         catalog,
                         offline,
@@ -124,6 +135,10 @@ internal object RemoteLibraryRepository {
                 }
             LibrarySyncSettings.migrateSyncPlaylistIds(source.id)
             val mappings = LibrarySyncSettings.getSyncPlaylistIds(source.id).toMutableMap()
+            val disambiguationLabel =
+                source.displayName.ifBlank {
+                    Uri.parse(source.address).host ?: source.provider
+                }
             database.withTransaction {
                 audioDao.upsertAudio(records)
                 val byUri =
@@ -148,7 +163,7 @@ internal object RemoteLibraryRepository {
                     var suffix = 1
                     while (usedNames[name.lowercase()]?.id?.let { it != existing?.id } == true) {
                         name =
-                            "$base (${Uri.parse(source.address).host ?: source.provider}${if (suffix > 1) " $suffix" else ""})"
+                            "$base ($disambiguationLabel${if (suffix > 1) " $suffix" else ""})"
                         suffix++
                     }
                     val entity =

@@ -39,7 +39,28 @@ internal class SyncManifestStore(context: Context, identity: String) {
         }
     }
 
+    fun delete() {
+        file.delete()
+    }
+
     companion object {
+        fun forSource(
+            context: Context,
+            source: RemoteLibrarySource,
+            directory: String,
+            folderName: String,
+        ): SyncManifestStore {
+            val store = SyncManifestStore(context, "source:${source.id}\n$directory\n$folderName")
+            if (store.read() == null) {
+                val legacyIdentity =
+                    (if (source.provider == "audiostream") "" else "${source.provider}\n") +
+                            "${source.address}\n${source.account}\n$directory"
+                val legacy = SyncManifestStore(context, legacyIdentity)
+                legacy.read()?.let { store.write(it) }
+            }
+            return store
+        }
+
         fun decode(value: String): Map<String, SyncManifestEntry> {
             val entries = JSONObject(value).getJSONArray("files")
             return buildMap {

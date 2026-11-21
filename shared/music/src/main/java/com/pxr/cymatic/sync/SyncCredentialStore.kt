@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import org.json.JSONObject
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -15,64 +16,129 @@ object SyncCredentialStore {
     private const val PREFS = "sync_credentials"
     private const val PASSWORD = "password"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
-    private val passwordPresence = mutableMapOf<String, Boolean>()
+    private val presence = mutableMapOf<String, Boolean>()
+
+    private fun secretKey(sourceId: String) = "secret_$sourceId"
+    private fun legacyPasswordKey(sourceId: String) = "password_$sourceId"
 
     @Synchronized
-    fun cachedHasPassword(sourceId: String? = null): Boolean? =
-        passwordPresence[sourceId?.let { "password_$it" } ?: PASSWORD]
+    fun cachedHas(sourceId: String): Boolean? = presence[sourceId]
 
     @Synchronized
     fun migrateLegacy(context: Context, sourceId: String) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val value = prefs.getString(PASSWORD, null) ?: return
-        val key = "password_$sourceId"
+        val key = legacyPasswordKey(sourceId)
         val edit = prefs.edit()
         if (!prefs.contains(key)) edit.putString(key, value)
         check(edit.remove(PASSWORD).commit()) { "Could not migrate library credentials" }
-        passwordPresence[key] = true
-        passwordPresence.remove(PASSWORD)
+        presence[sourceId] = true
     }
 
-    fun savePassword(context: Context, password: String, sourceId: String? = null) {
-        val key = sourceId?.let { "password_$it" } ?: PASSWORD
-        if (password.isEmpty()) {
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(key).apply()
-            synchronized(this) { passwordPresence[key] = false }
+    fun save(context: Context, sourceId: String, credentials: RemoteCredentials) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val key = secretKey(sourceId)
+        if (!credentials.canAuthenticate) {
+            prefs.edit().remove(key).remove(legacyPasswordKey(sourceId)).apply()
+            synchronized(this) { presence[sourceId] = false }
+            RemoteLibraries.invalidate(sourceId)
             return
         }
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, getOrCreateKey())
-        }
-        val encrypted = cipher.doFinal(password.toByteArray(Charsets.UTF_8))
-        val value = Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP)
+        val payload = encodeCredentials(credentials)
+        val encoded = encrypt(payload)
         check(
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(key, value)
+            prefs.edit()
+                .putString(key, encoded)
+                .remove(legacyPasswordKey(sourceId))
                 .commit()
         ) {
             "Could not save library credentials"
         }
-        synchronized(this) { passwordPresence[key] = true }
+        synchronized(this) { presence[sourceId] = true }
+        RemoteLibraries.invalidate(sourceId)
     }
 
-    fun getPassword(context: Context, sourceId: String? = null): String? = runCatching {
-        val key = sourceId?.let { "password_$it" } ?: PASSWORD
-        val value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(key, null) ?: return null
-        val bytes = Base64.decode(value, Base64.NO_WRAP)
+    fun get(context: Context, sourceId: String): RemoteCredentials? = runCatching {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val secretRaw = prefs.getString(secretKey(sourceId), null)
+        if (secretRaw != null) {
+            return@runCatching decodeCredentials(decrypt(secretRaw))
+        }
+        val legacyRaw =
+            prefs.getString(legacyPasswordKey(sourceId), null) ?: return@runCatching null
+        val password = decrypt(legacyRaw)
+        if (password.isEmpty()) null else RemoteCredentials(password = password)
+    }.getOrNull()
+
+    fun has(context: Context, sourceId: String): Boolean {
+        synchronized(this) { presence[sourceId] }?.let { return it }
+        return (get(context, sourceId)?.canAuthenticate == true).also {
+            synchronized(this) { presence[sourceId] = it }
+        }
+    }
+
+    fun updateSession(
+        context: Context,
+        sourceId: String,
+        accessToken: String?,
+        userId: String?,
+    ) {
+        val existing = get(context, sourceId) ?: RemoteCredentials()
+        save(
+            context,
+            sourceId,
+            existing.copy(
+                accessToken = accessToken,
+                userId = userId ?: existing.userId,
+            ),
+        )
+    }
+
+    fun delete(context: Context, sourceId: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(secretKey(sourceId))
+            .remove(legacyPasswordKey(sourceId))
+            .commit()
+        synchronized(this) { presence.remove(sourceId) }
+        RemoteLibraries.invalidate(sourceId)
+    }
+
+    private fun encodeCredentials(credentials: RemoteCredentials): String =
+        JSONObject().apply {
+            credentials.password?.let { put("password", it) }
+            credentials.apiKey?.let { put("apiKey", it) }
+            credentials.accessToken?.let { put("accessToken", it) }
+            credentials.userId?.let { put("userId", it) }
+        }.toString()
+
+    private fun decodeCredentials(raw: String): RemoteCredentials {
+        val obj = JSONObject(raw)
+        return RemoteCredentials(
+            password = obj.optString("password").takeIf { obj.has("password") && it.isNotEmpty() },
+            apiKey = obj.optString("apiKey").takeIf { obj.has("apiKey") && it.isNotEmpty() },
+            accessToken = obj.optString("accessToken")
+                .takeIf { obj.has("accessToken") && it.isNotEmpty() },
+            userId = obj.optString("userId").takeIf { obj.has("userId") && it.isNotEmpty() },
+        )
+    }
+
+    private fun encrypt(plainText: String): String {
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
+            init(Cipher.ENCRYPT_MODE, getOrCreateKey())
+        }
+        val encrypted = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+        return Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP)
+    }
+
+    private fun decrypt(encoded: String): String {
+        val bytes = Base64.decode(encoded, Base64.NO_WRAP)
         val iv = bytes.copyOfRange(0, 12)
         val encrypted = bytes.copyOfRange(12, bytes.size)
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
             init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
         }
-        cipher.doFinal(encrypted).toString(Charsets.UTF_8)
-    }.getOrNull()
-
-    fun hasPassword(context: Context, sourceId: String? = null): Boolean {
-        val key = sourceId?.let { "password_$it" } ?: PASSWORD
-        synchronized(this) { passwordPresence[key] }?.let { return it }
-        return (getPassword(context, sourceId) != null).also {
-            synchronized(this) { passwordPresence[key] = it }
-        }
+        return cipher.doFinal(encrypted).toString(Charsets.UTF_8)
     }
 
     private fun getOrCreateKey(): SecretKey {

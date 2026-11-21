@@ -279,9 +279,11 @@ private fun ReportTextStep(
         requester.requestFocus()
         keyboard?.show()
     }
-    Column(Modifier
-        .verticalScroll(rememberScrollState())
-        .padding(horizontal = 24.dp)) {
+    Column(
+        Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+    ) {
         Text(
             hint,
             style = MaterialTheme.typography.bodyMedium,

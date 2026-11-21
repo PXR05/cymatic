@@ -214,29 +214,35 @@ fun AudioFileItemPreview() {
             isCurrent = false,
             onClick = {},
         )
-        Box(modifier = Modifier
-            .height(1.dp)
-            .background(Color.Gray)
-            .fillMaxWidth())
+        Box(
+            modifier = Modifier
+                .height(1.dp)
+                .background(Color.Gray)
+                .fillMaxWidth()
+        )
         AudioFileItem(
             audioFile = sampleAudioFileCJK,
             isCurrent = false,
             onClick = {},
             modifier = Modifier.heightIn(min = 76.dp),
         )
-        Box(modifier = Modifier
-            .height(1.dp)
-            .background(Color.Gray)
-            .fillMaxWidth())
+        Box(
+            modifier = Modifier
+                .height(1.dp)
+                .background(Color.Gray)
+                .fillMaxWidth()
+        )
         AudioFileItem(
             audioFile = sampleAudioFileCB1,
             isCurrent = false,
             onClick = {},
         )
-        Box(modifier = Modifier
-            .height(1.dp)
-            .background(Color.Gray)
-            .fillMaxWidth())
+        Box(
+            modifier = Modifier
+                .height(1.dp)
+                .background(Color.Gray)
+                .fillMaxWidth()
+        )
         AudioFileItem(
             audioFile = sampleAudioFileCB2,
             isCurrent = false,

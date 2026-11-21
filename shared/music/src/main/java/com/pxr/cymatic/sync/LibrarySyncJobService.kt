@@ -7,6 +7,7 @@ import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
 import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,7 +22,7 @@ class LibrarySyncJobService : JobService() {
 
     override fun onStartJob(params: JobParameters): Boolean {
         job = scope.launch {
-            val result = runCatching { LibrarySyncManager.sync(applicationContext) }
+            val result = runCatching { LibrarySyncManager.syncAll(applicationContext) }
             result
                 .exceptionOrNull()
                 ?.takeUnless { it is SyncCancelledException }
@@ -58,17 +59,9 @@ class LibrarySyncJobService : JobService() {
             val scheduler = context.getSystemService(JobScheduler::class.java)
             scheduler.cancel(JOB_ID)
             val network = SyncNetwork.from(LibrarySyncSettings.syncNetworkFlow.first())
+            if (network == SyncNetwork.NEVER) return
+
             val directory = LibrarySyncSettings.syncDirectoryFlow.first()
-            val source = RemoteLibraries.currentSource()
-            SyncCredentialStore.migrateLegacy(context, source.id)
-            if (
-                network == SyncNetwork.NEVER || !SyncCredentialStore.hasPassword(context, source.id)
-            )
-                return
-
-            val pins = OfflineSelectionStore.read(context, source.id)
-            if (!LibrarySyncSettings.getSyncContentConfigured() && pins.isEmpty) return
-
             if (
                 directory.isNotBlank() &&
                 context.contentResolver.persistedUriPermissions.none {
@@ -76,17 +69,18 @@ class LibrarySyncJobService : JobService() {
                             it.isReadPermission &&
                             it.isWritePermission
                 }
-            )
+            ) {
                 return
+            }
 
-            val mode = SyncContentMode.from(LibrarySyncSettings.syncContentModeFlow.first())
-            if (mode == SyncContentMode.NONE && pins.isEmpty) return
-            if (
-                mode == SyncContentMode.SELECTED_PLAYLISTS &&
-                LibrarySyncSettings.syncSelectedPlaylistsFlow.first().isEmpty() &&
-                pins.isEmpty
-            )
-                return
+            val sources = RemoteSourceRegistry.all(context)
+            val anyEligible =
+                sources.any { config ->
+                    val hasCreds = SyncCredentialStore.has(context, config.id)
+                    val pins = OfflineSelectionStore.read(context, config.id)
+                    SyncEligibility.isEligible(config, hasCreds, pins)
+                }
+            if (!anyEligible) return
 
             val intervalMs =
                 (LibrarySyncSettings.syncIntervalHoursFlow.first() * 60L * 60L * 1000L)

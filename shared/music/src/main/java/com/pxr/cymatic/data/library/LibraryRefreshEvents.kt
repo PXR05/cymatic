@@ -14,6 +14,6 @@ fun libraryRefreshEvents(includeScans: Boolean = true): Flow<Unit> {
         *(if (includeScans) changes + SettingsStore.lastScanTimeMsFlow else changes)
             .toTypedArray()
     )
-        .map { Unit }
+        .map { }
         .conflate()
 }

@@ -14,12 +14,11 @@ import com.pxr.cymatic.data.media.LocalLibraryScanner
 import com.pxr.cymatic.data.media.LocalScanProgress
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
-import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.playback.enqueueAudio
 import com.pxr.cymatic.playback.playAudioQueue
 import com.pxr.cymatic.sync.CatalogProgress
 import com.pxr.cymatic.sync.LibraryCatalogManager
-import com.pxr.cymatic.sync.RemoteLibrarySource
 import com.pxr.cymatic.sync.SyncCredentialStore
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
@@ -34,7 +33,6 @@ import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -52,37 +50,24 @@ fun AllSongsScreen(
     val remoteConnected by
     produceState<Boolean?>(
         run {
-            val address = LibrarySyncSettings.currentSyncUrl
-            val username = LibrarySyncSettings.currentSyncUsername
-            if (address.isBlank() || username.isBlank()) false
-            else
-                SyncCredentialStore.cachedHasPassword(
-                    RemoteLibrarySource("audiostream", address, username).id
-                )
+            val enabled = RemoteSourceRegistry.currentSources.filter { it.enabled }
+            if (enabled.isEmpty()) false
+            else if (enabled.any { SyncCredentialStore.cachedHas(it.id) == true }) true
+            else if (enabled.all { SyncCredentialStore.cachedHas(it.id) == false }) false
+            else null
         },
         context,
     ) {
-        combine(
-            LibrarySyncSettings.syncUrlFlow,
-            LibrarySyncSettings.syncUsernameFlow,
-        ) { address, username ->
-            address to username
-        }
-            .collect { (address, username) ->
-                value =
-                    withContext(Dispatchers.IO) {
-                        address.isNotBlank() &&
-                                username.isNotBlank() &&
-                                runCatching {
-                                    SyncCredentialStore.hasPassword(
-                                        context,
-                                        RemoteLibrarySource("audiostream", address, username)
-                                            .id,
-                                    )
-                                }
+        RemoteSourceRegistry.sourcesFlow.collect { sources ->
+            value =
+                withContext(Dispatchers.IO) {
+                    sources.any { config ->
+                        config.enabled &&
+                                runCatching { SyncCredentialStore.has(context, config.id) }
                                     .getOrDefault(false)
                     }
-            }
+                }
+        }
     }
 
     val permission = rememberStoragePermission { granted ->

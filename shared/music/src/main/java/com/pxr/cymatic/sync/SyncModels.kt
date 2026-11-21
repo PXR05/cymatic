@@ -43,6 +43,12 @@ data class RemoteTrack(
     val durationMs: Long? = null,
     val bitRate: Long? = null,
     val sampleRate: Long? = null,
+    val artworkId: String? = null,
+    val albumArtist: String? = null,
+    val discNumber: Int? = null,
+    val bitDepth: Int? = null,
+    val channels: Int? = null,
+    val year: Int? = null,
 )
 
 data class PlaylistPlacement(val name: String, val position: Int)
@@ -108,11 +114,13 @@ object SyncPathPlanner {
         }
     }
 
-    private fun String.safeSegment(fallback: String): String {
-        val clean = trim()
+    internal fun safeSegment(value: String, fallback: String): String {
+        val clean = value.trim()
             .replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001F]"), "_")
             .replace(Regex("[. ]+$"), "")
             .take(120)
         return clean.ifBlank { fallback }
     }
+
+    private fun String.safeSegment(fallback: String): String = safeSegment(this, fallback)
 }

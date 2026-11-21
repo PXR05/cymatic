@@ -9,6 +9,9 @@ interface AudioDao {
     @Query("SELECT * FROM audio_files WHERE sourceId = :sourceId")
     suspend fun getRemoteAudio(sourceId: String): List<AudioEntity>
 
+    @Query("DELETE FROM audio_files WHERE sourceId = :sourceId")
+    suspend fun deleteRemoteAudio(sourceId: String)
+
     @Query("SELECT id FROM audio_files WHERE sourceId IS NOT NULL")
     suspend fun getRemoteIds(): List<Long>
 

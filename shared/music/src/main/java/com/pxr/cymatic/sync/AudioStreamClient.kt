@@ -8,12 +8,6 @@ import java.net.URI
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-internal class AudioStreamRequestException(
-    val status: Int,
-    val retryAfterMillis: Long,
-    message: String,
-) : IOException(message)
-
 class AudioStreamClient(
     baseUrl: String,
     private val username: String,
@@ -103,7 +97,7 @@ class AudioStreamClient(
         }
     }
 
-    override fun openArtwork(trackId: String): RemoteLibraryDownload {
+    override fun openArtwork(trackId: String, artworkId: String?): RemoteLibraryDownload {
         val connection = authenticatedGet("audio/${encodePath(trackId)}/image", binary = true)
         return object : RemoteLibraryDownload {
             override val input get() = connection.inputStream
@@ -114,7 +108,12 @@ class AudioStreamClient(
         }
     }
 
-    override fun openStream(trackId: String, position: Long, length: Long): RemoteLibraryDownload {
+    override fun openStream(
+        trackId: String,
+        position: Long,
+        length: Long,
+        quality: StreamQuality,
+    ): RemoteLibraryDownload {
         val range = StreamRange.header(position, length)
         val connection =
             authenticatedGet("audio/${encodePath(trackId)}/stream", binary = true, range = range)
@@ -156,7 +155,7 @@ class AudioStreamClient(
         if (connection.responseCode != HttpURLConnection.HTTP_OK) {
             val status = connection.responseCode
             release(connection)
-            throw AudioStreamRequestException(
+            throw RemoteRequestException(
                 status,
                 0,
                 "Expected a complete audio response, received HTTP $status",
@@ -272,7 +271,7 @@ class AudioStreamClient(
                 ?.toLongOrNull()
                 ?.coerceIn(0L, 30L)
                 ?.times(1000L) ?: 0L
-        throw AudioStreamRequestException(
+        throw RemoteRequestException(
             status,
             retryAfter,
             "AudioStream request failed ($status)${

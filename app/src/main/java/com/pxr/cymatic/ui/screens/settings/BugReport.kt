@@ -174,12 +174,36 @@ private suspend fun libraryDiagnostics(): List<String> = buildList {
         "Remote catalog: " +
                 when (val catalog = LibraryCatalogManager.progress.value) {
                     CatalogProgress.Idle -> "idle"
-                    CatalogProgress.Refreshing -> "refreshing"
-                    is CatalogProgress.Complete -> "${catalog.catalog.tracks.size} songs"
+                    is CatalogProgress.Refreshing ->
+                        catalog.sourceName?.let { "refreshing ($it)" } ?: "refreshing"
+
+                    is CatalogProgress.Complete ->
+                        "${catalog.refreshed.size} refreshed, ${catalog.failures.size} failed"
+
                     is CatalogProgress.Failed -> "failed"
                     CatalogProgress.Cancelled -> "cancelled"
                 }
     )
+    runCatching {
+        val sources = com.pxr.cymatic.data.store.RemoteSourceRegistry.all()
+        add("Remote sources: ${sources.size}")
+        sources.forEachIndexed { index, config ->
+            val hostHash =
+                runCatching {
+                    val host = java.net.URI(config.address).host.orEmpty()
+                    java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(host.toByteArray(Charsets.UTF_8))
+                        .take(4)
+                        .joinToString("") { "%02x".format(it) }
+                }.getOrDefault("unknown")
+            val cachedTracks = com.pxr.cymatic.sync.SyncCatalogStore.cached(config.id)?.tracks?.size
+            add(
+                "  Source ${index + 1}: provider=${config.provider}, host=$hostHash, " +
+                        "enabled=${config.enabled}, lastError=${config.lastError ?: "none"}, " +
+                        "tracks=${cachedTracks ?: "unloaded"}"
+            )
+        }
+    }
     add(
         "Offline sync: " +
                 when (val sync = LibrarySyncManager.progress.value) {

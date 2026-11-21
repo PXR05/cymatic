@@ -2,9 +2,12 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import com.pxr.cymatic.data.media.AudioRepository
+import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistRepository
+import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.data.store.LibrarySyncSettings
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +57,16 @@ object OfflineSelectionStore {
             "Could not save offline selection"
         }
         synchronized(this) { cachedSelections[sourceId] = selection }
+    }
+
+    fun clear(context: Context, sourceId: String) {
+        context
+            .getSharedPreferences("library-offline", Context.MODE_PRIVATE)
+            .edit()
+            .remove("${sourceId}_tracks")
+            .remove("${sourceId}_playlists")
+            .commit()
+        synchronized(this) { cachedSelections.remove(sourceId) }
     }
 }
 
@@ -147,7 +160,7 @@ object LibraryOfflineManager {
 
     fun keepSongs(
         context: Context,
-        songs: List<com.pxr.cymatic.data.model.AudioFile>,
+        songs: List<AudioFile>,
         title: String,
     ) {
         songs
@@ -214,21 +227,25 @@ object LibraryOfflineManager {
                         setOfNotNull(playlistId),
                     ),
                 )
-                com.pxr.cymatic.data.media.LibraryChanges.notifyChanged()
+                LibraryChanges.notifyChanged()
                 queue.offer(application to sourceId)
                 runCatching {
-                    if (RemoteLibraries.currentSource().id == sourceId) {
+                    val config =
+                        RemoteSourceRegistry.get(sourceId, application)
+                    if (config != null) {
                         if (
-                            !LibrarySyncSettings.getSyncContentConfigured() &&
+                            !config.contentConfigured &&
                             LibrarySyncSettings.getSyncNetwork() == SyncNetwork.NEVER.value
-                        )
+                        ) {
                             LibrarySyncSettings.setSyncNetwork(SyncNetwork.WIFI.value)
+                        }
                         LibrarySyncJobService.reschedule(application)
                     }
                 }
             } catch (error: Exception) {
                 notify("Could not queue $title", failed = true)
-                LibrarySyncSettings.setSyncResult(
+                RemoteSourceRegistry.setResult(
+                    sourceId,
                     System.currentTimeMillis(),
                     "Download failed: ${error.message}",
                 )

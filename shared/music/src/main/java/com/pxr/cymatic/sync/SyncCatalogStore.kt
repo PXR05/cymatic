@@ -2,38 +2,42 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import android.util.AtomicFile
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
 object SyncCatalogStore {
     private const val FILE_NAME = "audiostream-catalog.json"
-    private val sources = mutableMapOf<String, RemoteLibrarySource>()
     private val catalogs = mutableMapOf<String, RemoteCatalog>()
+    private val trackIndexes = mutableMapOf<String, Map<String, RemoteTrack>>()
 
     @Synchronized
     fun cached(source: RemoteLibrarySource): RemoteCatalog? = catalogs[source.id]
 
     @Synchronized
+    fun cached(sourceId: String): RemoteCatalog? = catalogs[sourceId]
+
+    @Synchronized
     internal fun needsMetadataRefresh(context: Context, source: RemoteLibrarySource): Boolean =
         runCatching {
             val root = JSONObject(
-                file(context, source.id).openRead().bufferedReader().use { it.readText() })
+                file(context, source.id).openRead().bufferedReader().use { it.readText() }
+            )
             root.optInt("metadataVersion", 1) < 2
         }.getOrDefault(false)
 
-    @Synchronized
     fun source(context: Context, sourceId: String): RemoteLibrarySource? =
-        sources[sourceId] ?: runCatching {
-            val root = JSONObject(
-                file(context, sourceId).openRead().bufferedReader().use { it.readText() })
-            RemoteLibrarySource(
-                root.getString("provider"),
-                root.getString("address"),
-                root.getString("account")
-            )
-                .takeIf { it.id == sourceId }
-        }.getOrNull()?.also { sources[sourceId] = it }
+        RemoteLibraries.cachedSource(sourceId)
+            ?: runBlocking { RemoteLibraries.source(sourceId, context) }
+
+    fun track(context: Context, sourceId: String, remoteId: String): RemoteTrack? {
+        synchronized(this) { trackIndexes[sourceId] }?.let { return it[remoteId] }
+        val catalog = read(context, sourceId) ?: return null
+        val index = catalog.tracks.associateBy { it.id }
+        synchronized(this) { trackIndexes[sourceId] = index }
+        return index[remoteId]
+    }
 
     private fun file(context: Context, sourceId: String): AtomicFile {
         require(sourceId.matches(Regex("[a-f0-9]{64}")))
@@ -64,7 +68,7 @@ object SyncCatalogStore {
         read(context, source.id)
 
     @Synchronized
-    internal fun read(context: Context, sourceId: String): RemoteCatalog? =
+    fun read(context: Context, sourceId: String): RemoteCatalog? =
         catalogs[sourceId]
             ?: runCatching {
                 val root =
@@ -90,6 +94,20 @@ object SyncCatalogStore {
                                     item.optLong("durationMs").takeIf { item.has("durationMs") },
                                 bitRate = item.optLong("bitRate", -1L).takeIf { it > 0L },
                                 sampleRate = item.optLong("sampleRate", -1L).takeIf { it > 0L },
+                                artworkId =
+                                    item.optString("artworkId")
+                                        .takeIf { item.has("artworkId") && it.isNotBlank() },
+                                albumArtist =
+                                    item.optString("albumArtist")
+                                        .takeIf { item.has("albumArtist") && it.isNotBlank() },
+                                discNumber =
+                                    item.optInt("discNumber").takeIf { item.has("discNumber") },
+                                bitDepth =
+                                    item.optInt("bitDepth").takeIf { item.has("bitDepth") },
+                                channels =
+                                    item.optInt("channels").takeIf { item.has("channels") },
+                                year =
+                                    item.optInt("year").takeIf { item.has("year") },
                             )
                         )
                     }
@@ -111,14 +129,17 @@ object SyncCatalogStore {
                 RemoteCatalog(tracks, playlists, root.optLong("refreshedAt"))
             }
                 .getOrNull()
-                ?.also { catalogs[sourceId] = it }
+                ?.also {
+                    catalogs[sourceId] = it
+                    trackIndexes[sourceId] = it.tracks.associateBy { track -> track.id }
+                }
 
     @Synchronized
     fun write(
         context: Context,
         source: RemoteLibrarySource,
         catalog: RemoteCatalog,
-        metadataVersion: Int = 2
+        metadataVersion: Int = 3,
     ) {
         val tracks = JSONArray()
         catalog.tracks.forEach { track ->
@@ -135,6 +156,12 @@ object SyncCatalogStore {
                     .apply { track.durationMs?.let { put("durationMs", it) } }
                     .apply { track.bitRate?.let { put("bitRate", it) } }
                     .apply { track.sampleRate?.let { put("sampleRate", it) } }
+                    .apply { track.artworkId?.let { put("artworkId", it) } }
+                    .apply { track.albumArtist?.let { put("albumArtist", it) } }
+                    .apply { track.discNumber?.let { put("discNumber", it) } }
+                    .apply { track.bitDepth?.let { put("bitDepth", it) } }
+                    .apply { track.channels?.let { put("channels", it) } }
+                    .apply { track.year?.let { put("year", it) } }
             )
         }
         val playlists = JSONArray()
@@ -161,11 +188,18 @@ object SyncCatalogStore {
         try {
             output.write(value.toByteArray(Charsets.UTF_8))
             target.finishWrite(output)
-            sources[source.id] = source
             catalogs[source.id] = catalog
+            trackIndexes[source.id] = catalog.tracks.associateBy { it.id }
         } catch (error: Throwable) {
             target.failWrite(output)
             throw error
         }
+    }
+
+    @Synchronized
+    fun delete(context: Context, sourceId: String) {
+        runCatching { file(context, sourceId).delete() }
+        catalogs.remove(sourceId)
+        trackIndexes.remove(sourceId)
     }
 }

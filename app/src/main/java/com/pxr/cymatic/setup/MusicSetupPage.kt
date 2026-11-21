@@ -97,7 +97,7 @@ internal fun SetupPage(
     val loading =
         when (step) {
             MusicSetupStep.CONNECTING -> true
-            MusicSetupStep.CONNECTED -> catalog == CatalogProgress.Refreshing
+            MusicSetupStep.CONNECTED -> catalog is CatalogProgress.Refreshing
             MusicSetupStep.SCANNING ->
                 local is LocalScanProgress.Scanning || local == LocalScanProgress.Idle
 
@@ -152,11 +152,9 @@ internal fun SetupPage(
             MusicSetupStep.CONNECTING -> "Connecting"
             MusicSetupStep.CONNECTED ->
                 when (catalog) {
-                    CatalogProgress.Refreshing -> "Loading your library"
+                    is CatalogProgress.Refreshing -> "Loading your library"
                     is CatalogProgress.Failed -> "Library could not load"
-                    is CatalogProgress.Complete ->
-                        if (catalog.catalog.tracks.isEmpty()) "The library is empty"
-                        else "Library ready"
+                    is CatalogProgress.Complete -> "Library ready"
 
                     else -> "Connected to AudioStream"
                 }
@@ -190,12 +188,9 @@ internal fun SetupPage(
             MusicSetupStep.CONNECTING -> "Signing in."
             MusicSetupStep.CONNECTED ->
                 when (catalog) {
-                    CatalogProgress.Refreshing -> "Loading songs and playlists."
+                    is CatalogProgress.Refreshing -> "Loading songs and playlists."
                     is CatalogProgress.Failed -> "Check the connection and retry."
-                    is CatalogProgress.Complete ->
-                        if (catalog.catalog.tracks.isEmpty())
-                            "Add music on AudioStream, then refresh."
-                        else "Your music is ready to play."
+                    is CatalogProgress.Complete -> "Your music is ready to play."
 
                     else -> ""
                 }
@@ -393,9 +388,11 @@ internal fun SetupPage(
     val pageInsets =
         if (listStep) Modifier else Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
     val headerInsets = if (listStep) Modifier.padding(horizontal = 24.dp) else Modifier
-    Column(Modifier
-        .fillMaxSize()
-        .then(pageInsets)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .then(pageInsets)
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()

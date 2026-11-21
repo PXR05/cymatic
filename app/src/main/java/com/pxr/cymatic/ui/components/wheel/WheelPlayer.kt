@@ -94,9 +94,11 @@ fun WheelPlayer(
                 onUpdateWheelBounds = onUpdateWheelBounds,
             ) {
                 if (settingUp) {
-                    Box(Modifier
-                        .weight(1f)
-                        .fillMaxWidth()) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
                         MusicSetupScreen(setup, Modifier.fillMaxSize())
                         WheelOverlays(wheel)
                     }
