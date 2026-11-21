@@ -68,6 +68,7 @@ object UacDescriptor {
                             u.terminalType,
                             if (u.terminalType == USB_STREAMING) " (USB streaming)" else "",
                         )
+
                 Kind.OUTPUT ->
                     "OT 0x%02x type 0x%04x%s src %s"
                         .format(
@@ -76,6 +77,7 @@ object UacDescriptor {
                             if (u.terminalType == USB_STREAMING) " (USB streaming)" else "",
                             u.sources.joinToString { "0x%02x".format(it) },
                         )
+
                 Kind.FEATURE ->
                     "FU 0x%02x src %s controls %s"
                         .format(
@@ -87,12 +89,15 @@ object UacDescriptor {
                                 }
                                 .ifEmpty { "none" },
                         )
+
                 Kind.MIXER ->
                     "MIXER 0x%02x src %s"
                         .format(u.id, u.sources.joinToString { "0x%02x".format(it) })
+
                 Kind.SELECTOR ->
                     "SELECTOR 0x%02x src %s"
                         .format(u.id, u.sources.joinToString { "0x%02x".format(it) })
+
                 Kind.OTHER ->
                     "UNIT 0x%02x subtype 0x%02x src %s"
                         .format(u.id, u.subtype, u.sources.joinToString { "0x%02x".format(it) })
@@ -126,6 +131,7 @@ object UacDescriptor {
                         }
                         inAc = ac && acInterface == u8(2)
                     }
+
                 0x24 ->
                     if (inAc && len >= 4) {
                         val id = u8(3)
@@ -134,6 +140,7 @@ object UacDescriptor {
                             0x02 ->
                                 if (len >= 6)
                                     units += Unit(id, Kind.INPUT, 0x02, terminalType = u16(4))
+
                             0x03 ->
                                 if (len >= 8)
                                     units +=
@@ -144,6 +151,7 @@ object UacDescriptor {
                                             terminalType = u16(4),
                                             sources = listOf(u8(7)),
                                         )
+
                             0x04 -> units += mixer(d, Kind.MIXER)
                             0x05 -> units += mixer(d, Kind.SELECTOR)
                             0x06 -> if (len >= 7) units += featureUnit(d, uac2)
@@ -224,7 +232,14 @@ object UacDescriptor {
         if (n < 2) "short reply"
         else
             s16(b, 0).let { v ->
-                "${volumeDb(v)?.let { "%.2f dB".format(java.util.Locale.ROOT, it) } ?: "silence"} (raw $v)"
+                "${
+                    volumeDb(v)?.let {
+                        "%.2f dB".format(
+                            java.util.Locale.ROOT,
+                            it
+                        )
+                    } ?: "silence"
+                } (raw $v)"
             }
 
     fun volumeRangeText(b: ByteArray, n: Int): String {
@@ -235,7 +250,14 @@ object UacDescriptor {
                 .filter { 2 + it * 6 + 5 < n }
                 .map { k ->
                     val o = 2 + k * 6
-                    "${volumeText(b.copyOfRange(o, o + 2), 2)} .. ${volumeText(b.copyOfRange(o + 2, o + 4), 2)} step ${volumeText(b.copyOfRange(o + 4, o + 6), 2)}"
+                    "${volumeText(b.copyOfRange(o, o + 2), 2)} .. ${
+                        volumeText(
+                            b.copyOfRange(
+                                o + 2,
+                                o + 4
+                            ), 2
+                        )
+                    } step ${volumeText(b.copyOfRange(o + 4, o + 6), 2)}"
                 }
         return "$count sub-range(s): " + parts.joinToString("; ")
     }

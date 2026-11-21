@@ -60,19 +60,19 @@ internal data class UsbDescriptorSummary(
     fun playbackVolume(format: UsbPcmFormat): UsbFeatureUnit? {
         val units = features.filter {
             it.configuration == format.configuration &&
-                it.controlInterface == format.controlInterface
+                    it.controlInterface == format.controlInterface
         }
         val bridges = extensions.filter {
             it.configuration == format.configuration &&
-                it.controlInterface == format.controlInterface &&
-                it.protocol == format.protocol
+                    it.controlInterface == format.controlInterface &&
+                    it.protocol == format.protocol
         }
         val paths =
             outputs
                 .filter {
                     it.configuration == format.configuration &&
-                        it.controlInterface == format.controlInterface &&
-                        it.type shr 8 != 1
+                            it.controlInterface == format.controlInterface &&
+                            it.type shr 8 != 1
                 }
                 .map { output ->
                     val path = mutableListOf<UsbFeatureUnit>()
@@ -99,8 +99,8 @@ internal data class UsbDescriptorSummary(
             path
                 .filter {
                     it.volumeChannels != null &&
-                        it.protocol == format.protocol &&
-                        it.controls.size in listOf(1, (format.channels ?: 0) + 1)
+                            it.protocol == format.protocol &&
+                            it.controls.size in listOf(1, (format.channels ?: 0) + 1)
                 }
                 .singleOrNull() ?: return null
         }

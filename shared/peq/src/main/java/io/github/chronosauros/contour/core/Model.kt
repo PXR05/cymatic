@@ -15,9 +15,9 @@ enum class FilterType {
 val FilterType.isPass: Boolean
     get() =
         this == FilterType.LOW_PASS ||
-            this == FilterType.HIGH_PASS ||
-            this == FilterType.BAND_PASS ||
-            this == FilterType.ALL_PASS
+                this == FilterType.HIGH_PASS ||
+                this == FilterType.BAND_PASS ||
+                this == FilterType.ALL_PASS
 
 val FilterType.isShelf: Boolean
     get() = this == FilterType.LOW_SHELF || this == FilterType.HIGH_SHELF

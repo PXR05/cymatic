@@ -60,10 +60,10 @@ class LicenseCatalog(private val assets: AssetManager) {
             .distinct()
             .filter { path ->
                 path !in mitTexts &&
-                    path !in bsdTexts &&
-                    !assets.open(path).bufferedReader().use {
-                        it.readText().trimStart().startsWith("Apache License")
-                    }
+                        path !in bsdTexts &&
+                        !assets.open(path).bufferedReader().use {
+                            it.readText().trimStart().startsWith("Apache License")
+                        }
             }
     }
 
@@ -76,14 +76,16 @@ class LicenseCatalog(private val assets: AssetManager) {
                         "Covered components",
                         emptyList(),
                         "## Vendored code\n\n- Contour — Copyright 2026 Chronosaur\n- Apple ALAC — Copyright 2011 Apple Inc.\n\n" +
-                            components(apacheLibraries),
+                                components(apacheLibraries),
                     ),
                 )
+
             LicenseGroup.OFL ->
                 listOf(
                     LicenseEntry("License text", listOf("licenses/fonts/Shared-OFL.txt")),
                     LicenseEntry("Fonts & credits", listOf("licenses/fonts/FONT-CREDITS.txt")),
                 )
+
             LicenseGroup.OTHER ->
                 listOf(
                     LicenseEntry("BSD · libFLAC", listOf("licenses/libFLAC.txt")),
@@ -101,6 +103,7 @@ class LicenseCatalog(private val assets: AssetManager) {
                         listOf("licenses/LLVM-exceptions.txt"),
                     ),
                 )
+
             LicenseGroup.ATTRIBUTIONS ->
                 listOf(
                     LicenseEntry("Library credits", emptyList(), components(libraries)),
@@ -118,6 +121,7 @@ class LicenseCatalog(private val assets: AssetManager) {
                         extraNotices,
                     ),
                 )
+
             LicenseGroup.ROOT -> emptyList()
         }
 
@@ -139,7 +143,8 @@ class LicenseCatalog(private val assets: AssetManager) {
         }
 
     companion object {
-        @Volatile private var cached: LicenseCatalog? = null
+        @Volatile
+        private var cached: LicenseCatalog? = null
 
         fun getCached(): LicenseCatalog? = cached
 

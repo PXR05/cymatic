@@ -5,7 +5,6 @@ import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.data.store.LibrarySyncSettings
-import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicLong
 
 data class OfflineSelection(
     val tracks: Set<String> = emptySet(),
@@ -188,17 +188,17 @@ object LibraryOfflineManager {
                 }
                 val ids =
                     tracks +
-                        SyncCatalogStore.read(application, sourceId)
-                            ?.playlists
-                            .orEmpty()
-                            .filter { it.id in playlists }
-                            .flatMap { it.trackIds }
+                            SyncCatalogStore.read(application, sourceId)
+                                ?.playlists
+                                .orEmpty()
+                                .filter { it.id in playlists }
+                                .flatMap { it.trackIds }
                 val offline =
                     AudioRepository.getInstance(application)
                         .getAllAudio()
                         .filter {
                             it.sourceId == sourceId &&
-                                it.availability == LibraryAvailability.OFFLINE
+                                    it.availability == LibraryAvailability.OFFLINE
                         }
                         .mapNotNullTo(mutableSetOf()) { it.remoteId }
                 work.enqueue(
@@ -220,7 +220,7 @@ object LibraryOfflineManager {
                     if (RemoteLibraries.currentSource().id == sourceId) {
                         if (
                             !LibrarySyncSettings.getSyncContentConfigured() &&
-                                LibrarySyncSettings.getSyncNetwork() == SyncNetwork.NEVER.value
+                            LibrarySyncSettings.getSyncNetwork() == SyncNetwork.NEVER.value
                         )
                             LibrarySyncSettings.setSyncNetwork(SyncNetwork.WIFI.value)
                         LibrarySyncJobService.reschedule(application)

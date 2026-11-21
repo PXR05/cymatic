@@ -67,8 +67,9 @@ data class DacSetting(
             SettingKind.CHOICE ->
                 require(
                     options.size in 2..8 &&
-                        (shortOptions.isEmpty() || shortOptions.size == options.size)
+                            (shortOptions.isEmpty() || shortOptions.size == options.size)
                 )
+
             SettingKind.LEVEL -> require(step > 0 && min < max && scale >= 1)
             SettingKind.BALANCE -> require(step > 0 && max > 0)
         }
@@ -321,22 +322,22 @@ object DacSettings {
 
     private val templates: Map<String, DacSetting> =
         listOf(
-                volume,
-                volumeSteps,
-                balanceSetting,
-                mic(0),
-                light(0),
-                uac(0),
-                filter,
-                gain,
-                output,
-                dre,
-                buttons,
-                brightness,
-                screenOff,
-                rotation,
-                language,
-            )
+            volume,
+            volumeSteps,
+            balanceSetting,
+            mic(0),
+            light(0),
+            uac(0),
+            filter,
+            gain,
+            output,
+            dre,
+            buttons,
+            brightness,
+            screenOff,
+            rotation,
+            language,
+        )
             .associateBy { it.id }
 
     internal fun forModel(placements: List<SettingPlacement>): List<DacSetting> =

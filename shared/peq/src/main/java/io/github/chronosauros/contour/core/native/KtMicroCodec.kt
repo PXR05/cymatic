@@ -157,10 +157,10 @@ object KtMicroCodec {
 
     fun readQueries(model: KtMicroCatalog.Model): List<Frame> =
         listOf(readRegister(model.registers.enableRegister)) +
-            model.registers.bands.flatMap {
-                listOf(readRegister(it.gainFrequency), readRegister(it.qType))
-            } +
-            readRegister(model.registers.digitalGainRegister)
+                model.registers.bands.flatMap {
+                    listOf(readRegister(it.gainFrequency), readRegister(it.qType))
+                } +
+                readRegister(model.registers.digitalGainRegister)
 
     fun parseRegister(
         reply: Reply,
@@ -204,7 +204,11 @@ object KtMicroCodec {
     ) {
         val value = parseRegister(reply, deviceKey, register, WRITE).value
         require(value == listOf(map.writeAck, 0, 0, 0)) {
-            "KT write not acknowledged at 0x${register.toString(16)}: expected 0x${map.writeAck.toString(16)}, received ${value.joinToString { it.toString(16) }}; send stopped"
+            "KT write not acknowledged at 0x${register.toString(16)}: expected 0x${
+                map.writeAck.toString(
+                    16
+                )
+            }, received ${value.joinToString { it.toString(16) }}; send stopped"
         }
     }
 
@@ -400,7 +404,7 @@ object KtMicroCodec {
         if (value.register != GLOBAL_GAIN_REGISTER) return null
         return value.value[0].takeIf {
             it in GLOBAL_GAIN_STEP_MIN..GLOBAL_GAIN_STEP_MAX &&
-                value.value.drop(1).all { b -> b == 0 }
+                    value.value.drop(1).all { b -> b == 0 }
         }
     }
 
@@ -450,9 +454,9 @@ object KtMicroCodec {
 
     fun isClearReply(payload: ByteArray): Boolean =
         payload.size >= PAYLOAD_BYTES &&
-            u(payload[0]) == 0 &&
-            u(payload[4]) == CLEAR &&
-            listOf(1, 2, 3, 5).all { payload[it] == 0.toByte() }
+                u(payload[0]) == 0 &&
+                u(payload[4]) == CLEAR &&
+                listOf(1, 2, 3, 5).all { payload[it] == 0.toByte() }
 
     fun clearAck(
         payload: ByteArray,
@@ -537,15 +541,15 @@ object KtMicroCodec {
         val gains = model.gainRange(b.type)
         require(b.gainDb.isFinite() && b.gainDb in gains) {
             "Band $n: gain ${b.gainDb} dB outside ${gains.start}..${gains.endInclusive} dB" +
-                limitNote(model, b.type)
+                    limitNote(model, b.type)
         }
 
         val scale = registerQScale(model, b.type)
         val qs = model.qRange(b.type)
         require(
             b.q.isFinite() &&
-                b.q * scale in model.minQ..model.maxQ &&
-                b.q in qs.start..qs.endInclusive
+                    b.q * scale in model.minQ..model.maxQ &&
+                    b.q in qs.start..qs.endInclusive
         ) {
             "Band $n: Q ${b.q} outside ${qs.start}-${qs.endInclusive}" + limitNote(model, b.type)
         }
@@ -590,6 +594,7 @@ object KtMicroCodec {
         when {
             type !in model.nativeTypes ->
                 throw IllegalArgumentException("Unsupported KT type $type")
+
             type == FilterType.PEAK -> 0
             type == FilterType.LOW_SHELF -> 3
             type == FilterType.HIGH_SHELF -> 4

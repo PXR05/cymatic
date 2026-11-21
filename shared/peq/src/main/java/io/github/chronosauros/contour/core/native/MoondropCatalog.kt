@@ -28,9 +28,12 @@ object MoondropCatalog {
     val OFFERED_TYPES: Set<FilterType>
         get() =
             RECORD_OFFERED_TYPES +
-                (if (passFiltersOn) setOf(FilterType.LOW_PASS, FilterType.HIGH_PASS)
-                else emptySet()) +
-                (if (shelvesOn) setOf(FilterType.LOW_SHELF, FilterType.HIGH_SHELF) else emptySet())
+                    (if (passFiltersOn) setOf(FilterType.LOW_PASS, FilterType.HIGH_PASS)
+                    else emptySet()) +
+                    (if (shelvesOn) setOf(
+                        FilterType.LOW_SHELF,
+                        FilterType.HIGH_SHELF
+                    ) else emptySet())
 
     data class Model(
         val productName: String,

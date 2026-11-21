@@ -49,8 +49,8 @@ internal class WalkPlayPort(
             if (t.isNative) t.requestNative(id, payload, matches)
             else
                 t.requestOnce(byteArrayOf(id.toByte()) + payload) {
-                        it.size > 1 && it[0] == id.toByte() && matches(it.copyOfRange(1, it.size))
-                    }
+                    it.size > 1 && it[0] == id.toByte() && matches(it.copyOfRange(1, it.size))
+                }
                     .let { it.copyOfRange(1, it.size) }
         tick()
         return reply

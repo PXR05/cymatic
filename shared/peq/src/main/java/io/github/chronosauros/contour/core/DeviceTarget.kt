@@ -3,7 +3,24 @@ package io.github.chronosauros.contour.core
 
 import io.github.chronosauros.contour.core.devices.GeneratedDevices
 import io.github.chronosauros.contour.core.devices.Recognition
-import io.github.chronosauros.contour.core.native.*
+import io.github.chronosauros.contour.core.native.DacInfo
+import io.github.chronosauros.contour.core.native.DacSetting
+import io.github.chronosauros.contour.core.native.FamilySettings
+import io.github.chronosauros.contour.core.native.FiioCatalog
+import io.github.chronosauros.contour.core.native.FiioCodec
+import io.github.chronosauros.contour.core.native.FiioConfig
+import io.github.chronosauros.contour.core.native.FiioJa11
+import io.github.chronosauros.contour.core.native.FiioKa15
+import io.github.chronosauros.contour.core.native.KtMicroCatalog
+import io.github.chronosauros.contour.core.native.KtMicroCodec
+import io.github.chronosauros.contour.core.native.MoondropCatalog
+import io.github.chronosauros.contour.core.native.MoondropCodec
+import io.github.chronosauros.contour.core.native.MoondropGen1Catalog
+import io.github.chronosauros.contour.core.native.MoondropGen1Codec
+import io.github.chronosauros.contour.core.native.SnowSkyMelody
+import io.github.chronosauros.contour.core.native.WalkPlayProfile
+import io.github.chronosauros.contour.core.native.WalkPlayProfiles
+import io.github.chronosauros.contour.core.native.WalkPlaySettings
 
 data class DeviceTarget
 private constructor(
@@ -155,6 +172,7 @@ private constructor(
                     false,
                     shelfQScale = moondrop.shelfQScale,
                 )
+
             ktMicro != null ->
                 DeviceCapabilities(
                     ktMicro.name,
@@ -172,6 +190,7 @@ private constructor(
                     shelfQScale = ktMicro.shelfQScale,
                     shelfLimits = ktMicro.shelfLimits,
                 )
+
             gen1 != null -> gen1.caps()
 
             else -> requireNotNull(echo).caps
@@ -228,7 +247,7 @@ private constructor(
         else
             writableEcho?.let { e ->
                 ProtocolMicro.devicePreamp(profile.bands, profile.preampDb, e.preampMaxDb) -
-                    ProtocolMicro.highShelfGainSum(profile.bands)
+                        ProtocolMicro.highShelfGainSum(profile.bands)
             } ?: preampRules?.shownPreamp(profile) ?: profile.effectivePreampDb()
 
     fun qRange(type: FilterType): ClosedFloatingPointRange<Double> = caps.qRange(type)
@@ -248,12 +267,12 @@ private constructor(
                 ?: if ("no finite response" in issue)
                     profile.bands.firstOrNull {
                         it.enabled &&
-                            (!it.freqHz.isFinite() ||
-                                it.freqHz !in caps.freqMinHz..caps.freqMaxHz ||
-                                !it.gainDb.isFinite() ||
-                                (!it.type.isPass && it.gainDb !in caps.gainRange(it.type)) ||
-                                !it.q.isFinite() ||
-                                it.q !in qRange(it.type))
+                                (!it.freqHz.isFinite() ||
+                                        it.freqHz !in caps.freqMinHz..caps.freqMaxHz ||
+                                        !it.gainDb.isFinite() ||
+                                        (!it.type.isPass && it.gainDb !in caps.gainRange(it.type)) ||
+                                        !it.q.isFinite() ||
+                                        it.q !in qRange(it.type))
                     }
                 else null
         val cause =
@@ -261,27 +280,31 @@ private constructor(
                 Regex("""^\d+ (enabled )?bands;""").containsMatchIn(issue) -> "band count"
 
                 band == null &&
-                    "no finite response" in issue &&
-                    profile.bands.any {
-                        it.enabled &&
-                            (it.type == FilterType.LOW_SHELF || it.type == FilterType.HIGH_SHELF)
-                    } -> "shelf gain or Q"
+                        "no finite response" in issue &&
+                        profile.bands.any {
+                            it.enabled &&
+                                    (it.type == FilterType.LOW_SHELF || it.type == FilterType.HIGH_SHELF)
+                        } -> "shelf gain or Q"
+
                 issue.startsWith("pregain") ||
-                    issue.startsWith("preamp") ||
-                    issue.startsWith("auto preamp") ||
-                    issue.startsWith("manual/auto attenuation") ||
-                    issue.startsWith("this eq needs") -> "preamp"
+                        issue.startsWith("preamp") ||
+                        issue.startsWith("auto preamp") ||
+                        issue.startsWith("manual/auto attenuation") ||
+                        issue.startsWith("this eq needs") -> "preamp"
 
                 band != null &&
-                    (!band.freqHz.isFinite() || band.freqHz !in caps.freqMinHz..caps.freqMaxHz) ->
+                        (!band.freqHz.isFinite() || band.freqHz !in caps.freqMinHz..caps.freqMaxHz) ->
                     "frequency"
+
                 band != null &&
-                    (!band.gainDb.isFinite() ||
-                        (!band.type.isPass && band.gainDb !in caps.gainRange(band.type))) -> "gain"
+                        (!band.gainDb.isFinite() ||
+                                (!band.type.isPass && band.gainDb !in caps.gainRange(band.type))) -> "gain"
+
                 band != null && (!band.q.isFinite() || band.q !in qRange(band.type)) -> "Q"
                 "shelf" in issue ||
-                    (band?.type in setOf(FilterType.LOW_SHELF, FilterType.HIGH_SHELF) &&
-                        "non-finite biquad" in issue) -> "shelf gain or Q"
+                        (band?.type in setOf(FilterType.LOW_SHELF, FilterType.HIGH_SHELF) &&
+                                "non-finite biquad" in issue) -> "shelf gain or Q"
+
                 " hz outside " in issue || issue.startsWith("frequency") -> "frequency"
                 " db outside " in issue -> "gain"
                 Regex("""\bq\b""").containsMatchIn(issue) && "outside" in issue -> "Q"
@@ -317,7 +340,11 @@ private constructor(
 
                 if (!b.gainDb.isFinite() || (!b.type.isPass && b.gainDb !in caps.gainRange(b.type)))
                     found +=
-                        "Band $n: gain ${num(b.gainDb)} dB outside ${num(caps.gainRange(b.type).start)}..${num(caps.gainRange(b.type).endInclusive)} dB"
+                        "Band $n: gain ${num(b.gainDb)} dB outside ${num(caps.gainRange(b.type).start)}..${
+                            num(
+                                caps.gainRange(b.type).endInclusive
+                            )
+                        } dB"
                 if (!b.q.isFinite() || b.q !in qLo..qHi)
                     found +=
                         "Band $n: ${if (!scaled) "" else if (b.type.isShelf) "shelf " else "peak "}Q %.2f outside %.2f-%.2f"
@@ -358,7 +385,11 @@ private constructor(
                     "Band $n: freq ${num(b.freqHz)} Hz outside ${num(caps.freqMinHz)}-${num(caps.freqMaxHz)} Hz"
             if (!b.gainDb.isFinite() || (!b.type.isPass && b.gainDb !in caps.gainRange(b.type)))
                 found +=
-                    "Band $n: gain ${num(b.gainDb)} dB outside ${num(caps.gainRange(b.type).start)}..${num(caps.gainRange(b.type).endInclusive)} dB"
+                    "Band $n: gain ${num(b.gainDb)} dB outside ${num(caps.gainRange(b.type).start)}..${
+                        num(
+                            caps.gainRange(b.type).endInclusive
+                        )
+                    } dB"
 
             val qRange = caps.qRange(b.type)
             if (!b.q.isFinite() || b.q !in qRange)
@@ -470,20 +501,20 @@ private constructor(
 
         private val byRecord: Map<String, DeviceTarget> =
             mapOf(
-                    GeneratedDevices.CRINEAR_PROTOCOL_MICRO_USB.recordId to MICRO,
-                    GeneratedDevices.CRINEAR_PROTOCOL_MAX_USB.recordId to MAX,
-                    GeneratedDevices.TRN_BLACK_PEARL_USB.recordId to TRN,
-                    GeneratedDevices.FIIO_KA15_USB.recordId to KA15,
-                    GeneratedDevices.FIIO_K13_R2R_USB.recordId to K13,
-                    GeneratedDevices.SNOWSKY_MELODY_USB.recordId to MELODY,
-                    GeneratedDevices.SNOWSKY_TINY_A_USB.recordId to TINY_A,
-                    GeneratedDevices.FIIO_JA11_USB.recordId to FIIO_JA11,
-                    GeneratedDevices.MOONDROP_DAWN_PRO_2_USB.recordId to DAWN_PRO_2,
-                    GeneratedDevices.KIWI_EARS_ALLEGRO_MINI_USB.recordId to ALLEGRO_MINI,
-                    GeneratedDevices.JCALLY_JM12_USB.recordId to JCALLY_JM12,
-                    GeneratedDevices.MOONDROP_ECHO_A_USB.recordId to ECHO_A,
-                    GeneratedDevices.MOONDROP_DUSK_USB.recordId to MOONDROP_DUSK,
-                )
+                GeneratedDevices.CRINEAR_PROTOCOL_MICRO_USB.recordId to MICRO,
+                GeneratedDevices.CRINEAR_PROTOCOL_MAX_USB.recordId to MAX,
+                GeneratedDevices.TRN_BLACK_PEARL_USB.recordId to TRN,
+                GeneratedDevices.FIIO_KA15_USB.recordId to KA15,
+                GeneratedDevices.FIIO_K13_R2R_USB.recordId to K13,
+                GeneratedDevices.SNOWSKY_MELODY_USB.recordId to MELODY,
+                GeneratedDevices.SNOWSKY_TINY_A_USB.recordId to TINY_A,
+                GeneratedDevices.FIIO_JA11_USB.recordId to FIIO_JA11,
+                GeneratedDevices.MOONDROP_DAWN_PRO_2_USB.recordId to DAWN_PRO_2,
+                GeneratedDevices.KIWI_EARS_ALLEGRO_MINI_USB.recordId to ALLEGRO_MINI,
+                GeneratedDevices.JCALLY_JM12_USB.recordId to JCALLY_JM12,
+                GeneratedDevices.MOONDROP_ECHO_A_USB.recordId to ECHO_A,
+                GeneratedDevices.MOONDROP_DUSK_USB.recordId to MOONDROP_DUSK,
+            )
                 .also { m ->
                     require(m.keys == GeneratedDevices.USB_IDS.map { it.recordId }.toSet()) {
                         "a device record has no DeviceTarget (or the other way round)"
@@ -492,18 +523,18 @@ private constructor(
 
         fun find(vendorId: Int, productId: Int): DeviceTarget? =
             GeneratedDevices.USB_IDS.firstOrNull {
-                    it.recognition == Recognition.FIND &&
+                it.recognition == Recognition.FIND &&
                         it.vendorId == vendorId &&
                         it.productId == productId
-                }
+            }
                 ?.let { byRecord.getValue(it.recordId) }
 
         fun findDevice(vendorId: Int, productId: Int, productName: String?): DeviceTarget? =
             find(vendorId, productId)
                 ?: GeneratedDevices.USB_IDS.firstOrNull {
-                        it.recognition == Recognition.FIND_DEVICE &&
+                    it.recognition == Recognition.FIND_DEVICE &&
                             it.matches(vendorId, productId, productName)
-                    }
+                }
                     ?.let { byRecord.getValue(it.recordId) }
     }
 }

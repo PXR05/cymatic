@@ -18,6 +18,7 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
                     when (frame.kind) {
                         MoondropCodec.Kind.SLOT ->
                             MoondropCodec.parseSlot(r, port.deviceKey, inputBytes)
+
                         MoondropCodec.Kind.BAND ->
                             MoondropCodec.parseBand(
                                 r,
@@ -27,6 +28,7 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
                                 requireNotNull(bank()),
                                 inputBytes,
                             )
+
                         MoondropCodec.Kind.GLOBAL_GAIN ->
                             MoondropCodec.parseGain(
                                 r,
@@ -34,6 +36,7 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
                                 inputBytes,
                                 MoondropCodec.CMD_GLOBAL_GAIN,
                             )
+
                         MoondropCodec.Kind.PRE_GAIN ->
                             MoondropCodec.parseGain(
                                 r,
@@ -41,8 +44,10 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
                                 inputBytes,
                                 MoondropCodec.CMD_PRE_GAIN,
                             )
+
                         MoondropCodec.Kind.VERSION ->
                             MoondropCodec.parseVersion(r, port.deviceKey, inputBytes)
+
                         else -> error("Not an automatic read query")
                     }
                 }
@@ -56,7 +61,7 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
         val frames = MoondropCodec.readQueries(model)
         require(
             inputBytes >= 36 &&
-                port.payloadSize(model.reportId, NativeHidReports.Kind.OUTPUT) >=
+                    port.payloadSize(model.reportId, NativeHidReports.Kind.OUTPUT) >=
                     frames.maxOf { it.minimumDescriptorOutputPayloadBytes }
         ) {
             "The HID report descriptor lacks the complete Moondrop report 0x4B"
@@ -186,7 +191,9 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
         }
         if (persist)
             require(model.isWritable(before.activeIndex)) {
-                "The DAC is on EQ index ${before.activeIndex}, not one of Contour's banks (${model.writableIndexes.sorted().joinToString(", ")}): the flash save is the active bank's, nothing sent"
+                "The DAC is on EQ index ${before.activeIndex}, not one of Contour's banks (${
+                    model.writableIndexes.sorted().joinToString(", ")
+                }): the flash save is the active bank's, nothing sent"
             }
         steps.forEach {
             io.send(model.reportId, it.payload)
@@ -208,7 +215,9 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
     }
 
     private fun notPeqMode(index: Int) =
-        "The DAC is on EQ index $index, one of the unit's own presets (Contour writes EQ index ${model.writableIndexes.sorted().joinToString(" or ")}): switch the DAC to its PEQ mode first; nothing written"
+        "The DAC is on EQ index $index, one of the unit's own presets (Contour writes EQ index ${
+            model.writableIndexes.sorted().joinToString(" or ")
+        }): switch the DAC to its PEQ mode first; nothing written"
 
     fun write(
         bands: List<MoondropCodec.BandWrite>,
@@ -243,6 +252,7 @@ class MoondropSession(val model: MoondropCatalog.Model, private val port: Native
                         problems += "pre-gain ${want} -> ${back.preGain.rawQ8} (Q8)"
                         null
                     }
+
                     else -> null
                 }
             }

@@ -7,7 +7,8 @@ enum class BuildChannel {
 }
 
 object Proven {
-    @Volatile var channel: BuildChannel = BuildChannel.RELEASE
+    @Volatile
+    var channel: BuildChannel = BuildChannel.RELEASE
 
     fun channelFor(buildType: String): BuildChannel =
         if (buildType == "perf" || buildType == "debug") BuildChannel.PERF else BuildChannel.RELEASE

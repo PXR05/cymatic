@@ -38,7 +38,7 @@ data class WalkPlayProfile(
             preampMaxOverride
                 ?: if (
                     protocol == DeviceProtocol.MICRO &&
-                        productId == WalkPlayProfiles.ECHO_A_PRODUCT_ID
+                    productId == WalkPlayProfiles.ECHO_A_PRODUCT_ID
                 )
                     ProtocolMicro.ECHO_A_PREAMP_MAX_EFFECTIVE_DB
                 else protocol.preampMax
@@ -75,8 +75,8 @@ object WalkPlayProfiles {
         GeneratedDevices.MOONDROP_ECHO_A.let { d ->
             require(
                 d.bands == DeviceProtocol.MICRO.caps.bands &&
-                    d.schemeNo == DeviceProtocol.MICRO.data.schemeNo &&
-                    d.reportId == WalkPlay.REPORT_ID
+                        d.schemeNo == DeviceProtocol.MICRO.data.schemeNo &&
+                        d.reportId == WalkPlay.REPORT_ID
             ) {
                 "devices/moondrop-echo-a.json (bands ${d.bands}, SchemeNo ${d.schemeNo}, report ${d.reportId}) does not match the Protocol Micro code that drives it"
             }
@@ -230,7 +230,9 @@ class WalkPlaySession(val profile: WalkPlayProfile, private val port: NativePort
                 .withIndex()
                 .filter { (_, b) -> b.enabled && b.type !in offered }
                 .map { (i, b) ->
-                    "Band ${i + 1}: ${b.type} is not offered for ${profile.name} (${offered.sorted().joinToString()})"
+                    "Band ${i + 1}: ${b.type} is not offered for ${profile.name} (${
+                        offered.sorted().joinToString()
+                    })"
                 }
         return if (refused.isEmpty()) plan else DevicePlan.Rejected(refused)
     }
@@ -252,9 +254,9 @@ class WalkPlaySession(val profile: WalkPlayProfile, private val port: NativePort
 
     fun plannedFrames(plan: DevicePlan.Ready): Int =
         (if (p.experimental) profile.bands + 3 else 2) +
-            runCatching { p.writeSequence(plan, 0).size }.getOrDefault(plan.bands.size + 8) +
-            profile.bands +
-            3
+                runCatching { p.writeSequence(plan, 0).size }.getOrDefault(plan.bands.size + 8) +
+                profile.bands +
+                3
 
     fun writeTemporary(bands: List<WalkPlay.BandWrite>, slot: Int, explicitHold: Boolean) =
         io.guarded {
@@ -297,7 +299,7 @@ class WalkPlaySession(val profile: WalkPlayProfile, private val port: NativePort
             if (p.experimental) {
                 require(
                     plan.bands.size == p.caps.bands &&
-                        plan.bands.indices.all { plan.bands[it].index == it }
+                            plan.bands.indices.all { plan.bands[it].index == it }
                 ) {
                     "Plan does not cover every ${profile.name} slot"
                 }
@@ -474,7 +476,9 @@ class WalkPlaySession(val profile: WalkPlayProfile, private val port: NativePort
                     slotByte = backup.slot,
                 )
             log(
-                "reset restore: bands and preamp ${if (r.verified) "VERIFIED" else "NOT VERIFIED"}${r.reason?.let { ": $it" }.orEmpty()}"
+                "reset restore: bands and preamp ${if (r.verified) "VERIFIED" else "NOT VERIFIED"}${
+                    r.reason?.let { ": $it" }.orEmpty()
+                }"
             )
             lines +=
                 if (r.verified) "Bands and preamp: restored"

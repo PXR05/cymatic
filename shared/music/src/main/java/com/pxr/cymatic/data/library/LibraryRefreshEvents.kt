@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.merge
 fun libraryRefreshEvents(includeScans: Boolean = true): Flow<Unit> {
     val changes = listOf(LibraryChanges.version, LibraryFilterStore.changes)
     return merge(
-            *(if (includeScans) changes + SettingsStore.lastScanTimeMsFlow else changes)
-                .toTypedArray()
-        )
+        *(if (includeScans) changes + SettingsStore.lastScanTimeMsFlow else changes)
+            .toTypedArray()
+    )
         .map { Unit }
         .conflate()
 }

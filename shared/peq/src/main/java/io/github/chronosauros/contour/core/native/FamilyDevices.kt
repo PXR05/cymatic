@@ -52,38 +52,42 @@ sealed interface FamilyState {
             get() =
                 if (onWritableBank) null
                 else
-                    "The DAC is on EQ index ${snapshot.activeIndex}, one of its own presets. Switch the DAC to its PEQ mode (EQ index ${model.writableIndexes.sorted().joinToString(" or ")}): HOLD TO SEND writes the EQ the DAC is on."
+                    "The DAC is on EQ index ${snapshot.activeIndex}, one of its own presets. Switch the DAC to its PEQ mode (EQ index ${
+                        model.writableIndexes.sorted().joinToString(" or ")
+                    }): HOLD TO SEND writes the EQ the DAC is on."
 
         private fun planned(profile: Profile) =
             MoondropCodec.planFor(model, profile.bands, profile.effectivePreampDb())
 
         override fun holds(profile: Profile): Boolean = runCatching {
             onWritableBank &&
-                planned(profile).let { p ->
-                    p.issues.isEmpty() &&
-                        p.bands.all { e ->
-                            snapshot.bands
-                                .singleOrNull { it.index == e.index }
-                                ?.let { sameSound(e, it) } == true
-                        }
-                }
+                    planned(profile).let { p ->
+                        p.issues.isEmpty() &&
+                                p.bands.all { e ->
+                                    snapshot.bands
+                                        .singleOrNull { it.index == e.index }
+                                        ?.let { sameSound(e, it) } == true
+                                }
+                    }
         }
             .getOrDefault(false)
 
         override fun matches(profile: Profile): Boolean = runCatching {
             onWritableBank &&
-                planned(profile).let { p ->
-                    p.issues.isEmpty() &&
-                        MoondropCodec.matches(p.bands, snapshot.activeIndex, snapshot.bands)
-                            .isEmpty() &&
-                        snapshot.preGain?.rawQ8 == preGainQ8(profile.effectivePreampDb())
-                }
+                    planned(profile).let { p ->
+                        p.issues.isEmpty() &&
+                                MoondropCodec.matches(p.bands, snapshot.activeIndex, snapshot.bands)
+                                    .isEmpty() &&
+                                snapshot.preGain?.rawQ8 == preGainQ8(profile.effectivePreampDb())
+                    }
         }
             .getOrDefault(false)
 
         override fun importExact(): ImportedEq {
             require(onWritableBank) {
-                "${model.productName} is on EQ index ${snapshot.activeIndex}, not one of Contour's banks (${model.writableIndexes.sorted().joinToString(", ")}): nothing to open"
+                "${model.productName} is on EQ index ${snapshot.activeIndex}, not one of Contour's banks (${
+                    model.writableIndexes.sorted().joinToString(", ")
+                }): nothing to open"
             }
             val raw = snapshot.bands.sortedBy { it.index }
 
@@ -104,7 +108,12 @@ sealed interface FamilyState {
                         )
                     else {
                         require(!type.isPass || r.gainQ8 == 0) {
-                            "Band ${r.index + 1}: ${type.name.replace('_', ' ')} has gain ${r.gainDb} dB on the DAC; Contour keeps pass filters at 0 dB"
+                            "Band ${r.index + 1}: ${
+                                type.name.replace(
+                                    '_',
+                                    ' '
+                                )
+                            } has gain ${r.gainDb} dB on the DAC; Contour keeps pass filters at 0 dB"
                         }
                         Band(
                             "dac${r.index}",
@@ -136,13 +145,20 @@ sealed interface FamilyState {
 
         override fun describe(): String =
             "${model.productName}: EQ index ${snapshot.activeIndex}" +
-                (if (onWritableBank) " (Contour's bank)"
-                else
-                    " (the unit's own; Contour writes index ${model.writableIndexes.sorted().joinToString(" or ")})") +
-                "\nglobal gain ${snapshot.globalGain.db} dB; PRE GAIN ${snapshot.preGain?.db?.let { "$it dB" } ?: "not read"}\n" +
-                snapshot.bands.joinToString("\n") { b ->
-                    "${b.index + 1}  ${b.type?.name?.take(2) ?: "--"} ${b.frequencyHz} Hz ${"%.2f".format(java.util.Locale.ROOT, b.gainDb)} dB Q ${"%.3f".format(java.util.Locale.ROOT, b.q)}"
-                }
+                    (if (onWritableBank) " (Contour's bank)"
+                    else
+                        " (the unit's own; Contour writes index ${
+                            model.writableIndexes.sorted().joinToString(" or ")
+                        })") +
+                    "\nglobal gain ${snapshot.globalGain.db} dB; PRE GAIN ${snapshot.preGain?.db?.let { "$it dB" } ?: "not read"}\n" +
+                    snapshot.bands.joinToString("\n") { b ->
+                        "${b.index + 1}  ${b.type?.name?.take(2) ?: "--"} ${b.frequencyHz} Hz ${
+                            "%.2f".format(
+                                java.util.Locale.ROOT,
+                                b.gainDb
+                            )
+                        } dB Q ${"%.3f".format(java.util.Locale.ROOT, b.q)}"
+                    }
     }
 
     data class Allegro(
@@ -175,7 +191,7 @@ sealed interface FamilyState {
         override fun holds(profile: Profile): Boolean = runCatching {
             planned(profile).all { e ->
                 snapshot.bands.singleOrNull { it.index == e.index }?.let { sameSound(e, it) } ==
-                    true
+                        true
             }
         }
             .getOrDefault(false)
@@ -207,8 +223,8 @@ sealed interface FamilyState {
                         model.intendedFrequency(r.storedFrequencyHz),
                         r.gainTenths / 10.0,
                         r.qMilli /
-                            1000.0 /
-                            (if (type == FilterType.PEAK) 1.0 else model.shelfQScale),
+                                1000.0 /
+                                (if (type == FilterType.PEAK) 1.0 else model.shelfQScale),
                     )
                 }
             return ImportedEq(bands, 0.0)
@@ -222,12 +238,18 @@ sealed interface FamilyState {
 
         override fun describe(): String =
             "${model.productName}: EQ ${if (eqEnabled) "ON" else "OFF"}; ${snapshot.digitalGain?.describe() ?: "digital DAC gain unknown"}" +
-                (if (model.globalGainUserSteps == null) "\n"
-                else
-                    "; Global Gain register 0x3B ${globalGain?.value?.joinToString(" ") { "%02x".format(it) } ?: "not read"} (raw)\n") +
-                snapshot.bands.joinToString("\n") { b ->
-                    "${b.index + 1}  ${KtMicroCodec.type(b.nativeType).name.take(2)} ${b.storedFrequencyHz} Hz ${b.gainTenths / 10.0} dB Q ${b.qMilli / 1000.0}"
-                }
+                    (if (model.globalGainUserSteps == null) "\n"
+                    else
+                        "; Global Gain register 0x3B ${
+                            globalGain?.value?.joinToString(" ") {
+                                "%02x".format(
+                                    it
+                                )
+                            } ?: "not read"
+                        } (raw)\n") +
+                    snapshot.bands.joinToString("\n") { b ->
+                        "${b.index + 1}  ${KtMicroCodec.type(b.nativeType).name.take(2)} ${b.storedFrequencyHz} Hz ${b.gainTenths / 10.0} dB Q ${b.qMilli / 1000.0}"
+                    }
     }
 
     data class Dusk(
@@ -262,13 +284,13 @@ sealed interface FamilyState {
         override fun holds(profile: Profile): Boolean = runCatching {
             if (onCustom)
                 MoondropGen1Codec.issues(model, profile.bands).isEmpty() &&
-                    MoondropGen1Codec.mismatches(
+                        MoondropGen1Codec.mismatches(
                             planned(profile),
                             snapshot.activeIndex,
                             snapshot.bands,
                             model.customIndex,
                         )
-                        .isEmpty()
+                            .isEmpty()
             else presetBands?.let { samePreset(it, profile.bands) } == true
         }
             .getOrDefault(false)
@@ -302,17 +324,27 @@ sealed interface FamilyState {
 
         override fun describe(): String =
             "${model.productName}: preset ${snapshot.activeIndex} (${model.presetName(snapshot.activeIndex)})" +
-                (if (onCustom) ""
-                else
-                    "; the bands below are the preset's table, the cable cannot report what plays") +
-                "\n" +
-                (presetBands?.mapIndexed { i, b ->
-                        "${i + 1}  ${b.type.name.take(2)} ${b.freqHz} Hz ${b.gainDb} dB Q ${"%.3f".format(java.util.Locale.ROOT, b.q)}"
+                    (if (onCustom) ""
+                    else
+                        "; the bands below are the preset's table, the cable cannot report what plays") +
+                    "\n" +
+                    (presetBands?.mapIndexed { i, b ->
+                        "${i + 1}  ${b.type.name.take(2)} ${b.freqHz} Hz ${b.gainDb} dB Q ${
+                            "%.3f".format(
+                                java.util.Locale.ROOT,
+                                b.q
+                            )
+                        }"
                     }
                         ?: snapshot.bands.map { b ->
-                            "${b.index}  ${b.type?.name?.take(2) ?: "--"} ${b.freqHz} Hz ${b.gainDb} dB Q ${"%.3f".format(java.util.Locale.ROOT, b.q)}"
+                            "${b.index}  ${b.type?.name?.take(2) ?: "--"} ${b.freqHz} Hz ${b.gainDb} dB Q ${
+                                "%.3f".format(
+                                    java.util.Locale.ROOT,
+                                    b.q
+                                )
+                            }"
                         })
-                    .joinToString("\n")
+                        .joinToString("\n")
     }
 
     data class EchoA(val profile: WalkPlayProfile, val snapshot: WalkPlaySnapshot) : FamilyState {
@@ -333,13 +365,19 @@ sealed interface FamilyState {
 
         override fun holds(profile: Profile): Boolean =
             this.profile.writeOn &&
-                planned(profile)?.let { p ->
-                    p.bands.indices.all { p.bands[it].registers() == registers.getOrNull(it) }
-                } == true
+                    planned(profile)?.let { p ->
+                        p.bands.indices.all { p.bands[it].registers() == registers.getOrNull(it) }
+                    } == true
 
         override fun matches(profile: Profile): Boolean =
             this.profile.writeOn &&
-                planned(profile)?.let { ProtocolMicro.matches(it, registers, snapshot.preampDb) } ==
+                    planned(profile)?.let {
+                        ProtocolMicro.matches(
+                            it,
+                            registers,
+                            snapshot.preampDb
+                        )
+                    } ==
                     true
 
         override fun importExact(): ImportedEq {
@@ -356,23 +394,23 @@ sealed interface FamilyState {
 
         override fun describe(): String =
             "${profile.name}: ${if (profile.writeOn) "write enabled" else "READ ONLY"}${if (profile.hardwareVerified) "" else " - not verified on hardware"}\n" +
-                "firmware ${snapshot.firmware}, slot ${snapshot.slot}, preamp ${snapshot.preampDb} dB\n" +
-                snapshot.bands.joinToString("\n") { b ->
-                    val r = b.registers
-                    "%d  %s %7.1f Hz %6.2f dB Q %.3f   raw f=%d q=%d g=%d t=%d"
-                        .format(
-                            java.util.Locale.ROOT,
-                            r.index + 1,
-                            b.type.name.take(2),
-                            b.freqHz,
-                            b.gainDb,
-                            b.q,
-                            r.freq,
-                            r.q256,
-                            r.gain256,
-                            r.typeCode,
-                        )
-                }
+                    "firmware ${snapshot.firmware}, slot ${snapshot.slot}, preamp ${snapshot.preampDb} dB\n" +
+                    snapshot.bands.joinToString("\n") { b ->
+                        val r = b.registers
+                        "%d  %s %7.1f Hz %6.2f dB Q %.3f   raw f=%d q=%d g=%d t=%d"
+                            .format(
+                                java.util.Locale.ROOT,
+                                r.index + 1,
+                                b.type.name.take(2),
+                                b.freqHz,
+                                b.gainDb,
+                                b.q,
+                                r.freq,
+                                r.q256,
+                                r.gain256,
+                                r.typeCode,
+                            )
+                    }
     }
 }
 
@@ -383,9 +421,9 @@ private fun silent(type: Int, gainQ8: Int) = type == 0 || (type == 2 && gainQ8 =
 private fun isFiller(r: MoondropCodec.RawBand): Boolean =
     MoondropCodec.neutralBand(r.index).let { n ->
         r.nativeType == n.nativeType &&
-            r.frequencyHz == n.frequencyHz &&
-            r.qQ8 == n.qQ8 &&
-            r.gainQ8 == n.gainQ8
+                r.frequencyHz == n.frequencyHz &&
+                r.qQ8 == n.qQ8 &&
+                r.gainQ8 == n.gainQ8
     }
 
 private fun isFiller(r: KtMicroCodec.RawBand): Boolean =
@@ -398,27 +436,27 @@ private fun samePreset(table: List<Band>, bands: List<Band>): Boolean {
     val order = compareBy<Band>({ it.freqHz }, { it.gainDb }, { it.q })
     val mine = bands.filter { it.enabled && it.gainDb != 0.0 }.sortedWith(order)
     return table.size == mine.size &&
-        table.sortedWith(order).zip(mine).all { (t, b) ->
-            t.type == b.type &&
-                abs(t.freqHz - b.freqHz) <= 0.5 &&
-                abs(t.gainDb - b.gainDb) <= 0.01 &&
-                abs(t.q - b.q) <= 0.01
-        }
+            table.sortedWith(order).zip(mine).all { (t, b) ->
+                t.type == b.type &&
+                        abs(t.freqHz - b.freqHz) <= 0.5 &&
+                        abs(t.gainDb - b.gainDb) <= 0.01 &&
+                        abs(t.q - b.q) <= 0.01
+            }
 }
 
 private fun sameSound(e: MoondropCodec.BandWrite, a: MoondropCodec.RawBand): Boolean =
     (silent(e.nativeType, e.gainQ8) && silent(a.nativeType, a.gainQ8)) ||
-        (e.nativeType == a.nativeType &&
-            e.frequencyHz == a.frequencyHz &&
-            e.qQ8 == a.qQ8 &&
-            e.gainQ8 == a.gainQ8)
+            (e.nativeType == a.nativeType &&
+                    e.frequencyHz == a.frequencyHz &&
+                    e.qQ8 == a.qQ8 &&
+                    e.gainQ8 == a.gainQ8)
 
 private fun sameSound(e: KtMicroCodec.RawBand, a: KtMicroCodec.RawBand): Boolean =
     (e.gainTenths == 0 && a.gainTenths == 0) ||
-        (e.nativeType == a.nativeType &&
-            e.storedFrequencyHz == a.storedFrequencyHz &&
-            e.qMilli == a.qMilli &&
-            e.gainTenths == a.gainTenths)
+            (e.nativeType == a.nativeType &&
+                    e.storedFrequencyHz == a.storedFrequencyHz &&
+                    e.qMilli == a.qMilli &&
+                    e.gainTenths == a.gainTenths)
 
 object FamilyDevices {
 
@@ -434,16 +472,20 @@ object FamilyDevices {
         when (target.family) {
             DeviceTarget.Family.MOONDROP ->
                 if (state is FamilyState.Dawn) emptyList() else listOf(READ_FIRST)
+
             DeviceTarget.Family.KT_MICRO ->
                 if (target.readOnly) listOf(DeviceTarget.READ_ONLY_ISSUE.format(target.caps.name))
                 else if (state is FamilyState.Allegro) listOfNotNull(state.snapshot.writeBlocker)
                 else listOf(READ_FIRST)
+
             DeviceTarget.Family.MOONDROP_GEN1 ->
                 if (target.readOnly) listOf(DeviceTarget.READ_ONLY_ISSUE.format(target.caps.name))
                 else if (state is FamilyState.Dusk) emptyList() else listOf(READ_FIRST)
+
             DeviceTarget.Family.WALKPLAY_READ_ONLY ->
                 if (target.readOnly) listOf(DeviceTarget.READ_ONLY_ISSUE.format(target.caps.name))
                 else if (state is FamilyState.EchoA) emptyList() else listOf(READ_FIRST)
+
             else -> emptyList()
         }
 

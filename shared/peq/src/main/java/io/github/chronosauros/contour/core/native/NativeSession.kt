@@ -1,7 +1,9 @@
 // Modified for Cymatic: Explanatory comments removed.
 package io.github.chronosauros.contour.core.native
 
-import io.github.chronosauros.contour.core.*
+import io.github.chronosauros.contour.core.DeviceTarget
+import io.github.chronosauros.contour.core.ImportedEq
+import io.github.chronosauros.contour.core.Profile
 
 interface NativePort {
     val deviceKey: String
@@ -32,8 +34,8 @@ sealed interface NativeState {
         when (this) {
             is Fiio ->
                 (slotDescription?.let { "$it\n" } ?: "") +
-                    "${raw.count} native filters; pregain ${raw.preampTenths}/10 dB\n" +
-                    raw.bands.joinToString("\n")
+                        "${raw.count} native filters; pregain ${raw.preampTenths}/10 dB\n" +
+                        raw.bands.joinToString("\n")
         }
 
     data class Fiio(
@@ -149,7 +151,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                 require(check(it)) { "Uncorrelated native reply" }
             }
         }
-        .also { frameDone() }
+            .also { frameDone() }
 
     private var progress: ((done: Int, total: Int) -> Unit)? = null
     private var stepsDone = 0
@@ -200,10 +202,10 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
         try {
             request(f.reportId, frame) { p ->
                 p.size >= 6 &&
-                    p[0] == 0xAA.toByte() &&
-                    p[1] == 0x0A.toByte() &&
-                    p[4] == cmd &&
-                    (!melody || melodyEcho(frame, p))
+                        p[0] == 0xAA.toByte() &&
+                        p[1] == 0x0A.toByte() &&
+                        p[4] == cmd &&
+                        (!melody || melodyEcho(frame, p))
             }
         } catch (e: java.io.IOException) {
             if (requireEcho || !isReplyTimeout(e)) throw e
@@ -214,14 +216,14 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
 
         if ((frame[4].toInt() and 255) == FiioCodec.NAME)
             return reply.size >= 18 &&
-                (reply[5].toInt() and 255) == 9 &&
-                reply[6] == frame[6] &&
-                (7 until frame.size - 2).all { reply[it] == frame[it] } &&
-                reply[17] == 0xEE.toByte()
+                    (reply[5].toInt() and 255) == 9 &&
+                    reply[6] == frame[6] &&
+                    (7 until frame.size - 2).all { reply[it] == frame[it] } &&
+                    reply[17] == 0xEE.toByte()
         if (
             reply.size < frame.size ||
-                reply[5] != frame[5] ||
-                reply[frame.lastIndex] != 0xEE.toByte()
+            reply[5] != frame[5] ||
+            reply[frame.lastIndex] != 0xEE.toByte()
         )
             return false
         val band = (frame[4].toInt() and 255) == FiioCodec.BAND
@@ -236,10 +238,10 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
         try {
             request(f.reportId, f.payload()) { p ->
                 p.size >= 5 &&
-                    p[0] == 0.toByte() &&
-                    p[1] == 0xEE.toByte() &&
-                    p[2] == 0.toByte() &&
-                    p[4] == 0.toByte()
+                        p[0] == 0.toByte() &&
+                        p[1] == 0xEE.toByte() &&
+                        p[2] == 0.toByte() &&
+                        p[4] == 0.toByte()
             }
         } catch (e: java.io.IOException) {
             if (!isReplyTimeout(e)) throw e
@@ -313,7 +315,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
             writeAndConsumeEcho(c.writeName(slot, name))
             val read = retryTimeouts { readName(c, slot) }
             back.copy(names = back.names + (slot to read)) to
-                (if (read == name) null else "Slot name reads back as $read, not $name")
+                    (if (read == name) null else "Slot name reads back as $read, not $name")
         } catch (e: java.io.IOException) {
             if (!isReplyTimeout(e)) throw e
             back to "Slot name not confirmed: no reply"
@@ -345,9 +347,9 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                 val r = s.read as SettingRead.FiioGet;
                 { readOne(c, s.id, r.command, r.replyData, r.decode, false, log) }
             } +
-                target.info.map { i ->
-                    { readOne(c, i.id, i.command, i.replyData, i.decode, true, log) }
-                }
+                    target.info.map { i ->
+                        { readOne(c, i.id, i.command, i.replyData, i.decode, true, log) }
+                    }
         jobs.mapIndexed { n, job ->
             if (n > 0) pause(gap)
             job()
@@ -372,9 +374,9 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
             val rx =
                 request(f.reportId, tx) { p ->
                     p.size >= 7 &&
-                        (p[0].toInt() and 255) == 0xBB &&
-                        (p[1].toInt() and 255) == 0x0B &&
-                        (p[4].toInt() and 255) == cmd
+                            (p[0].toInt() and 255) == 0xBB &&
+                            (p[1].toInt() and 255) == 0x0B &&
+                            (p[4].toInt() and 255) == cmd
                 }
             val logical = runCatching { c.settingReply(rx, cmd, replyData, crcOptional) }
             log("settings $id RX ${hex(logical.getOrDefault(rx))}")
@@ -509,6 +511,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
             r.extra?.let(log)
             return r
         }
+
         val original =
             readValue(c, s, log)
                 ?: return@guarded finish(WriteTestResult(id, null, to, null, null, "NO_REPLY"))
@@ -529,6 +532,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                 ?: when (s.kind) {
                     SettingKind.TOGGLE,
                     SettingKind.CHOICE -> (original + 1) % s.options.size
+
                     SettingKind.LEVEL -> if (original > s.min) original - 1 else original + 1
                     SettingKind.BALANCE ->
                         if (original == 0) -1 else original - Integer.signum(original)
@@ -576,17 +580,17 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                 val rx =
                     request(f.reportId, tx) { p ->
                         p.size >= 7 &&
-                            (p[0].toInt() and 255) == 0xBB &&
-                            (p[1].toInt() and 255) == 0x0B &&
-                            (p[4].toInt() and 255) == cmd
+                                (p[0].toInt() and 255) == 0xBB &&
+                                (p[1].toInt() and 255) == 0x0B &&
+                                (p[4].toInt() and 255) == cmd
                     }
                 val logical = runCatching { c.settingReply(rx, cmd, 0) }.getOrNull()
                 report.rx(layer, name, logical?.let(::hex) ?: "raw ${hex(rx)}")
                 if (
                     cmd == ProbePlan.FIIO_SLOT &&
-                        logical != null &&
-                        logical.size >= 7 &&
-                        (logical[5].toInt() and 255) >= 1
+                    logical != null &&
+                    logical.size >= 7 &&
+                    (logical[5].toInt() and 255) >= 1
                 ) {
                     val slot = logical[6].toInt() and 255
                     if (i == 0) {
@@ -596,9 +600,9 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                         report.note(
                             layer,
                             "slot after $slot" +
-                                if (slot == slotBefore) " (same)"
-                                else
-                                    " (differs from before $slotBefore; SnowSky slot registers go stale after queries)",
+                                    if (slot == slotBefore) " (same)"
+                                    else
+                                        " (differs from before $slotBefore; SnowSky slot registers go stale after queries)",
                         )
                 }
             } catch (e: java.io.IOException) {
@@ -674,17 +678,17 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
         val leavesOnSave = fiio.disconnectOnSave
         val readFrames =
             3 +
-                codec().padToDeviceCount(profile.bands).size +
-                (if (melody) 0 else 1) +
-                (if (fiio.userSlotNames) fiio.userSlots.size else 0)
+                    codec().padToDeviceCount(profile.bands).size +
+                    (if (melody) 0 else 1) +
+                    (if (fiio.userSlotNames) fiio.userSlots.size else 0)
         progress = onProgress
         stepsDone = 0
         stepsTotal =
             readFrames +
-                (2 + readFrames) +
-                (2 + codec().padToDeviceCount(profile.bands).size) +
-                1 +
-                (if (leavesOnSave) 0 else readFrames + (if (fiio.userSlotNames) 2 else 0))
+                    (2 + readFrames) +
+                    (2 + codec().padToDeviceCount(profile.bands).size) +
+                    1 +
+                    (if (leavesOnSave) 0 else readFrames + (if (fiio.userSlotNames) 2 else 0))
         onProgress?.invoke(0, stepsTotal)
         return try {
             when (val before = read()) {
@@ -878,7 +882,9 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                         )
                     val r = write(profile, explicitHold = true, targetSlot = sb.slot)
                     log(
-                        "reset restore: $label ${if (r.verified) "VERIFIED" else "NOT VERIFIED"}${r.reason?.let { ": $it" }.orEmpty()}"
+                        "reset restore: $label ${if (r.verified) "VERIFIED" else "NOT VERIFIED"}${
+                            r.reason?.let { ": $it" }.orEmpty()
+                        }"
                     )
                     lines +=
                         if (r.verified) "$label: restored" + (r.reason?.let { " ($it)" } ?: "")
@@ -895,7 +901,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
             }
             val byId = target.settings.associateBy { it.id }
             for ((id, value) in
-                backup.settings.entries.sortedBy { FiioReset.restoreRank(it.key) }) {
+            backup.settings.entries.sortedBy { FiioReset.restoreRank(it.key) }) {
                 val s = byId[id] ?: continue
                 val label = s.label
                 if (lost) {
@@ -916,6 +922,7 @@ class NativeSession(val target: DeviceTarget, private val port: NativePort) {
                             lines += "$label: NOT restored: the DAC reads ${o.read}, saved $value"
                             ok = false
                         }
+
                         SettingWriteOutcome.NoReply -> {
                             lines += "$label: NOT restored: no reply"
                             ok = false

@@ -219,7 +219,12 @@ object ProtocolMicro {
         val device = { d: Double -> !deviceFits(d, maxDb) }
         return if (hs == 0.0) "$head outside $PREAMP_MIN_DB..$maxDb dB range"
         else
-            "$head needs device preamp ${dbText(preampDb + hs, device)} dB (HIGH SHELF adjustment ${if (hs > 0) "+" else ""}${dbText(hs)} dB), outside $PREAMP_MIN_DB..$maxDb dB range"
+            "$head needs device preamp ${
+                dbText(
+                    preampDb + hs,
+                    device
+                )
+            } dB (HIGH SHELF adjustment ${if (hs > 0) "+" else ""}${dbText(hs)} dB), outside $PREAMP_MIN_DB..$maxDb dB range"
     }
 
     fun devicePreamp(
@@ -291,6 +296,7 @@ object ProtocolMicro {
                             (rows.getOrNull(slot) ?: slot) + 1,
                             active.getOrNull(slot)?.type ?: FilterType.PEAK,
                         )
+
                 else ->
                     issues +=
                         "Band ${slot + 1}: non-finite biquad coefficients; cannot send to ${caps.name}"
@@ -329,8 +335,8 @@ object ProtocolMicro {
 
     fun matches(plan: DevicePlan.Ready, regs: List<WalkPlay.Registers>, preampDb: Int): Boolean =
         regs.size == plan.bands.size &&
-            plan.preampDb == preampDb &&
-            plan.bands.indices.all { plan.bands[it].registers() == regs[it] }
+                plan.preampDb == preampDb &&
+                plan.bands.indices.all { plan.bands[it].registers() == regs[it] }
 
     fun autoRefusal(bands: List<Band>): String? {
         val needed =
@@ -356,7 +362,7 @@ object ProtocolMicro {
 
         val native =
             setOf(WalkPlay.TYPE_PK, WalkPlay.TYPE_LSQ) +
-                caps.types.filter { it.isPass }.map(WalkPlay::typeCode)
+                    caps.types.filter { it.isPass }.map(WalkPlay::typeCode)
         val lastUsed =
             maxOf(
                 0,
@@ -392,7 +398,7 @@ object ProtocolMicro {
         val candidate = plan(eq.bands, eq.preampDb, caps, maxDb)
         if (
             candidate is DevicePlan.Rejected &&
-                candidate.issues.all { SendBlocked.isBandRefusal(it) }
+            candidate.issues.all { SendBlocked.isBandRefusal(it) }
         ) {
 
             val writes =
@@ -405,13 +411,13 @@ object ProtocolMicro {
                 return DacImport.Ready(
                     eq,
                     candidate.issues.joinToString(" ") +
-                        " Sending it back stays blocked until you change the band.",
+                            " Sending it back stays blocked until you change the band.",
                 )
             }
         }
         if (
             candidate !is DevicePlan.Ready ||
-                !matches(candidate, bands.map { it.registers }, preampDb)
+            !matches(candidate, bands.map { it.registers }, preampDb)
         ) {
             val issue =
                 if (candidate is DevicePlan.Rejected) candidate.issues.joinToString("; ")

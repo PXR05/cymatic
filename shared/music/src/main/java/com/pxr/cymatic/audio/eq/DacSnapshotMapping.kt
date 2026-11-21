@@ -13,5 +13,6 @@ fun DacSnapshot.playerPreset(): EqPreset =
                 (result.eq.preampDb ?: 0.0).toFloat(),
                 result.eq.bands.playerBands(),
             )
+
         is DacImport.Rejected -> throw IOException(result.issues.joinToString("; "))
     }

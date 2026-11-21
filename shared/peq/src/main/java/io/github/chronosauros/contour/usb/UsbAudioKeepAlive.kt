@@ -20,10 +20,10 @@ class UsbAudioKeepAlive private constructor(private val track: AudioTrack) : Aut
             val out =
                 audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).firstOrNull {
                     (it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
-                        it.type == AudioDeviceInfo.TYPE_USB_HEADSET) &&
-                        device.productName?.let { name ->
-                            it.productName?.toString()?.contains(name, ignoreCase = true)
-                        } == true
+                            it.type == AudioDeviceInfo.TYPE_USB_HEADSET) &&
+                            device.productName?.let { name ->
+                                it.productName?.toString()?.contains(name, ignoreCase = true)
+                            } == true
                 }
             if (out == null) {
                 UsbLog.line("audio keep-alive: no USB output for ${device.productName}")

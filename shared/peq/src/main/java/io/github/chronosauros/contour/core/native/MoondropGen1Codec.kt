@@ -74,9 +74,9 @@ object MoondropGen1Codec {
 
     fun dword(payload: ByteArray, wire: Int): Int =
         at(payload, wire) or
-            (at(payload, wire + 1) shl 8) or
-            (at(payload, wire + 2) shl 16) or
-            (at(payload, wire + 3) shl 24)
+                (at(payload, wire + 1) shl 8) or
+                (at(payload, wire + 2) shl 16) or
+                (at(payload, wire + 3) shl 24)
 
     fun presetQuery(): Frame =
         Frame(Kind.READ_PRESET, payload(CMD_PRESET, FLAG_READ, CMD_PRESET), "read active preset")
@@ -170,7 +170,11 @@ object MoondropGen1Codec {
             }
             if (!b.freqHz.isFinite() || b.freqHz !in model.minFrequencyHz..model.maxFrequencyHz)
                 found +=
-                    "Band $n: freq ${num(b.freqHz)} Hz outside ${num(model.minFrequencyHz)}-${num(model.maxFrequencyHz)} Hz"
+                    "Band $n: freq ${num(b.freqHz)} Hz outside ${num(model.minFrequencyHz)}-${
+                        num(
+                            model.maxFrequencyHz
+                        )
+                    } Hz"
             if (!b.gainDb.isFinite() || b.gainDb !in model.minGainDb..model.maxGainDb)
                 found +=
                     "Band $n: gain ${num(b.gainDb)} dB outside ${num(model.minGainDb)}..${num(model.maxGainDb)} dB"
@@ -267,9 +271,9 @@ object MoondropGen1Codec {
 
     fun isBandReply(payload: ByteArray, n: Int): Boolean =
         isWholeReply(payload) &&
-            at(payload, 4) == CMD_BAND_READ &&
-            at(payload, 5) and 0x80 != 0 &&
-            dword(payload, 14) == n
+                at(payload, 4) == CMD_BAND_READ &&
+                at(payload, 5) and 0x80 != 0 &&
+                dword(payload, 14) == n
 
     fun parsePreset(payload: ByteArray): Int {
         require(isPresetReply(payload)) { "Not a Moondrop gen-1 preset reply" }
@@ -333,7 +337,12 @@ object MoondropGen1Codec {
     }
 
     private fun describe(m: Meta) =
-        "${TYPES[m.type]?.name ?: "type ${m.type}"} ${m.freqHz} Hz ${m.gainDb} dB Q ${"%.3f".format(java.util.Locale.ROOT, m.qRaw / 256.0)}"
+        "${TYPES[m.type]?.name ?: "type ${m.type}"} ${m.freqHz} Hz ${m.gainDb} dB Q ${
+            "%.3f".format(
+                java.util.Locale.ROOT,
+                m.qRaw / 256.0
+            )
+        }"
 
     fun plannedRequests(model: MoondropGen1Catalog.Model): Int =
         readQueries(model.bandCount).size + 1 + model.bandCount + model.bandCount * RATES.size + 1
@@ -347,13 +356,13 @@ object MoondropGen1Codec {
     fun requireSendable(payload: ByteArray) {
         require(
             payload.size == PAYLOAD_BYTES &&
-                at(payload, 1) == 0 &&
-                at(payload, 2) == 0x0D &&
-                at(payload, 3) == 0 &&
-                at(payload, 6) == 0 &&
-                at(payload, 7) == 0x23 &&
-                at(payload, 8) == 0x2D &&
-                at(payload, 9) == 0xB3
+                    at(payload, 1) == 0 &&
+                    at(payload, 2) == 0x0D &&
+                    at(payload, 3) == 0 &&
+                    at(payload, 6) == 0 &&
+                    at(payload, 7) == 0x23 &&
+                    at(payload, 8) == 0x2D &&
+                    at(payload, 9) == 0xB3
         ) {
             "Not a Moondrop gen-1 frame"
         }
@@ -362,24 +371,28 @@ object MoondropGen1Codec {
         when {
             cmd == CMD_PRESET && flag == FLAG_READ ->
                 require(dword(payload, 10) == CMD_PRESET) { "Preset read with another argument" }
+
             cmd == CMD_PRESET && flag == FLAG_WRITE ->
                 require(dword(payload, 10) == CMD_PRESET && dword(payload, 14) in 0..5) {
                     "Preset select out of range"
                 }
+
             cmd == CMD_BAND_READ && flag == FLAG_READ ->
                 require(dword(payload, 10) in 1..9) { "Band read out of range" }
+
             cmd == CMD_WRITE && flag == FLAG_WRITE -> {
                 val code = dword(payload, 10)
                 require(
                     code == COMMIT ||
-                        (code == 0 && dword(payload, 14) in 1..9) ||
-                        (RATES.any { it.first == code } &&
-                            dword(payload, 14) in 1..9 &&
-                            dword(payload, 18) == COEFFICIENT_MARKER)
+                            (code == 0 && dword(payload, 14) in 1..9) ||
+                            (RATES.any { it.first == code } &&
+                                    dword(payload, 14) in 1..9 &&
+                                    dword(payload, 18) == COEFFICIENT_MARKER)
                 ) {
                     "Write code $code is not a band, a coefficient set or the commit"
                 }
             }
+
             else ->
                 throw IllegalArgumentException(
                     "Command 0x%02x flag %d is not sent to a gen-1 cable".format(cmd, flag)

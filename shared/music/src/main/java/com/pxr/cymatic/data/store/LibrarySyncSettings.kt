@@ -245,9 +245,9 @@ object LibrarySyncSettings {
     private fun parseLongMap(jsonStr: String?): Map<String, Long> {
         if (jsonStr.isNullOrBlank()) return emptyMap()
         return runCatching {
-                val json = org.json.JSONObject(jsonStr)
-                json.keys().asSequence().associateWith(json::getLong)
-            }
+            val json = org.json.JSONObject(jsonStr)
+            json.keys().asSequence().associateWith(json::getLong)
+        }
             .getOrDefault(emptyMap())
     }
 }

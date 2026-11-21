@@ -5,15 +5,6 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.util.Log
 import com.pxr.cymatic.data.store.LibrarySyncSettings
-import java.io.EOFException
-import java.io.IOException
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -26,6 +17,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.io.EOFException
+import java.io.IOException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.resume
 
 data class SyncSummary(
     val downloaded: Int,
@@ -161,7 +161,7 @@ object LibrarySyncManager {
         val pins = OfflineSelectionStore.read(context, source.id)
         val selectedIds =
             (if (current) LibrarySyncSettings.getSyncSelectedPlaylists() else emptySet()) +
-                pins.playlists
+                    pins.playlists
         val playlistsToSync =
             when (mode) {
                 SyncContentMode.NONE -> remotePlaylists.filter { it.id in pins.playlists }
@@ -223,7 +223,7 @@ object LibrarySyncManager {
             SyncManifestStore(
                 context,
                 (if (source.provider == "audiostream") "" else "${source.provider}\n") +
-                    "${source.address}\n${source.account}\n$directory",
+                        "${source.address}\n${source.account}\n$directory",
             )
         val folderManifest = readManifest(tree, source.id)
         val previous = manifestStore.read() ?: folderManifest
@@ -490,8 +490,8 @@ object LibrarySyncManager {
             val unique =
                 if (dot > target.relativePath.lastIndexOf('/')) {
                     target.relativePath.substring(0, dot) +
-                        suffix +
-                        target.relativePath.substring(dot)
+                            suffix +
+                            target.relativePath.substring(dot)
                 } else {
                     target.relativePath + suffix
                 }
@@ -546,9 +546,8 @@ object LibrarySyncManager {
                     suspendCancellableCoroutine<Map<String, Uri>> { continuation ->
                         val scanned = ConcurrentHashMap<String, Uri>()
                         val remaining = AtomicInteger(batch.size)
-                        MediaScannerConnection.scanFile(context, batch.toTypedArray(), null) {
-                            path,
-                            uri ->
+                        MediaScannerConnection.scanFile(context, batch.toTypedArray(), null) { path,
+                                                                                               uri ->
                             if (uri != null) scanned[path] = uri
                             if (remaining.decrementAndGet() == 0 && continuation.isActive)
                                 continuation.resume(scanned.toMap())

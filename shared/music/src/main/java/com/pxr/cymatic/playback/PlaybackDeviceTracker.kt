@@ -32,34 +32,34 @@ internal class PlaybackDeviceTracker(
 
         audioDeviceCallback =
             object : AudioDeviceCallback() {
-                    override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
-                        updateActiveDevice()
-                        val hasBluetooth = addedDevices.any { device ->
-                            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+                    updateActiveDevice()
+                    val hasBluetooth = addedDevices.any { device ->
+                        device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
                                 device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
                                 device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
-                        }
-                        if (hasBluetooth) {
-                            serviceScope.launch {
-                                if (
-                                    SettingsStore.currentResumeOnBluetoothReconnect &&
-                                        !UsbPlaybackState.routeToUsb
-                                ) {
-                                    delay(500L)
-                                    withContext(Dispatchers.Main) {
-                                        if (player.mediaItemCount > 0 && !player.isPlaying) {
-                                            player.play()
-                                        }
+                    }
+                    if (hasBluetooth) {
+                        serviceScope.launch {
+                            if (
+                                SettingsStore.currentResumeOnBluetoothReconnect &&
+                                !UsbPlaybackState.routeToUsb
+                            ) {
+                                delay(500L)
+                                withContext(Dispatchers.Main) {
+                                    if (player.mediaItemCount > 0 && !player.isPlaying) {
+                                        player.play()
                                     }
                                 }
                             }
                         }
                     }
-
-                    override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
-                        updateActiveDevice()
-                    }
                 }
+
+                override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+                    updateActiveDevice()
+                }
+            }
                 .also { audioManager.registerAudioDeviceCallback(it, null) }
 
         updateActiveDevice()

@@ -47,8 +47,9 @@ private constructor(
                         require(n >= 9)
                         matching =
                             (raw[i + 2].toInt() and 255) == intf.id &&
-                                (raw[i + 3].toInt() and 255) == intf.alternateSetting
+                                    (raw[i + 3].toInt() and 255) == intf.alternateSetting
                     }
+
                     0x21 ->
                         if (matching) {
                             require(n >= 6)
@@ -59,7 +60,7 @@ private constructor(
                                 if (raw[o].toInt() and 255 == 0x22)
                                     lengths +=
                                         (raw[o + 1].toInt() and 255) or
-                                            ((raw[o + 2].toInt() and 255) shl 8)
+                                                ((raw[o + 2].toInt() and 255) shl 8)
                             }
                         }
                 }
@@ -105,13 +106,13 @@ private constructor(
                 if (p.experimental) {
                     val suitable = hids.filter { h ->
                         h.alternateSetting == 0 &&
-                            (0 until h.endpointCount).any { i ->
-                                h.getEndpoint(i).let { ep ->
-                                    ep.type == UsbConstants.USB_ENDPOINT_XFER_INT &&
-                                        ep.direction == UsbConstants.USB_DIR_IN &&
-                                        ep.maxPacketSize >= WalkPlay.REPORT_SIZE
+                                (0 until h.endpointCount).any { i ->
+                                    h.getEndpoint(i).let { ep ->
+                                        ep.type == UsbConstants.USB_ENDPOINT_XFER_INT &&
+                                                ep.direction == UsbConstants.USB_DIR_IN &&
+                                                ep.maxPacketSize >= WalkPlay.REPORT_SIZE
+                                    }
                                 }
-                            }
                     }
                     suitable.singleOrNull()
                         ?: throw IOException(
@@ -167,6 +168,7 @@ private constructor(
                 val output: UsbEndpoint?,
                 val shape: NativeHidReports.Shape,
             )
+
             val connection =
                 manager.openDevice(device) ?: throw IOException("openDevice failed (permission?)")
             try {
@@ -218,17 +220,23 @@ private constructor(
                                 val inSize = shape.rawSize(reportId, NativeHidReports.Kind.INPUT)
                                 val input =
                                     eps.filter {
-                                            it.direction == UsbConstants.USB_DIR_IN &&
+                                        it.direction == UsbConstants.USB_DIR_IN &&
                                                 it.maxPacketSize >= inSize
-                                        }
+                                    }
                                         .singleOrNull() ?: error("No matching native interrupt IN")
 
                                 val out = eps.firstOrNull {
                                     it.direction == UsbConstants.USB_DIR_OUT &&
-                                        it.maxPacketSize >= outSize
+                                            it.maxPacketSize >= outSize
                                 }
                                 UsbLog.line(
-                                    "HID if ${h.id} native output via ${if (out != null) "interrupt OUT 0x${Integer.toHexString(out.address)}" else "SET_REPORT control"}"
+                                    "HID if ${h.id} native output via ${
+                                        if (out != null) "interrupt OUT 0x${
+                                            Integer.toHexString(
+                                                out.address
+                                            )
+                                        }" else "SET_REPORT control"
+                                    }"
                                 )
                                 Target(h, input, out, shape)
                             }
@@ -249,15 +257,15 @@ private constructor(
                 if (!connection.claimInterface(target.intf, true))
                     throw IOException("claimInterface failed")
                 return HidTransport(
-                        connection,
-                        target.intf,
-                        target.input,
-                        target.output,
-                        target.shape,
-                        reportId,
-                        guard,
-                        controlReplyWaitMs = gen1?.replyWaitMs,
-                    )
+                    connection,
+                    target.intf,
+                    target.input,
+                    target.output,
+                    target.shape,
+                    reportId,
+                    guard,
+                    controlReplyWaitMs = gen1?.replyWaitMs,
+                )
                     .also { it.drain() }
             } catch (e: Exception) {
                 connection.close()

@@ -5,8 +5,8 @@ import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.data.model.FilterType
 import io.github.chronosauros.contour.core.Band
 import io.github.chronosauros.contour.core.DeviceTarget
-import io.github.chronosauros.contour.core.FilterType as DacFilterType
 import io.github.chronosauros.contour.core.Profile
+import io.github.chronosauros.contour.core.FilterType as DacFilterType
 
 fun FilterType.dacType(): DacFilterType =
     when (this) {
@@ -64,9 +64,9 @@ fun DeviceTarget.draftIssues(preset: EqPreset): List<String> = runCatching {
             profile.bands.forEachIndexed { i, b ->
                 if (
                     b.enabled &&
-                        b.type == DacFilterType.HIGH_SHELF &&
-                        kotlin.math.abs(b.gainDb / step - kotlin.math.round(b.gainDb / step)) >
-                            0.00001
+                    b.type == DacFilterType.HIGH_SHELF &&
+                    kotlin.math.abs(b.gainDb / step - kotlin.math.round(b.gainDb / step)) >
+                    0.00001
                 ) {
                     add("Band ${i + 1}: high-shelf gain must use $step dB steps")
                 }

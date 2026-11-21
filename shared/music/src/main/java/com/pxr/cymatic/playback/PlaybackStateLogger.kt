@@ -13,13 +13,13 @@ internal class PlaybackStateLogger(private val player: Player) {
     fun log(message: String, warn: Boolean = false) {
         val stateMessage =
             "$message | " +
-                "state=${playbackStateName(player.playbackState)}, " +
-                "playWhenReady=${player.playWhenReady}, " +
-                "isPlaying=${player.isPlaying}, " +
-                "suppression=${suppressionReasonName(player.playbackSuppressionReason)}, " +
-                "position=${player.currentPosition}, " +
-                "buffered=${player.bufferedPosition}, " +
-                "mediaId=${player.currentMediaItem?.mediaId}"
+                    "state=${playbackStateName(player.playbackState)}, " +
+                    "playWhenReady=${player.playWhenReady}, " +
+                    "isPlaying=${player.isPlaying}, " +
+                    "suppression=${suppressionReasonName(player.playbackSuppressionReason)}, " +
+                    "position=${player.currentPosition}, " +
+                    "buffered=${player.bufferedPosition}, " +
+                    "mediaId=${player.currentMediaItem?.mediaId}"
         if (warn) {
             Log.w(TAG, stateMessage)
         }

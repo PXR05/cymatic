@@ -68,6 +68,7 @@ object Dsp {
                 a1 = -2 * c
                 a2 = 1 - alpha / a
             }
+
             FilterType.LOW_SHELF -> {
                 val k = 2 * sqrt(a) * shelfAlpha
                 b0 = a * ((a + 1) - (a - 1) * c + k)
@@ -77,6 +78,7 @@ object Dsp {
                 a1 = -2 * ((a - 1) + (a + 1) * c)
                 a2 = (a + 1) + (a - 1) * c - k
             }
+
             FilterType.HIGH_SHELF -> {
                 val k = 2 * sqrt(a) * shelfAlpha
                 b0 = a * ((a + 1) + (a - 1) * c + k)
@@ -86,6 +88,7 @@ object Dsp {
                 a1 = 2 * ((a - 1) - (a + 1) * c)
                 a2 = (a + 1) - (a - 1) * c - k
             }
+
             FilterType.LOW_PASS -> {
                 b0 = (1 - c) / 2
                 b1 = 1 - c
@@ -94,6 +97,7 @@ object Dsp {
                 a1 = -2 * c
                 a2 = 1 - alpha
             }
+
             FilterType.HIGH_PASS -> {
                 b0 = (1 + c) / 2
                 b1 = -(1 + c)
@@ -124,10 +128,10 @@ object Dsp {
         val result = Biquad(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
         require(
             result.b0.isFinite() &&
-                result.b1.isFinite() &&
-                result.b2.isFinite() &&
-                result.a1.isFinite() &&
-                result.a2.isFinite()
+                    result.b1.isFinite() &&
+                    result.b2.isFinite() &&
+                    result.a1.isFinite() &&
+                    result.a2.isFinite()
         ) {
             "Band has no finite response"
         }
@@ -199,5 +203,6 @@ object Preamp {
     private class Answer(val bands: List<Band>, val db: Int)
 
     private const val KEPT = 4
-    @Volatile private var answers: List<Answer> = emptyList()
+    @Volatile
+    private var answers: List<Answer> = emptyList()
 }

@@ -29,10 +29,12 @@ object DacWrite {
                 require(v in s.options.indices) {
                     "${s.label}: $v is not an option (0..${s.options.lastIndex})"
                 }
+
             SettingKind.LEVEL ->
                 require(v in s.min..hardMax(s)) {
                     "${s.label}: $v is outside ${s.min}..${hardMax(s)}"
                 }
+
             SettingKind.BALANCE ->
                 require(v in -s.max..s.max) { "${s.label}: $v is outside -${s.max}..${s.max}" }
         }

@@ -22,10 +22,10 @@ internal data class UsbIdentity(
 ) {
     fun matches(vendorId: Int, productId: Int, productName: String?): Boolean =
         this.vendorId == vendorId &&
-            this.productId == productId &&
-            (!matchByName ||
-                (productName != null &&
-                    (productName == this.productName || productName in nameAliases)))
+                this.productId == productId &&
+                (!matchByName ||
+                        (productName != null &&
+                                (productName == this.productName || productName in nameAliases)))
 }
 
 internal data class FlatBand(val freqHz: Int, val q: Double)

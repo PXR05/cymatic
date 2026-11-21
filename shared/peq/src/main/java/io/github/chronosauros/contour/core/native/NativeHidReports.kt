@@ -23,7 +23,7 @@ object NativeHidReports {
             val frames = MoondropCodec.readQueries(model)
             require(
                 payloadSize(model.reportId, Kind.OUTPUT) >=
-                    frames.maxOf { it.minimumDescriptorOutputPayloadBytes }
+                        frames.maxOf { it.minimumDescriptorOutputPayloadBytes }
             ) {
                 "Incomplete Moondrop Output descriptor"
             }
@@ -86,8 +86,9 @@ object NativeHidReports {
             DeviceTarget.Family.KT_MICRO -> 1 + KtMicroCodec.PAYLOAD_BYTES
             DeviceTarget.Family.MOONDROP ->
                 1 +
-                    if (kind == Kind.INPUT) MoondropCodec.MINIMUM_INPUT_PAYLOAD_BYTES
-                    else MoondropCodec.BAND_PAYLOAD_BYTES
+                        if (kind == Kind.INPUT) MoondropCodec.MINIMUM_INPUT_PAYLOAD_BYTES
+                        else MoondropCodec.BAND_PAYLOAD_BYTES
+
             DeviceTarget.Family.WALKPLAY_READ_ONLY -> WalkPlay.REPORT_SIZE
             DeviceTarget.Family.MOONDROP_GEN1 -> MoondropGen1Catalog.REPORT_BYTES
             DeviceTarget.Family.WALKPLAY ->
@@ -158,6 +159,7 @@ object NativeHidReports {
     ): Scan {
         fun pageIsVendor(page: Int) = page in 0xFF00..0xFFFF || consumerPage && page == 0x0C
         data class Global(val size: Int = 0, val count: Int = 0, val id: Int = 0, val page: Int = 0)
+
         var g = Global()
         val stack = ArrayList<Global>()
         val vendorStack = ArrayList<Boolean>()
@@ -184,21 +186,24 @@ object NativeHidReports {
                     require(value in 1..255)
                     g = g.copy(id = value)
                 }
+
                 0xA4 -> stack.add(g)
                 0xB4 -> {
                     require(stack.isNotEmpty())
                     g = stack.removeAt(stack.lastIndex)
                 }
+
                 0x08 -> {
                     usages++
                     usage = if (n <= 2) value else -1
                 }
+
                 0xA0 -> {
                     ownerStack.add(ownerStack.firstOrNull() ?: ++nextOwner)
                     vendorStack.add(
                         pageIsVendor(g.page) ||
-                            vendorStack.lastOrNull() == true ||
-                            undefinedDesktop &&
+                                vendorStack.lastOrNull() == true ||
+                                undefinedDesktop &&
                                 vendorStack.isEmpty() &&
                                 value == 1 &&
                                 g.page == 0x01 &&
@@ -206,11 +211,13 @@ object NativeHidReports {
                                 usage == 0
                     )
                 }
+
                 0xC0 -> {
                     require(ownerStack.isNotEmpty())
                     ownerStack.removeAt(ownerStack.lastIndex)
                     vendorStack.removeAt(vendorStack.lastIndex)
                 }
+
                 0x80,
                 0x90,
                 0xB0 -> {

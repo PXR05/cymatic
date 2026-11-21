@@ -3,7 +3,6 @@ package com.pxr.cymatic.data.store
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryFilter
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 object LibraryFilterStore {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

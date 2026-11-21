@@ -127,8 +127,8 @@ object MoondropCodec {
 
     fun readQueries(model: MoondropCatalog.Model): List<Frame> =
         listOf(slotQuery()) +
-            (0 until model.bandCount).map { bandQuery(it) } +
-            listOf(globalGainQuery(), slotQuery())
+                (0 until model.bandCount).map { bandQuery(it) } +
+                listOf(globalGainQuery(), slotQuery())
 
     private fun correlated(
         reply: Reply,
@@ -185,10 +185,10 @@ object MoondropCodec {
         val p = correlated(reply, deviceKey, inputPayloadBytes, 36, CMD_EQ_UPDATE)
         require(
             u(p[2]) == 24 &&
-                p[3] == 0.toByte() &&
-                u(p[4]) == index &&
-                p[5] == 0.toByte() &&
-                p[6] == 0.toByte()
+                    p[3] == 0.toByte() &&
+                    u(p[4]) == index &&
+                    p[5] == 0.toByte() &&
+                    p[6] == 0.toByte()
         ) {
             "Native header/index echo missing or out of order"
         }
@@ -241,11 +241,11 @@ object MoondropCodec {
             queries.zip(replies).map { (frame, reply) ->
                 RegisterValue(frame.kind, frame.index, reply.payload.map { u(it) })
             } +
-                listOfNotNull(
-                    preGain?.let {
-                        RegisterValue(Kind.PRE_GAIN, null, it.payload.map { b -> u(b) })
-                    }
-                )
+                    listOfNotNull(
+                        preGain?.let {
+                            RegisterValue(Kind.PRE_GAIN, null, it.payload.map { b -> u(b) })
+                        }
+                    )
         return Snapshot(model, deviceKey, bands, registers, slot, global, pre)
     }
 
@@ -265,9 +265,9 @@ object MoondropCodec {
         init {
             require(
                 index in 0..7 &&
-                    frequencyHz in 1..65535 &&
-                    qQ8 in 1..32767 &&
-                    gainQ8 in Short.MIN_VALUE..Short.MAX_VALUE
+                        frequencyHz in 1..65535 &&
+                        qQ8 in 1..32767 &&
+                        gainQ8 in Short.MIN_VALUE..Short.MAX_VALUE
             )
             require(nativeType in MoondropCatalog.TYPES) {
                 "Native type $nativeType is not one the manufacturer's tool writes"
@@ -325,7 +325,7 @@ object MoondropCodec {
                 "${model.productName} has ${model.bandCount} bands; ${bands.size} given, no truncation"
         if (
             preGainDb != null &&
-                !(preGainDb.isFinite() && preGainDb in model.preGainMinDb..model.preGainMaxDb)
+            !(preGainDb.isFinite() && preGainDb in model.preGainMinDb..model.preGainMaxDb)
         )
             issues +=
                 "Pre-gain $preGainDb dB outside ${model.preGainMinDb}..${model.preGainMaxDb} dB"
@@ -340,13 +340,13 @@ object MoondropCodec {
                         issues += "Band $n: ${b.type} is not offered for ${model.productName}"
                     if (
                         !(b.freqHz.isFinite() &&
-                            b.freqHz in model.minFrequencyHz..model.maxFrequencyHz)
+                                b.freqHz in model.minFrequencyHz..model.maxFrequencyHz)
                     )
                         issues +=
                             "Band $n: freq ${b.freqHz} Hz outside ${model.minFrequencyHz}-${model.maxFrequencyHz} Hz"
                     if (
                         !pass &&
-                            !(b.gainDb.isFinite() && b.gainDb in model.minGainDb..model.maxGainDb)
+                        !(b.gainDb.isFinite() && b.gainDb in model.minGainDb..model.maxGainDb)
                     )
                         issues +=
                             "Band $n: gain ${b.gainDb} dB outside ${model.minGainDb}..${model.maxGainDb} dB"
@@ -383,6 +383,7 @@ object MoondropCodec {
                     else (1 + c) / 2 to -(1 + c)
                 pack(doubleArrayOf(b0 / a0, b1 / a0, b0 / a0, 2 * c / a0, -(1 - alpha) / a0))
             }
+
             else -> WalkPlay.computeIir(freq, gainDb, q, nativeCode(type))
         }
 
@@ -410,17 +411,17 @@ object MoondropCodec {
         val q = w.qQ8 and 0xFFFF
         val g = w.gainQ8 and 0xFFFF
         intArrayOf(
-                f and 255,
-                f shr 8,
-                q and 255,
-                q shr 8,
-                g and 255,
-                g shr 8,
-                w.nativeType,
-                0,
-                bank,
-                0,
-            )
+            f and 255,
+            f shr 8,
+            q and 255,
+            q shr 8,
+            g and 255,
+            g shr 8,
+            w.nativeType,
+            0,
+            bank,
+            0,
+        )
             .forEachIndexed { i, v -> p[27 + i] = v.toByte() }
         return p
     }
@@ -448,8 +449,8 @@ object MoondropCodec {
                 "enable all PEQ (EQ_COEFF, index byte $index)",
             )
         ) +
-            if (persist) listOf(WriteStep(savePayload(), DELAY_FLASH_MS, "save EQ to flash"))
-            else emptyList()
+                if (persist) listOf(WriteStep(savePayload(), DELAY_FLASH_MS, "save EQ to flash"))
+                else emptyList()
 
     fun preGainPayload(model: MoondropCatalog.Model, db: Double): ByteArray {
         require(db.isFinite() && db in model.preGainMinDb..model.preGainMaxDb) {
@@ -528,8 +529,14 @@ object MoondropCodec {
 
     fun selectSteps(index: Int, persist: Boolean): List<WriteStep> =
         listOf(WriteStep(selectPayload(index), DELAY_EQ_INDEX_MS, "select EQ index $index")) +
-            if (persist) listOf(WriteStep(savePayload(), DELAY_FLASH_MS, "save EQ index to flash"))
-            else emptyList()
+                if (persist) listOf(
+                    WriteStep(
+                        savePayload(),
+                        DELAY_FLASH_MS,
+                        "save EQ index to flash"
+                    )
+                )
+                else emptyList()
 
     enum class GainRegister(val command: Int, val what: String) {
         PRE(CMD_PRE_GAIN, "pre-gain"),
@@ -599,7 +606,13 @@ object MoondropCodec {
         if (op == READ) {
             require(
                 cmd in
-                    setOf(CMD_EQ_ACTIVE, CMD_EQ_UPDATE, CMD_GLOBAL_GAIN, CMD_PRE_GAIN, CMD_VERSION)
+                        setOf(
+                            CMD_EQ_ACTIVE,
+                            CMD_EQ_UPDATE,
+                            CMD_GLOBAL_GAIN,
+                            CMD_PRE_GAIN,
+                            CMD_VERSION
+                        )
             ) {
                 "Read 0x%02x is not one the app sends".format(cmd)
             }
@@ -616,19 +629,23 @@ object MoondropCodec {
                 require(payload.size == BAND_PAYLOAD_BYTES && u(payload[2]) == 0x21) {
                     "An unknown band write"
                 }
+
             CMD_EQ_COEFF ->
                 require(
                     payload.contentEquals(commitPayload()) ||
-                        (enableIndex != null &&
-                            payload.contentEquals(enableAllPeqPayload(enableIndex)))
+                            (enableIndex != null &&
+                                    payload.contentEquals(enableAllPeqPayload(enableIndex)))
                 ) {
                     "An unknown commit"
                 }
+
             CMD_PRE_GAIN,
             CMD_GLOBAL_GAIN ->
                 require(payload.size == 5 && u(payload[2]) == 2) { "An unknown gain write" }
+
             CMD_EQ_ACTIVE ->
                 require(payload.size == 4 && u(payload[2]) == 1) { "An unknown index write" }
+
             CMD_EQ_SAVE -> require(payload.contentEquals(savePayload())) { "An unknown save" }
             else ->
                 throw IllegalArgumentException("Write 0x%02x is not one the app sends".format(cmd))

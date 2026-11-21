@@ -339,17 +339,17 @@ object WalkPlay {
         intArrayOf(WRITE, CMD_PEQ, lenByte, 0x00, w.index, 0x00, 0x00).copyInto(payload)
         biquad.forEachIndexed { i, b -> payload[7 + i] = b.toInt() and 0xFF }
         intArrayOf(
-                f and 0xFF,
-                f shr 8,
-                q and 0xFF,
-                q shr 8,
-                g and 0xFF,
-                g shr 8,
-                w.typeCode,
-                0x00,
-                slot,
-                END,
-            )
+            f and 0xFF,
+            f shr 8,
+            q and 0xFF,
+            q shr 8,
+            g and 0xFF,
+            g shr 8,
+            w.typeCode,
+            0x00,
+            slot,
+            END,
+        )
             .copyInto(payload, 27)
         return report(*payload)
     }
@@ -370,7 +370,7 @@ object WalkPlay {
 
     fun temporaryBandSequence(bands: List<BandWrite>, slot: Int): List<Step> =
         bands.map { Step(bandWriteReport(it, slot), 20) } +
-            Step(report(WRITE, 0x0A, 0x04, 0x00, 0x00, 0xFF, 0xFF, END), 0)
+                Step(report(WRITE, 0x0A, 0x04, 0x00, 0x00, 0xFF, 0xFF, END), 0)
 
     fun writeSequence(
         bands: List<BandWrite>,
@@ -395,10 +395,10 @@ object WalkPlay {
 
     fun trnWriteSequence(bands: List<BandWrite>, preampDb: Double, slot: Int): List<Step> =
         bands.map { Step(bandWriteReport(it, slot, TRN_BAND_LEN), 25) } +
-            listOf(
-                Step(report(WRITE, 0x0A, 0x04, 0x00, 0x00, 0xFF, 0xFF), 50),
-                Step(preampWriteReport(preampDb), 50),
-                Step(report(WRITE, 0x01, END), 200),
-                Step(report(WRITE, 0x04, END), 200),
-            )
+                listOf(
+                    Step(report(WRITE, 0x0A, 0x04, 0x00, 0x00, 0xFF, 0xFF), 50),
+                    Step(preampWriteReport(preampDb), 50),
+                    Step(report(WRITE, 0x01, END), 200),
+                    Step(report(WRITE, 0x04, END), 200),
+                )
 }

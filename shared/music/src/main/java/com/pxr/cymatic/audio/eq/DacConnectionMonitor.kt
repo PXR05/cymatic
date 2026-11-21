@@ -40,7 +40,7 @@ class DacConnectionMonitor(
                 } else {
                     if (
                         intent.action == UsbManager.ACTION_USB_DEVICE_DETACHED &&
-                            device?.deviceId == requestedDevice
+                        device?.deviceId == requestedDevice
                     ) {
                         clearRequest()
                     }

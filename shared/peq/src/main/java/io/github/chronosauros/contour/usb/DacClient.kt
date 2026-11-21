@@ -47,12 +47,12 @@ import io.github.chronosauros.contour.core.native.WalkPlaySession
 import io.github.chronosauros.contour.core.native.WalkPlaySettings
 import io.github.chronosauros.contour.core.native.WalkPlaySnapshot
 import io.github.chronosauros.contour.core.native.WriteTestResult
-import java.io.IOException
-import java.util.concurrent.Executors
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.util.concurrent.Executors
 
 data class DacSnapshot(
     val firmware: String,
@@ -319,7 +319,11 @@ class DacClient(
             val start = SystemClock.elapsedRealtime()
             val session = KtMicroSession(model, WalkPlayPort(t, device))
             UsbLog.line(
-                "write: ${target.caps.name} Global Gain -> step $step (${KtMicroCodec.globalGainDb(step)} dB)"
+                "write: ${target.caps.name} Global Gain -> step $step (${
+                    KtMicroCodec.globalGainDb(
+                        step
+                    )
+                } dB)"
             )
             session.writeGlobalGain(step, explicitHold = true)
             savePending(session, start)
@@ -342,7 +346,9 @@ class DacClient(
             val back = requireNotNull(r.readback)
             val ms = SystemClock.elapsedRealtime() - start
             UsbLog.line(
-                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${r.reason?.let { ", $it" }.orEmpty()}, $ms ms"
+                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${
+                    r.reason?.let { ", $it" }.orEmpty()
+                }, $ms ms"
             )
             WriteResult(
                 r.verified,
@@ -502,9 +508,9 @@ class DacClient(
                 val busy =
                     e.message.orEmpty().let {
                         "claimInterface" in it ||
-                            "No unambiguous" in it ||
-                            "openDevice failed" in it ||
-                            "no HID interface" in it
+                                "No unambiguous" in it ||
+                                "openDevice failed" in it ||
+                                "no HID interface" in it
                     }
                 report.stopped(
                     if (busy) "${ProbePlan.deviceToken(target.caps.name)} hid busy: ${e.message}"
@@ -713,6 +719,7 @@ class DacClient(
             when {
                 dawn != null ->
                     FamilyState.Dawn(dawn, MoondropSession(dawn, port).read(withPreGain = true))
+
                 gen1 != null -> FamilyState.Dusk(gen1, MoondropGen1Session(gen1, port).read())
                 allegro != null ->
                     KtMicroSession(allegro, port).let { s ->
@@ -722,6 +729,7 @@ class DacClient(
                             if (allegro.globalGainUserSteps != null) s.readGlobalGain() else null,
                         )
                     }
+
                 else -> FamilyDevices.readEchoA(port)
             }
         t.checkSession()
@@ -761,9 +769,11 @@ class DacClient(
             val previous = session.lastBefore?.activeIndex?.takeIf { it != back.activeIndex }
             val ms = SystemClock.elapsedRealtime() - start
             UsbLog.line(
-                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${r.reason?.let { ", $it" }.orEmpty()}, $ms ms" +
-                    (previous?.let { "; the DAC was on EQ index $it" } ?: "") +
-                    "; EQ index after: ${back.activeIndex}"
+                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${
+                    r.reason?.let { ", $it" }.orEmpty()
+                }, $ms ms" +
+                        (previous?.let { "; the DAC was on EQ index $it" } ?: "") +
+                        "; EQ index after: ${back.activeIndex}"
             )
             WriteResult(
                 r.verified,
@@ -805,7 +815,9 @@ class DacClient(
             val back = requireNotNull(r.readback)
             val ms = SystemClock.elapsedRealtime() - start
             UsbLog.line(
-                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${r.reason?.let { ", $it" }.orEmpty()}, $ms ms"
+                "write: ${if (r.verified) "VERIFIED" else "MISMATCH"}${
+                    r.reason?.let { ", $it" }.orEmpty()
+                }, $ms ms"
             )
             WriteResult(
                 r.verified,
@@ -924,8 +936,8 @@ class DacClient(
             val session = KtMicroSession(model, WalkPlayPort(t, device) { steps.tick() })
             UsbLog.line(
                 "write: ${target.caps.name}: ${model.bandCount} bands, " +
-                    if (model.sendTurnsEqOn) "EQ switch turned on if it is off"
-                    else "EQ switch left as found"
+                        if (model.sendTurnsEqOn) "EQ switch turned on if it is off"
+                        else "EQ switch left as found"
             )
             session.write(
                 profile.copy(preampDb = 0.0),
@@ -935,13 +947,13 @@ class DacClient(
             if (model.sendTurnsEqOn)
                 UsbLog.line(
                     "write: EQ switch " +
-                        if (
-                            session.lastPlan?.frames?.any {
-                                (it.payload[0].toInt() and 255) == KtMicroCodec.EQ_ENABLE_REGISTER
-                            } == true
-                        )
-                            "was off: turned on"
-                        else "was already on"
+                            if (
+                                session.lastPlan?.frames?.any {
+                                    (it.payload[0].toInt() and 255) == KtMicroCodec.EQ_ENABLE_REGISTER
+                                } == true
+                            )
+                                "was off: turned on"
+                            else "was already on"
                 )
             savePending(session, start)
         }

@@ -32,9 +32,9 @@ object WalkPlayReset {
     val ERASE_NOTE: String
         get() =
             "A factory reset puts the EQ back to the manufacturer's flat bands and 0 dB, and may erase more" +
-                (if (Proven.channel == BuildChannel.PERF) " (two of its steps are not understood). "
-                else ". ") +
-                "Contour saves a copy of all bands, the preamp and every setting it can read first and offers to write them back afterwards."
+                    (if (Proven.channel == BuildChannel.PERF) " (two of its steps are not understood). "
+                    else ". ") +
+                    "Contour saves a copy of all bands, the preamp and every setting it can read first and offers to write them back afterwards."
 
     internal fun pureBands(): List<ByteArray> = PURE_HZ.mapIndexed { i, hz ->
         WalkPlay.bandWriteReport(
@@ -95,7 +95,14 @@ object WalkPlayReset {
             val q = after.settings[id]
             if (p != q)
                 out +=
-                    "${labelOf(id)}: ${p?.let { valueOf(id, it) } ?: "no reply"} -> ${q?.let { valueOf(id, it) } ?: "no reply"}"
+                    "${labelOf(id)}: ${
+                        p?.let {
+                            valueOf(
+                                id,
+                                it
+                            )
+                        } ?: "no reply"
+                    } -> ${q?.let { valueOf(id, it) } ?: "no reply"}"
         }
         return out
     }
@@ -134,7 +141,7 @@ data class WalkPlayResetBackup(
         val out = ArrayList<String>()
         if (
             bands.size != profile.bands ||
-                bands.map { it.index }.sorted() != (0 until profile.bands).toList()
+            bands.map { it.index }.sorted() != (0 until profile.bands).toList()
         )
             out += "Expected all ${profile.bands} bands, the backup holds ${bands.size}"
         if (preampDb !in Byte.MIN_VALUE..Byte.MAX_VALUE)
@@ -145,7 +152,7 @@ data class WalkPlayResetBackup(
         val len =
             if (profile.protocol == DeviceProtocol.TRN) WalkPlay.TRN_BAND_LEN else WalkPlay.BAND_LEN
         for (w in
-            runCatching { writes(profile.caps.coefficientRateHz) }.getOrDefault(emptyList())) {
+        runCatching { writes(profile.caps.coefficientRateHz) }.getOrDefault(emptyList())) {
             val n = w.index + 1
             if (w.typeCode !in WalkPlay.TYPE_LSQ..WalkPlay.TYPE_HP) {
                 out += "Band $n: type ${w.typeCode} cannot be written back"
@@ -194,14 +201,17 @@ data class WalkPlayResetBackup(
                     "profile" ->
                         profile =
                             p.getOrNull(1) ?: throw IllegalArgumentException("Bad line \"$line\"")
+
                     "taken" ->
                         taken =
                             p.getOrNull(1)?.toLongOrNull()
                                 ?: throw IllegalArgumentException("Bad line \"$line\"")
+
                     "firmware" ->
                         firmware =
                             (p.getOrNull(1) ?: throw IllegalArgumentException("Bad line \"$line\""))
                                 .let { if (it == "-") "" else it }
+
                     "slot" -> slot = num(p.getOrNull(1) ?: "", line)
                     "preamp" -> preamp = num(p.getOrNull(1) ?: "", line)
                     "band" -> {
@@ -215,25 +225,28 @@ data class WalkPlayResetBackup(
                                 num(p[5], line),
                             )
                     }
+
                     "setting" -> {
                         require(p.size == 3) { "Bad line \"$line\"" }
                         require(settings.put(p[1], num(p[2], line)) == null) {
                             "Setting ${p[1]} twice"
                         }
                     }
+
                     "nosetting" -> {
                         require(p.size == 2) { "Bad line \"$line\"" }
                         unread += p[1]
                     }
+
                     else -> throw IllegalArgumentException("Unknown line \"$line\"")
                 }
             }
             require(
                 profile != null &&
-                    taken != null &&
-                    firmware != null &&
-                    slot != null &&
-                    preamp != null
+                        taken != null &&
+                        firmware != null &&
+                        slot != null &&
+                        preamp != null
             ) {
                 "The backup lacks its profile, time, firmware, slot or preamp"
             }

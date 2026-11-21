@@ -9,11 +9,11 @@ object KtMicroReset {
 
     val ERASE_NOTE =
         "CLEAR (the vendor's flash clear) erases the EQ the Allegro Mini saved and puts the manufacturer's bands back; what else it erases is unknown. " +
-            "Contour reads the EQ switch, all five bands and the Global Gain first and writes them back afterwards."
+                "Contour reads the EQ switch, all five bands and the Global Gain first and writes them back afterwards."
 
     internal fun restorable(model: KtMicroCatalog.Model): Set<Int> =
         setOf(model.registers.enableRegister) +
-            model.registers.bands.flatMap { listOf(it.gainFrequency, it.qType) }
+                model.registers.bands.flatMap { listOf(it.gainFrequency, it.qType) }
 
     private fun hex(v: List<Int>) = v.joinToString(" ") { "%02x".format(it) }
 
@@ -35,7 +35,11 @@ object KtMicroReset {
         val g1 = after.globalGain
         if (g0?.value != g1?.value)
             out +=
-                "register 0x3b (Global Gain): ${g0?.value?.let(::hex) ?: "no reply"} -> ${g1?.value?.let(::hex) ?: "no reply"}"
+                "register 0x3b (Global Gain): ${g0?.value?.let(::hex) ?: "no reply"} -> ${
+                    g1?.value?.let(
+                        ::hex
+                    ) ?: "no reply"
+                }"
         return out
     }
 
@@ -44,7 +48,8 @@ object KtMicroReset {
             KtMicroCodec.EQ_ENABLE_REGISTER -> "EQ switch"
             in 0x26..0x2F ->
                 "band ${(register - 0x26) / 2 + 1} " +
-                    if ((register - 0x26) % 2 == 0) "gain and frequency" else "Q and type"
+                        if ((register - 0x26) % 2 == 0) "gain and frequency" else "Q and type"
+
             KtMicroCodec.DIGITAL_GAIN_REGISTER -> "digital DAC gain"
             KtMicroCodec.GLOBAL_GAIN_REGISTER -> "Global Gain"
             KtMicroCodec.CHANNEL_FLAGS_REGISTER -> "channel flags"
@@ -71,7 +76,13 @@ class KtMicroResetBackup(
             out += "The Global Gain (0x3B) gave no valid reply: it could not be written back"
         else if (KtMicroCodec.globalGainStep(globalGain) == null)
             out +=
-                "The Global Gain (0x3B) reads ${globalGain.value.joinToString(" ") { "%02x".format(it) }}, not a step 1-15: it could not be written back"
+                "The Global Gain (0x3B) reads ${
+                    globalGain.value.joinToString(" ") {
+                        "%02x".format(
+                            it
+                        )
+                    }
+                }, not a step 1-15: it could not be written back"
         return out
     }
 

@@ -125,10 +125,10 @@ object FiioCatalog {
     fun capturedRoute(vendorId: Int, productId: Int, productName: String): FiioConfig? =
         rules.singleOrNull { rule ->
             rule.codecBlockers.isEmpty() &&
-                rule.capture?.let {
-                    it.vendorId == vendorId &&
-                        it.productId == productId &&
-                        it.productName == productName
-                } == true
+                    rule.capture?.let {
+                        it.vendorId == vendorId &&
+                                it.productId == productId &&
+                                it.productName == productName
+                    } == true
         }
 }

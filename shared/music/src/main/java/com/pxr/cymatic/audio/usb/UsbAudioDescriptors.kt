@@ -105,8 +105,8 @@ internal object UsbAudioDescriptors {
                         }
                         if (
                             subclass == 1 &&
-                                subtype == 3 &&
-                                ((protocol == 0x20 && length >= 12) ||
+                            subtype == 3 &&
+                            ((protocol == 0x20 && length >= 12) ||
                                     (protocol == 0 && length >= 9))
                         ) {
                             outputs +=
@@ -159,9 +159,9 @@ internal object UsbAudioDescriptors {
                                         List((length - 7) / size) { channel ->
                                             (0 until size).fold(0L) { value, byte ->
                                                 value or
-                                                    (descriptor
-                                                        .u8(6 + channel * size + byte)
-                                                        .toLong() shl (byte * 8))
+                                                        (descriptor
+                                                            .u8(6 + channel * size + byte)
+                                                            .toLong() shl (byte * 8))
                                             }
                                         },
                                         protocol,
@@ -232,24 +232,24 @@ internal object UsbAudioDescriptors {
                 collections
                     .filter {
                         it.configuration == format.configuration &&
-                            it.streamingInterface == format.interfaceNumber
+                                it.streamingInterface == format.interfaceNumber
                     }
                     .singleOrNull()
             val terminal =
                 terminals
                     .filter {
                         it.configuration == format.configuration &&
-                            it.id == format.terminalLink &&
-                            (format.protocol != 0 ||
-                                it.controlInterface == collection?.controlInterface)
+                                it.id == format.terminalLink &&
+                                (format.protocol != 0 ||
+                                        it.controlInterface == collection?.controlInterface)
                     }
                     .singleOrNull()
             val clock = terminal?.let { value ->
                 clocks
                     .filter {
                         it.configuration == value.configuration &&
-                            it.controlInterface == value.controlInterface &&
-                            it.id == value.clockId
+                                it.controlInterface == value.controlInterface &&
+                                it.id == value.clockId
                     }
                     .singleOrNull()
             }

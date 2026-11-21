@@ -42,7 +42,6 @@ import com.pxr.cymatic.playback.PlaybackStateLogger
 import com.pxr.cymatic.playback.PlaybackStatePersistence
 import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
 import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
-import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlin.math.abs
 
 @UnstableApi
 class PlaybackService : MediaLibraryService() {
@@ -117,12 +117,12 @@ class PlaybackService : MediaLibraryService() {
         usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
         serviceScope.launch(Dispatchers.Main) {
             PlaybackOutputMonitor(
-                    this@PlaybackService,
-                    player,
-                    eqAudioProcessor,
-                    usbPlayback,
-                    fadingPlayer,
-                )
+                this@PlaybackService,
+                player,
+                eqAudioProcessor,
+                usbPlayback,
+                fadingPlayer,
+            )
                 .observe()
         }
 
@@ -137,8 +137,8 @@ class PlaybackService : MediaLibraryService() {
                 this,
                 0,
                 requireNotNull(packageManager.getLaunchIntentForPackage(packageName)) {
-                        "The host app must declare a launch activity"
-                    }
+                    "The host app must declare a launch activity"
+                }
                     .apply { addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP) },
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
@@ -184,7 +184,7 @@ class PlaybackService : MediaLibraryService() {
                     )
                     if (
                         !playWhenReady &&
-                            reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
+                        reason != Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
                     ) {
                         OutputInfoState.event(
                             "Playback auto-paused: ${logger.playWhenReadyReasonName(reason)}"
@@ -203,7 +203,11 @@ class PlaybackService : MediaLibraryService() {
                     )
                     if (playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
                         OutputInfoState.event(
-                            "Playback suppressed: ${logger.suppressionReasonName(playbackSuppressionReason)}"
+                            "Playback suppressed: ${
+                                logger.suppressionReasonName(
+                                    playbackSuppressionReason
+                                )
+                            }"
                         )
                     }
                 }
@@ -274,7 +278,7 @@ class PlaybackService : MediaLibraryService() {
                 val shouldSave =
                     withContext(Dispatchers.Main) {
                         player.isPlaying &&
-                            abs(player.currentPosition - persistence.lastSavedPositionMs) >= 20_000L
+                                abs(player.currentPosition - persistence.lastSavedPositionMs) >= 20_000L
                     }
                 if (shouldSave) {
                     persistence.save()
@@ -284,12 +288,12 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             combine(
-                    EqSettingsStore.eqGlobalEnabledFlow,
-                    EqSettingsStore.eqPresetsFlow,
-                    EqSettingsStore.effectiveEqSelectedPresetFlow,
-                ) { enabled, presets, selectedName ->
-                    Triple(enabled, presets, selectedName)
-                }
+                EqSettingsStore.eqGlobalEnabledFlow,
+                EqSettingsStore.eqPresetsFlow,
+                EqSettingsStore.effectiveEqSelectedPresetFlow,
+            ) { enabled, presets, selectedName ->
+                Triple(enabled, presets, selectedName)
+            }
                 .distinctUntilChanged()
                 .collect { (enabled, presets, selectedName) ->
                     Log.d(
@@ -354,9 +358,9 @@ class PlaybackService : MediaLibraryService() {
                 val artwork = metadata.artworkUri ?: item.mediaMetadata.artworkUri
                 if (
                     bitRate == null &&
-                        sampleRate == null &&
-                        duration == null &&
-                        artwork == item.mediaMetadata.artworkUri
+                    sampleRate == null &&
+                    duration == null &&
+                    artwork == item.mediaMetadata.artworkUri
                 )
                     return@withContext
                 val extras = Bundle(item.mediaMetadata.extras ?: Bundle())

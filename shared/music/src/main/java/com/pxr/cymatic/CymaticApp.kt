@@ -17,8 +17,10 @@ open class CymaticApp : Application() {
         PlaybackStore.init(this)
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             runCatching {
-                com.pxr.cymatic.data.media.AudioRepository.getInstance(this@CymaticApp).getAllAudio()
-                com.pxr.cymatic.data.media.PlaylistRepository.getInstance(this@CymaticApp).getPlaylists()
+                com.pxr.cymatic.data.media.AudioRepository.getInstance(this@CymaticApp)
+                    .getAllAudio()
+                com.pxr.cymatic.data.media.PlaylistRepository.getInstance(this@CymaticApp)
+                    .getPlaylists()
             }
             runCatching {
                 com.pxr.cymatic.data.licenses.LicenseCatalog.getInstance(this@CymaticApp.assets)

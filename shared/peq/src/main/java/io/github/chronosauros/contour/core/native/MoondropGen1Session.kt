@@ -15,7 +15,7 @@ class MoondropGen1Session(val model: MoondropGen1Catalog.Model, private val port
         val size = port.payloadSize(MoondropGen1Codec.REPORT_ID, NativeHidReports.Kind.INPUT)
         require(
             size == MoondropGen1Codec.PAYLOAD_BYTES &&
-                port.payloadSize(MoondropGen1Codec.REPORT_ID, NativeHidReports.Kind.OUTPUT) ==
+                    port.payloadSize(MoondropGen1Codec.REPORT_ID, NativeHidReports.Kind.OUTPUT) ==
                     MoondropGen1Codec.PAYLOAD_BYTES
         ) {
             "The HID report descriptor does not declare the 62-byte report 1 of a Moondrop gen-1 cable"

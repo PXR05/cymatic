@@ -71,11 +71,11 @@ class LibrarySyncJobService : JobService() {
 
             if (
                 directory.isNotBlank() &&
-                    context.contentResolver.persistedUriPermissions.none {
-                        it.uri.toString() == directory &&
+                context.contentResolver.persistedUriPermissions.none {
+                    it.uri.toString() == directory &&
                             it.isReadPermission &&
                             it.isWritePermission
-                    }
+                }
             )
                 return
 
@@ -83,8 +83,8 @@ class LibrarySyncJobService : JobService() {
             if (mode == SyncContentMode.NONE && pins.isEmpty) return
             if (
                 mode == SyncContentMode.SELECTED_PLAYLISTS &&
-                    LibrarySyncSettings.syncSelectedPlaylistsFlow.first().isEmpty() &&
-                    pins.isEmpty
+                LibrarySyncSettings.syncSelectedPlaylistsFlow.first().isEmpty() &&
+                pins.isEmpty
             )
                 return
 
@@ -93,9 +93,9 @@ class LibrarySyncJobService : JobService() {
                     .coerceAtLeast(MINIMUM_INTERVAL_MS)
             val info =
                 JobInfo.Builder(
-                        JOB_ID,
-                        ComponentName(context, LibrarySyncJobService::class.java),
-                    )
+                    JOB_ID,
+                    ComponentName(context, LibrarySyncJobService::class.java),
+                )
                     .setRequiredNetworkType(
                         if (network == SyncNetwork.WIFI) JobInfo.NETWORK_TYPE_UNMETERED
                         else JobInfo.NETWORK_TYPE_ANY

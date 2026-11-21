@@ -76,7 +76,7 @@ object FiioReset {
             if (x != y) {
                 val registers =
                     x.bands.zip(y.bands).count { (p, q) -> p != q } +
-                        kotlin.math.abs(x.bands.size - y.bands.size)
+                            kotlin.math.abs(x.bands.size - y.bands.size)
 
                 val detail =
                     if (Proven.channel == BuildChannel.PERF) " ($registers filter registers differ)"
@@ -90,7 +90,14 @@ object FiioReset {
             val q = after.settings[id]
             if (p != q)
                 out +=
-                    "${labelOf(id)}: ${p?.let { valueOf(id, it) } ?: "no reply"} -> ${q?.let { valueOf(id, it) } ?: "no reply"}"
+                    "${labelOf(id)}: ${
+                        p?.let {
+                            valueOf(
+                                id,
+                                it
+                            )
+                        } ?: "no reply"
+                    } -> ${q?.let { valueOf(id, it) } ?: "no reply"}"
         }
         return out
     }
@@ -164,6 +171,7 @@ data class FiioResetBackup(
             var taken: Long? = null
             var active: Int? = null
             var haveActive = false
+
             class Slot(
                 val slot: Int,
                 val name: String?,
@@ -171,6 +179,7 @@ data class FiioResetBackup(
                 val preamp: Int,
                 val bands: ArrayList<FiioRegisters> = ArrayList(),
             )
+
             val slots = LinkedHashMap<Int, Slot>()
             val settings = HashMap<String, Int>()
             val unread = ArrayList<String>()
@@ -184,10 +193,12 @@ data class FiioResetBackup(
                         taken =
                             p.getOrNull(1)?.toLongOrNull()
                                 ?: throw IllegalArgumentException("Bad line \"$line\"")
+
                     "active" -> {
                         haveActive = true
                         active = p.getOrNull(1)?.takeIf { it != "-" }?.let { num(it, line) }
                     }
+
                     "slot" -> {
 
                         require(
@@ -210,6 +221,7 @@ data class FiioResetBackup(
                             "Slot $slot twice"
                         }
                     }
+
                     "band" -> {
                         require(p.size == 7) { "Bad line \"$line\"" }
                         val s =
@@ -224,16 +236,19 @@ data class FiioResetBackup(
                                 num(p[6], line),
                             )
                     }
+
                     "setting" -> {
                         require(p.size == 3) { "Bad line \"$line\"" }
                         require(settings.put(p[1], num(p[2], line)) == null) {
                             "Setting ${p[1]} twice"
                         }
                     }
+
                     "nosetting" -> {
                         require(p.size == 2) { "Bad line \"$line\"" }
                         unread += p[1]
                     }
+
                     else -> throw IllegalArgumentException("Unknown line \"$line\"")
                 }
             }

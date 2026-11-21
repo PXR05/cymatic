@@ -163,6 +163,7 @@ object WalkPlaySettings {
             "max" -> maxRows
             "micro",
             "echo-a" -> listOf(readOnlyMic)
+
             else -> emptyList()
         }
 
@@ -172,7 +173,9 @@ object WalkPlaySettings {
     fun row(profile: WalkPlayProfile, id: String): DacSetting =
         of(profile).firstOrNull { it.id == id }
             ?: throw IllegalArgumentException(
-                "${profile.name} has no setting \"$id\" (${of(profile).joinToString { it.id }.ifEmpty { "none" }})"
+                "${profile.name} has no setting \"$id\" (${
+                    of(profile).joinToString { it.id }.ifEmpty { "none" }
+                })"
             )
 
     fun readRequests(s: DacSetting): List<ByteArray> =
@@ -182,15 +185,16 @@ object WalkPlaySettings {
                     WalkPlay.report(WalkPlay.READ, CMD_BALANCE, 0x02, 0x00, 0x00),
                     WalkPlay.report(WalkPlay.READ, CMD_BALANCE, 0x02, 0x01, 0x00),
                 )
+
             else ->
                 listOf(WalkPlay.report(WalkPlay.READ, requireNotNull(s.readCommand), WalkPlay.END))
         }
 
     fun isReply(s: DacSetting, buf: ByteArray, channel: Int? = null): Boolean =
         buf.size >= WalkPlay.REPORT_SIZE &&
-            WalkPlay.isReply(buf, requireNotNull(s.readCommand)) &&
-            (buf[1].toInt() and 255) == WalkPlay.READ &&
-            (s.id != BALANCE || (channel != null && balanceChannel(buf) == channel))
+                WalkPlay.isReply(buf, requireNotNull(s.readCommand)) &&
+                (buf[1].toInt() and 255) == WalkPlay.READ &&
+                (s.id != BALANCE || (channel != null && balanceChannel(buf) == channel))
 
     fun decode(s: DacSetting, buf: ByteArray): Int? =
         (s.read as? SettingRead.WalkPlayGet)?.decode?.invoke(buf)
@@ -221,11 +225,13 @@ object WalkPlaySettings {
             GAIN_MODE -> listOf(WalkPlay.report(WalkPlay.WRITE, CMD_GAIN_MODE, 0x01, value))
             BALANCE ->
                 listOf(balanceFrame(RIGHT, maxOf(-value, 0)), balanceFrame(LEFT, maxOf(value, 0)))
+
             MIC ->
                 listOf(
                     if (isMaxMic(s)) maxMicReport(value)
                     else WalkPlay.report(WalkPlay.WRITE, CMD_MIC, 0x02, 0x80, value and 0xFF)
                 )
+
             else -> throw IllegalArgumentException("${s.label} has no write")
         }
     }

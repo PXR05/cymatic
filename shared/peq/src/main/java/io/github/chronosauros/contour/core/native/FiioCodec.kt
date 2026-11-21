@@ -87,9 +87,9 @@ class FiioCodec(val config: FiioConfig) {
 
         fun slotName(text: String, length: Int = NAME_LENGTH): String =
             java.text.Normalizer.normalize(
-                    text.replace('ł', 'l').replace('Ł', 'L'),
-                    java.text.Normalizer.Form.NFD,
-                )
+                text.replace('ł', 'l').replace('Ł', 'L'),
+                java.text.Normalizer.Form.NFD,
+            )
                 .uppercase()
                 .filter { it in 'A'..'Z' || it in '0'..'9' }
                 .take(length)
@@ -112,32 +112,32 @@ class FiioCodec(val config: FiioConfig) {
         require(config.saveCommand == 0x19)
         require(
             config.minGainDb.isFinite() &&
-                config.maxGainDb.isFinite() &&
-                config.minGainDb <= config.maxGainDb
+                    config.maxGainDb.isFinite() &&
+                    config.minGainDb <= config.maxGainDb
         )
         require(
             config.minQ.isFinite() &&
-                config.maxQ.isFinite() &&
-                config.minQ > 0 &&
-                config.minQ <= config.maxQ
+                    config.maxQ.isFinite() &&
+                    config.minQ > 0 &&
+                    config.minQ <= config.maxQ
         )
         require(
             config.minFrequencyHz >= 1 &&
-                config.maxFrequencyHz <= 65535 &&
-                config.minFrequencyHz <= config.maxFrequencyHz
+                    config.maxFrequencyHz <= 65535 &&
+                    config.minFrequencyHz <= config.maxFrequencyHz
         )
 
         require(
             config.typeCodes.isNotEmpty() &&
-                config.typeCodes.values.toSet().size == config.typeCodes.size
+                    config.typeCodes.values.toSet().size == config.typeCodes.size
         )
         require(config.typeCodes.values.all { it in 0..255 })
         require(
             config.userSlots.all {
                 it in 0..255 &&
-                    it in config.declaredWritableSlots &&
-                    it !in config.stockSlots &&
-                    it != config.bypassSlot
+                        it in config.declaredWritableSlots &&
+                        it !in config.stockSlots &&
+                        it != config.bypassSlot
             }
         )
         require(config.shelfQScale.isFinite() && config.shelfQScale > 0) { "Invalid shelf Q scale" }
@@ -150,7 +150,7 @@ class FiioCodec(val config: FiioConfig) {
         }
         require(
             config.preampOffsetDb.isFinite() &&
-                abs(config.preampOffsetDb * 10 - offsetTenths) < 1e-9
+                    abs(config.preampOffsetDb * 10 - offsetTenths) < 1e-9
         ) {
             "Preamp offset must be whole 0.1 dB"
         }
@@ -235,8 +235,8 @@ class FiioCodec(val config: FiioConfig) {
 
         if (
             crcOptional &&
-                u(payload[len + 6]) == 0xEE &&
-                (payload.size < len + 8 || u(payload[len + 7]) != 0xEE)
+            u(payload[len + 6]) == 0xEE &&
+            (payload.size < len + 8 || u(payload[len + 7]) != 0xEE)
         )
             return payload.copyOf(len + 7)
         require(payload.size >= len + 8 && u(payload[len + 7]) == 0xEE) {
@@ -334,14 +334,15 @@ class FiioCodec(val config: FiioConfig) {
     fun logicalReply(reportId: Int, payload: ByteArray, actualPayloadSize: Int): ByteArray {
         require(
             reportId == config.reportId &&
-                payload.size == actualPayloadSize &&
-                actualPayloadSize >= 8
+                    payload.size == actualPayloadSize &&
+                    actualPayloadSize >= 8
         )
         val cmd = u(payload[4])
         val n =
             when (cmd) {
                 SLOT,
                 COUNT -> 1
+
                 PREAMP -> 2
                 BAND -> 8
                 NAME -> NAME_REPLY_DATA
@@ -377,12 +378,12 @@ class FiioCodec(val config: FiioConfig) {
         reply(payload, BAND, 8)
         require(u(payload[6]) == expectedIndex) { "Uncorrelated band index" }
         return FiioRegisters(
-                expectedIndex,
-                word(payload, 9),
-                signed(payload, 7),
-                word(payload, 11),
-                u(payload[13]),
-            )
+            expectedIndex,
+            word(payload, 9),
+            signed(payload, 7),
+            word(payload, 11),
+            u(payload[13]),
+        )
             .also { validateRegisters(it, readback = true) }
     }
 
@@ -406,9 +407,9 @@ class FiioCodec(val config: FiioConfig) {
         range(r.gainTenths / 10.0, config.minGainDb, config.maxGainDb, "Gain")
         if (
             readback &&
-                config.qReadbackSlack &&
-                r.qHundredths in
-                    minQHundredths - qSlack(minQHundredths)..maxQHundredths + qSlack(maxQHundredths)
+            config.qReadbackSlack &&
+            r.qHundredths in
+            minQHundredths - qSlack(minQHundredths)..maxQHundredths + qSlack(maxQHundredths)
         )
             return
         range(r.qHundredths / 100.0, config.minQ, config.maxQ, "Native Q")
@@ -426,7 +427,7 @@ class FiioCodec(val config: FiioConfig) {
         if (!config.qReadbackSlack) expected == actual
         else
             expected.copy(qHundredths = 0) == actual.copy(qHundredths = 0) &&
-                abs(expected.qHundredths - actual.qHundredths) <= qSlack(expected.qHundredths)
+                    abs(expected.qHundredths - actual.qHundredths) <= qSlack(expected.qHundredths)
 
     fun snapshot(
         slotReply: ByteArray,
@@ -471,11 +472,11 @@ class FiioCodec(val config: FiioConfig) {
         val parsed = runCatching { bandReplies.map { parseBand(it, u(it[6]), count) } }
         val bands =
             (if (parsed.isFailure && slot == config.bypassSlot && count == config.maxFilters)
-                    bandReplies.map {
-                        reply(it, BAND, 8)
-                        FiioRegisters(u(it[6]), 0, 0, 0, 0)
-                    }
-                else parsed.getOrThrow())
+                bandReplies.map {
+                    reply(it, BAND, 8)
+                    FiioRegisters(u(it[6]), 0, 0, 0, 0)
+                }
+            else parsed.getOrThrow())
                 .sortedBy { it.index }
         return FiioSnapshot(config.productName, slot, count, parsePreamp(preampReply), bands)
     }
@@ -537,8 +538,8 @@ class FiioCodec(val config: FiioConfig) {
 
         require(
             q.isFinite() &&
-                q >= config.minQ - 4 * Math.ulp(config.minQ) &&
-                q <= config.maxQ + 4 * Math.ulp(config.maxQ)
+                    q >= config.minQ - 4 * Math.ulp(config.minQ) &&
+                    q <= config.maxQ + 4 * Math.ulp(config.maxQ)
         ) {
             if (band.type.isShelf && config.shelfQScale != 1.0)
                 "Shelf Q outside %.2f..%.2f: %.2f"
@@ -559,10 +560,10 @@ class FiioCodec(val config: FiioConfig) {
         frame(
             BAND,
             listOf(r.index) +
-                pair(r.gainTenths) +
-                pair(r.frequencyHz) +
-                pair(r.qHundredths) +
-                listOf(r.typeCode),
+                    pair(r.gainTenths) +
+                    pair(r.frequencyHz) +
+                    pair(r.qHundredths) +
+                    listOf(r.typeCode),
             FiioEffect.WRITE_ACTIVE_BANK,
         )
 
@@ -633,9 +634,9 @@ class FiioCodec(val config: FiioConfig) {
     fun padToDeviceCount(bands: List<Band>): List<Band> {
         if (!config.fixedBandCount || bands.size >= config.maxFilters) return bands
         return bands +
-            List(config.maxFilters - bands.size) {
-                Band("pad-${bands.size + it}", FilterType.PEAK, 100.0, 0.0, 1.0, enabled = true)
-            }
+                List(config.maxFilters - bands.size) {
+                    Band("pad-${bands.size + it}", FilterType.PEAK, 100.0, 0.0, 1.0, enabled = true)
+                }
     }
 
     fun matches(expected: FiioSnapshot, actual: FiioSnapshot): Boolean {
@@ -645,8 +646,8 @@ class FiioCodec(val config: FiioConfig) {
         val a = actual.copy(bands = actual.bands.sortedBy { it.index })
         if (!config.qReadbackSlack) return e == a
         return e.copy(bands = emptyList()) == a.copy(bands = emptyList()) &&
-            e.bands.size == a.bands.size &&
-            e.bands.zip(a.bands).all { (x, y) -> registersMatch(x, y) }
+                e.bands.size == a.bands.size &&
+                e.bands.zip(a.bands).all { (x, y) -> registersMatch(x, y) }
     }
 
     fun verification(
@@ -663,7 +664,7 @@ class FiioCodec(val config: FiioConfig) {
             return FiioVerification.Mismatch("Slot/count/pregain/native registers differ")
         if (
             plan.saveVerification == FiioSaveVerification.RECONNECT_AND_READ_REQUIRED &&
-                !reconnected
+            !reconnected
         )
             return FiioVerification.Pending(
                 "Disconnect-on-save requires reconnect and complete read"
@@ -680,7 +681,17 @@ class FiioCodec(val config: FiioConfig) {
                     val type = config.typeCodes.entries.single { it.value == r.typeCode }.key
 
                     require(!type.isPass || r.gainTenths == 0) {
-                        "Band ${r.index + 1}: ${type.name.replace('_', ' ')} has gain ${"%+.1f".format(java.util.Locale.ROOT, r.gainTenths / 10.0)} dB on the DAC; Contour keeps pass filters at 0 dB"
+                        "Band ${r.index + 1}: ${
+                            type.name.replace(
+                                '_',
+                                ' '
+                            )
+                        } has gain ${
+                            "%+.1f".format(
+                                java.util.Locale.ROOT,
+                                r.gainTenths / 10.0
+                            )
+                        } dB on the DAC; Contour keeps pass filters at 0 dB"
                     }
                     val nativeQ =
                         if (config.qReadbackSlack)
@@ -699,7 +710,7 @@ class FiioCodec(val config: FiioConfig) {
         val compiled = bands.mapIndexed { i, b -> compileBand(b, i) }
         require(
             compiled.size == registers.size &&
-                compiled.zip(registers).all { (c, r) -> registersMatch(c, r) }
+                    compiled.zip(registers).all { (c, r) -> registersMatch(c, r) }
         ) {
             "Import cannot reproduce exact native registers"
         }

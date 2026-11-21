@@ -44,21 +44,25 @@ object WalkPlayGuard {
                     } else if (sub != 0 || (trn && context != Context.RESET))
                         return "01 05 %02x is not a step of ${profile.name}'s write".format(sub)
                 }
+
                 0x17 ->
                     if (u(payload, 2) != 0 || (trn && context != Context.RESET))
                         return "01 17 is not a step of ${profile.name}'s write"
+
                 WalkPlay.CMD_GLOBAL_GAIN -> {
                     val g = payload.getOrNull(4)?.toInt() ?: 0
                     if (g > 0 && profile.preampMaxDb <= 0)
                         return "a positive preamp ($g dB) is not verified on a unit: never sent"
                 }
+
                 WalkPlaySettings.CMD_GAIN_MODE ->
                     if (!trn)
                         return "0x%02x (gain mode) is not a setting of ${profile.name}: "
                             .format(cmd) +
-                            if (profile.protocol == DeviceProtocol.MAX)
-                                "its physical Eco / Boost switch sets it and wins after every replug"
-                            else "WalkPlay shows it for SchemeNo16 only"
+                                if (profile.protocol == DeviceProtocol.MAX)
+                                    "its physical Eco / Boost switch sets it and wins after every replug"
+                                else "WalkPlay shows it for SchemeNo16 only"
+
                 WalkPlaySettings.CMD_DAC_FILTER,
                 WalkPlaySettings.CMD_WORK_MODE,
                 WalkPlaySettings.CMD_BALANCE ->
@@ -69,8 +73,8 @@ object WalkPlayGuard {
                 0x01 ->
                     if (
                         profile.protocol == DeviceProtocol.MAX &&
-                            u(payload, 2) == 0 &&
-                            context != Context.MIC_SAVE
+                        u(payload, 2) == 0 &&
+                        context != Context.MIC_SAVE
                     )
                         return "01 01 00 is sent to ${profile.name} only as the flash save after a mic write: its `01 01 x` is also the EQ enable / flash frame"
             }

@@ -44,21 +44,28 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
         } else {
             require(preampDb == null || preampDb.isFinite())
             (if (preampDb == null) Preamp.auto(bands)
-                else kotlin.math.floor(preampDb + 1e-6).toInt())
+            else kotlin.math.floor(preampDb + 1e-6).toInt())
                 .coerceIn(preampMin, preampMax)
         }
 
     fun preampFits(bands: List<Band>, preampDb: Double): Boolean =
         preampDb.isFinite() &&
-            (if (this == MICRO) ProtocolMicro.preampFits(bands, preampDb)
-            else kotlin.math.floor(preampDb + 1e-6) in preampMin.toDouble()..preampMax.toDouble())
+                (if (this == MICRO) ProtocolMicro.preampFits(bands, preampDb)
+                else kotlin.math.floor(preampDb + 1e-6) in preampMin.toDouble()..preampMax.toDouble())
 
     fun preampRefusal(bands: List<Band>, preampDb: Double): String? =
         when {
             preampFits(bands, preampDb) -> null
             this == MICRO && preampDb.isFinite() -> ProtocolMicro.preampRefusal(bands, preampDb)
             else ->
-                "Preamp ${dbText(preampDb) { !preampFits(bands, it) }} dB outside $preampMin..$preampMax dB policy"
+                "Preamp ${
+                    dbText(preampDb) {
+                        !preampFits(
+                            bands,
+                            it
+                        )
+                    }
+                } dB outside $preampMin..$preampMax dB policy"
         }
 
     fun fitImportedPreamp(bands: List<Band>, preampDb: Double): Double {
@@ -118,7 +125,7 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
                 issues += "Band ${i + 1}: non-finite values"
             if (
                 b.enabled &&
-                    (b.type !in caps.types ||
+                (b.type !in caps.types ||
                         b.freqHz !in caps.freqMinHz..caps.freqMaxHz ||
                         b.gainDb !in caps.gainMinDb..caps.gainMaxDb ||
                         b.q !in caps.qRange(b.type))
@@ -224,7 +231,7 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
         if (
             refused.all {
                 SendBlocked.isBandRefusal(it) ||
-                    it.endsWith(": outside ${caps.name} supported types/ranges")
+                        it.endsWith(": outside ${caps.name} supported types/ranges")
             }
         ) {
             val writes =
@@ -236,7 +243,7 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
                 return DacImport.Ready(
                     eq,
                     refused.joinToString(" ") { if (it.endsWith(".")) it else "$it." } +
-                        " Sending it back stays blocked until you change the band.$note",
+                            " Sending it back stays blocked until you change the band.$note",
                 )
         }
         return DacImport.Rejected(listOf("DAC state cannot be re-encoded exactly"))
@@ -246,15 +253,15 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
         if (this == MICRO) WalkPlay.isReply(buf, cmd)
         else
             buf.size >= WalkPlay.REPORT_SIZE &&
-                WalkPlay.isReply(buf, cmd) &&
-                (buf[1].toInt() and 0xFF) == WalkPlay.READ
+                    WalkPlay.isReply(buf, cmd) &&
+                    (buf[1].toInt() and 0xFF) == WalkPlay.READ
 
     fun isBandReply(buf: ByteArray, index: Int): Boolean =
         if (this == MICRO) WalkPlay.isBandReply(buf, index)
         else
             index in 0 until caps.bands &&
-                isReply(buf, WalkPlay.CMD_PEQ) &&
-                WalkPlay.isBandReply(buf, index)
+                    isReply(buf, WalkPlay.CMD_PEQ) &&
+                    WalkPlay.isBandReply(buf, index)
 
     fun isSlotReply(buf: ByteArray): Boolean =
         if (this == MICRO) WalkPlay.isReply(buf, WalkPlay.CMD_PEQ) else isBandReply(buf, 0)
@@ -283,8 +290,8 @@ private constructor(internal val data: WalkPlayData, val settings: List<DacSetti
                 }
             require(
                 b.registers.freq in hz &&
-                    b.registers.q256 in 1..0xFFFF &&
-                    b.registers.gain256 in (db.start * 256).toInt()..(db.endInclusive * 256).toInt()
+                        b.registers.q256 in 1..0xFFFF &&
+                        b.registers.gain256 in (db.start * 256).toInt()..(db.endInclusive * 256).toInt()
             ) {
                 "Malformed ${if (this == TRN) "TRN" else caps.name} registers"
             }

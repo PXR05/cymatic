@@ -47,16 +47,16 @@ object UacProbe {
                 report.note(
                     LAYER,
                     "playback path " +
-                        p.joinToString(" -> ") { id ->
-                            ac.units
-                                .first { it.id == id }
-                                .let { u ->
-                                    ac.describe(u).substringBefore(' ') +
-                                        "(" +
-                                        "0x%02x".format(id) +
-                                        ")"
-                                }
-                        },
+                            p.joinToString(" -> ") { id ->
+                                ac.units
+                                    .first { it.id == id }
+                                    .let { u ->
+                                        ac.describe(u).substringBefore(' ') +
+                                                "(" +
+                                                "0x%02x".format(id) +
+                                                ")"
+                                    }
+                            },
                 )
             }
             val playback = ac.playbackFeatureUnits().map { it.id }.toSet()

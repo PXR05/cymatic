@@ -2,8 +2,6 @@ package com.pxr.cymatic.audio.usb
 
 import android.hardware.usb.UsbDeviceConnection
 import com.pxr.cymatic.usb.UsbPcmStream
-import java.io.Closeable
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,6 +9,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.Closeable
+import kotlin.math.roundToInt
 
 internal class UsbHardwareVolume(
     private val connection: UsbDeviceConnection,
@@ -202,9 +202,9 @@ internal class UsbHardwareVolume(
     private fun validateRange(minimum: Int, maximum: Int, resolution: Int): Range {
         require(
             minimum > SILENCE &&
-                maximum >= minimum &&
-                resolution in 0..32767 &&
-                (resolution > 0 || minimum == maximum)
+                    maximum >= minimum &&
+                    resolution in 0..32767 &&
+                    (resolution > 0 || minimum == maximum)
         ) {
             "DAC returned a malformed volume range"
         }

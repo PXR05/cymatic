@@ -47,7 +47,8 @@ class AutoMediaLibraryCallback(
         const val PREFIX_TRACK = "TRACK/"
     }
 
-    @Volatile private var lastBrowsedParentId: String? = null
+    @Volatile
+    private var lastBrowsedParentId: String? = null
 
     override fun onConnect(
         session: MediaSession,

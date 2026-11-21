@@ -2,12 +2,12 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import com.pxr.cymatic.data.store.LibrarySyncSettings
-import java.io.IOException
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class AudioStreamConnection(
     private val context: Context,
@@ -16,7 +16,8 @@ class AudioStreamConnection(
     private val password: String,
 ) {
     private val cancelled = AtomicBoolean()
-    @Volatile private var client: AudioStreamClient? = null
+    @Volatile
+    private var client: AudioStreamClient? = null
 
     fun cancel() {
         cancelled.set(true)
@@ -49,7 +50,7 @@ class AudioStreamConnection(
                 if (cancelled.get()) throw SyncCancelledException()
                 check(
                     !LibrarySyncManager.isRunning &&
-                        LibraryCatalogManager.progress.value !is CatalogProgress.Refreshing
+                            LibraryCatalogManager.progress.value !is CatalogProgress.Refreshing
                 ) {
                     "Wait for the current library operation to finish."
                 }
@@ -78,6 +79,7 @@ fun connectionError(error: Throwable): String =
             when (error.status) {
                 401,
                 403 -> "Sign-in was rejected. Check your username and password."
+
                 404 -> "AudioStream was not found at this address."
                 429 -> "The server is busy. Try again shortly."
                 else -> "The server could not complete sign-in. Try again."
@@ -86,9 +88,11 @@ fun connectionError(error: Throwable): String =
         is org.json.JSONException -> "This address did not return an AudioStream sign-in response."
         is java.net.SocketTimeoutException ->
             "Connection timed out. Check the address and network, then try again."
+
         is java.net.UnknownHostException -> "Server not found. Check the address and network."
         is javax.net.ssl.SSLException ->
             "Could not establish a secure connection. Check the server address and certificate."
+
         is IllegalArgumentException,
         is IllegalStateException -> error.message ?: "Check the connection details."
 

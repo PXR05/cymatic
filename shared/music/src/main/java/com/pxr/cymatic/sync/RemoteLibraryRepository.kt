@@ -10,9 +10,9 @@ import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.media.PlaylistEntity
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.data.store.LibrarySyncSettings
-import java.io.File
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 
 internal object RemoteLibraryRepository {
     private val mutex = Mutex()
@@ -78,9 +78,9 @@ internal object RemoteLibraryRepository {
                                 while (cursor.moveToNext()) cursor.getString(1)?.let { path ->
                                     mediaUris[path] =
                                         android.content.ContentUris.withAppendedId(
-                                                collection,
-                                                cursor.getLong(0),
-                                            )
+                                            collection,
+                                            cursor.getLong(0),
+                                        )
                                             .toString()
                                 }
                             }
@@ -205,8 +205,8 @@ internal object RemoteLibraryRepository {
             val track = tracks[entry.remoteId] ?: return@forEach
             if (
                 !path.substringAfterLast('/').startsWith(".cymatic-sync-") &&
-                    entry.matches(track) &&
-                    storage.size(path) == entry.localSize
+                entry.matches(track) &&
+                storage.size(path) == entry.localSize
             ) {
                 val mediaUri = storage.absolutePath(path)?.let(mediaUris::get)
                 (mediaUri ?: storage.documentUri(path)?.toString())?.let { results[track.id] = it }

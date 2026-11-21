@@ -48,9 +48,9 @@ object FamilySettings {
                 EvidenceRank.VB,
                 min =
                     (maxOf(
-                            MoondropCatalog.dawnPro2.preGainMinDb,
-                            io.github.chronosauros.contour.core.Preamp.FLOOR_DB,
-                        ) * 10)
+                        MoondropCatalog.dawnPro2.preGainMinDb,
+                        io.github.chronosauros.contour.core.Preamp.FLOOR_DB,
+                    ) * 10)
                         .roundToInt(),
                 max = (MoondropCatalog.dawnPro2.preGainMaxDb * 10).roundToInt(),
                 unit = "dB",
@@ -125,6 +125,7 @@ object FamilySettings {
                     target.ktMicro in KtMicroCatalog.jm12Models -> jm12
                     else -> allegro
                 }
+
             else -> emptyList()
         }
 }

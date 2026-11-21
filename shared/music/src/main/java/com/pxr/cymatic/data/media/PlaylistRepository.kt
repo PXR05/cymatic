@@ -143,7 +143,8 @@ class PlaylistRepository private constructor(
         )
         playlistMutex.withLock {
             cachedPlaylists = loadPlaylistsFromDb()
-            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
+            cachedPlaylistAudio =
+                cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
@@ -152,7 +153,8 @@ class PlaylistRepository private constructor(
         playlistDao.removePlaylistItem(playlistId, audioId)
         playlistMutex.withLock {
             cachedPlaylists = loadPlaylistsFromDb()
-            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
+            cachedPlaylistAudio =
+                cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
@@ -165,7 +167,8 @@ class PlaylistRepository private constructor(
         )
         playlistMutex.withLock {
             cachedPlaylists = loadPlaylistsFromDb()
-            cachedPlaylistAudio = cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
+            cachedPlaylistAudio =
+                cachedPlaylistAudio + (playlistId to loadPlaylistAudioFromDb(playlistId))
         }
         LibraryChanges.notifyChanged()
     }
