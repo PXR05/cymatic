@@ -19,7 +19,7 @@ A minimal Android music player with a classic click wheel, monochrome pixel inte
 - **Click wheel navigation:** Spin the outer ring to scroll lists or adjust volume, or tap items directly.
 - **Minimal pixel UI:** Monochrome light and dark themes with crisp pixel icons and customizable wheel size, sensitivity, padding, haptics, text scrolling, cover art, and screen-awake behavior.
 - **Standby mode:** Optional idle timeout blanks the screen to reduce distractions. Touch anywhere to wake it, and continue smoothly into a wheel gesture.
-- **Local & remote music together:** Browse tracks, artists, albums, playlists, and your queue in one place, or connect an AudioStream account to stream your remote library.
+- **Local & remote music together:** Browse tracks, artists, albums, playlists, and your queue in one place, or connect an [AudioStream](https://github.com/PXR05/audiostream) account to stream your remote library.
 - **Per-device audio profiles:** Automatically remembers volume (with separate normal and direct USB levels) and equalizer presets for each output device, including hardware PEQ on supported USB DACs.
 - **Direct USB DAC & DSD support:** Bypass Android audio mixing on compatible USB DACs, with support for lossless formats and DSD (PCM conversion or bit-perfect DoP).
 
@@ -29,7 +29,7 @@ A minimal Android music player with a classic click wheel, monochrome pixel inte
 2. **Learn the click wheel:** On first launch, Cymatic walks you through spinning the wheel, opening items with the center button, and going back with Left or Menu. You can also tap **Skip** at any time.
 3. **Choose your music source:**
    - **On this device:** Allow music access so Cymatic can scan your library automatically (or pick a music folder if no tracks are found).
-   - **AudioStream:** Enter your server URL, username, and password to load your remote songs and playlists. *(Local storage permission is only needed if you also play files on your device.)*
+   - **[AudioStream](https://github.com/PXR05/audiostream):** Enter your server URL, username, and password to load your remote songs and playlists. *(Local storage permission is only needed if you also play files on your device.)*
 4. **Start listening:** Once your library is ready, press Center to open **All Songs**. You can manage folders, connect another source, or customize the wheel and display later under **Settings**.
 
 ## Controls
@@ -57,6 +57,12 @@ Plug in a USB DAC, enable **Settings → Playback → USB audio → Direct USB**
 - **DSD playback (DSF):** Supports DSD64, DSD128, DSD256, and DSD512 (including 48 kHz-family rates). Standard playback converts DSD to high-res PCM. Over direct USB, Cymatic can send bit-perfect DoP for DSD64/128 on supported DACs, or convert to PCM otherwise.
 - **Per-DAC DSD setting:** Configure **Settings → Playback → USB audio → DSD output** as **Automatic**, **Convert to PCM**, or **DoP** for each DAC. **Automatic** recognizes Amanero Combo384 interfaces and uses PCM for unknown DACs; choose **DoP** if your DAC supports it. If DoP fails, Cymatic retries with PCM and falls back to Android output if needed.
 - **Missing DSF files?** If Android doesn't index your DSF files automatically, add their folder under **Settings → Storage → Add directory** and rescan. Cymatic reads DSF tags and embedded cover art directly.
+
+## Guides
+
+- [Controls & interface](docs/controls.md): click wheel shortcuts, standby mode, audio profiles, and interface settings
+- [Remote library & offline downloads](docs/remote-library.md): AudioStream setup, saving music offline, and library filters
+- [USB DAC, DSD & hardware PEQ](docs/usb-audio.md): direct USB audio, DSD/DoP modes, supported PEQ DACs, and Output info diagnostics
 
 ## Credits
 

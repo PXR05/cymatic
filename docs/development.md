@@ -40,14 +40,16 @@ Run unit tests:
 ./gradlew testDebugUnitTest
 ```
 
-App version code and version name are set in `gradle.properties` (`cymaticVersionCode` and `cymaticVersionName`).
+App version code and version name are set in [`gradle.properties`](../gradle.properties) (`cymaticVersionCode` and `cymaticVersionName`).
 
-## Native & vendored dependencies
+## Native & vendored modules
 
-- **FLAC:** `shared/flac/third_party/README.md`
-- **ALAC:** `shared/alac/third_party/README.md`
-- **USB DAC PEQ (Contour):** `shared/peq/README.md`
+- **USB transport:** [`shared/usb/README.md`](../shared/usb/README.md)
+- **DSD decoder:** [`shared/dsd/README.md`](../shared/dsd/README.md)
+- **USB DAC PEQ (Contour):** [`shared/peq/README.md`](../shared/peq/README.md)
+- **FLAC:** [`shared/flac/third_party/README.md`](../shared/flac/third_party/README.md)
+- **ALAC:** [`shared/alac/third_party/README.md`](../shared/alac/third_party/README.md)
 
 ## Third-party license inventory
 
-In-app license notices live under `shared/music/src/main/assets/licenses/` and are loaded by `LicenseCatalog`. After changing Gradle dependencies, refresh the inventory with `scripts/update_license_inventory.py` (using `gradle/license-inventory.gradle`).
+In-app license notices live under [`shared/music/src/main/assets/licenses/`](../shared/music/src/main/assets/licenses/) and are loaded by `LicenseCatalog`. After changing Gradle dependencies, refresh the inventory with [`scripts/update_license_inventory.py`](../scripts/update_license_inventory.py) (using [`gradle/license-inventory.gradle`](../gradle/license-inventory.gradle)).
