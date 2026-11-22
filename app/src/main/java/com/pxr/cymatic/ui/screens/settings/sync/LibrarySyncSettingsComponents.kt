@@ -18,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.sync.SyncProgress
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import java.util.Date
 import java.util.Locale
@@ -34,6 +36,7 @@ internal data class SyncSetting(
     val options: List<String> = emptyList(),
     val selectedOption: String? = detail,
     val key: String = title,
+    val icon: (@Composable () -> Unit)? = null,
     val onChoose: (String) -> Unit = {},
     val onClick: () -> Unit = {},
 )
@@ -46,6 +49,7 @@ internal fun SyncSettingsList(settings: List<SyncSetting>, modifier: Modifier = 
             NavigationItem(
                 setting.title,
                 setting.detail,
+                icon = setting.icon,
                 enabled = setting.enabled,
                 showIndicator = setting.enabled,
                 key = setting.key,
@@ -159,6 +163,7 @@ internal fun SyncStatusPage(
                         if (isCancelling) "Stopping…"
                         else if (state.refreshingCatalog) "Stop refresh" else "Stop downloads",
                     subLabel = state.statusLabel,
+                    icon = pixelIcon(R.drawable.ic_pixel_close),
                     enabled = !isCancelling,
                     showIndicator = true,
                     key = "sync_action",
@@ -175,6 +180,7 @@ internal fun SyncStatusPage(
 
                             else -> "Download selected offline music"
                         },
+                    icon = pixelIcon(R.drawable.ic_pixel_download),
                     enabled = state.canEdit && state.hasOfflineSelection,
                     showIndicator = true,
                     key = "sync_action",
@@ -187,6 +193,7 @@ internal fun SyncStatusPage(
             NavigationItem(
                 label = "Browse offline music",
                 subLabel = "Music available without internet",
+                icon = pixelIcon(R.drawable.ic_pixel_offline),
                 key = "offline_library",
                 onClick = onOfflineLibrary,
             )
@@ -196,6 +203,7 @@ internal fun SyncStatusPage(
             NavigationItem(
                 label = "Status",
                 subLabel = state.statusSummary,
+                icon = pixelIcon(R.drawable.ic_pixel_info),
                 enabled = false,
                 showIndicator = false,
                 key = "status",
@@ -246,6 +254,7 @@ internal fun SyncStatusPage(
             NavigationItem(
                 label = "Progress",
                 subLabel = progressText,
+                icon = pixelIcon(R.drawable.ic_pixel_download),
                 subLabelMaxLines = 4,
                 enabled = false,
                 showIndicator = false,
@@ -285,6 +294,7 @@ internal fun SyncStatusPage(
             NavigationItem(
                 label = "Logs",
                 subLabel = logText,
+                icon = pixelIcon(R.drawable.ic_pixel_document),
                 subLabelMaxLines = 6,
                 enabled = false,
                 showIndicator = false,

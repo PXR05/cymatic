@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.pixelIcon
 
 @Composable
 internal fun RemoveRemoteSourcePage(
@@ -30,6 +32,7 @@ internal fun RemoveRemoteSourcePage(
                                 title = "Remove, keep downloaded files",
                                 detail = "Downloaded files in your folder are kept",
                                 enabled = !state.saving,
+                                icon = pixelIcon(R.drawable.ic_pixel_delete),
                                 onClick = { onRemove(false) },
                             )
                         )
@@ -38,6 +41,7 @@ internal fun RemoveRemoteSourcePage(
                                 title = "Remove library and downloads",
                                 detail = "Deletes downloaded files for this library",
                                 enabled = !state.saving,
+                                icon = pixelIcon(R.drawable.ic_pixel_delete),
                                 onClick = { onRemove(true) },
                             )
                         )
@@ -47,6 +51,7 @@ internal fun RemoveRemoteSourcePage(
                                 title = if (state.saving) "Removing…" else "Remove library",
                                 detail = "Removes this library and its Cymatic downloads",
                                 enabled = !state.saving,
+                                icon = pixelIcon(R.drawable.ic_pixel_delete),
                                 onClick = { onRemove(true) },
                             )
                         )
@@ -55,6 +60,7 @@ internal fun RemoveRemoteSourcePage(
                         SyncSetting(
                             title = "Cancel",
                             enabled = !state.saving,
+                            icon = pixelIcon(R.drawable.ic_pixel_close),
                             onClick = onDismiss,
                         )
                     )

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.sync.RemoteProvider
 import com.pxr.cymatic.sync.isCleartextPublicUrl
 import com.pxr.cymatic.sync.normalizeCandidateUrls
@@ -41,6 +42,7 @@ import com.pxr.cymatic.ui.components.common.ScreenBackHandler
 import com.pxr.cymatic.ui.components.common.WheelEditorSubmit
 import com.pxr.cymatic.ui.components.common.WheelTextEditor
 import com.pxr.cymatic.ui.components.common.submitOnEnter
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
@@ -89,6 +91,7 @@ internal fun AddRemoteSourceConnectionPage(
                         title = "Username & password",
                         detail = "Sign in with your Subsonic account",
                         enabled = !saving && !running,
+                        icon = pixelIcon(R.drawable.ic_pixel_lock),
                         onClick = {
                             onApiKeyChange("")
                             stepIndex = 0
@@ -99,6 +102,7 @@ internal fun AddRemoteSourceConnectionPage(
                         title = "API key",
                         detail = "Sign in with an OpenSubsonic API key",
                         enabled = !saving && !running,
+                        icon = pixelIcon(R.drawable.ic_pixel_key),
                         onClick = {
                             username = ""
                             onPasswordChange("")
@@ -373,6 +377,7 @@ internal fun SyncConnectionPage(
                             "Name",
                             displayName.ifBlank { initialDisplayName.ifBlank { provider.label } },
                             enabled,
+                            icon = pixelIcon(R.drawable.ic_pixel_tag),
                             onClick = { field = "Name" },
                         )
                     )
@@ -381,6 +386,7 @@ internal fun SyncConnectionPage(
                             "Server address",
                             url.ifBlank { "Required" },
                             enabled,
+                            icon = pixelIcon(R.drawable.ic_pixel_link),
                             onClick = { field = "Server address" },
                         )
                     )
@@ -389,6 +395,7 @@ internal fun SyncConnectionPage(
                             "Username",
                             username.ifBlank { if (supportsApiKey) "Optional with API key" else "Required" },
                             enabled,
+                            icon = pixelIcon(R.drawable.ic_pixel_artist),
                             onClick = { field = "Username" },
                         )
                     )
@@ -402,6 +409,7 @@ internal fun SyncConnectionPage(
                                 else -> "Required"
                             },
                             enabled,
+                            icon = pixelIcon(R.drawable.ic_pixel_lock),
                             onClick = { field = "Password" },
                         )
                     )
@@ -415,6 +423,7 @@ internal fun SyncConnectionPage(
                                     else -> "Optional (OpenSubsonic servers)"
                                 },
                                 enabled,
+                                icon = pixelIcon(R.drawable.ic_pixel_key),
                                 onClick = { field = "API key" },
                             )
                         )
@@ -426,11 +435,18 @@ internal fun SyncConnectionPage(
                             SyncSetting(
                                 "Check saved connection",
                                 enabled = enabled,
+                                icon = pixelIcon(R.drawable.ic_pixel_refresh),
                                 onClick = onCheck,
                             )
                         )
                     }
-                    add(SyncSetting("Help", onClick = { nav.navigate(Screen.SyncHelp.route) }))
+                    add(
+                        SyncSetting(
+                            "Help",
+                            icon = pixelIcon(R.drawable.ic_pixel_help),
+                            onClick = { nav.navigate(Screen.SyncHelp.route) },
+                        )
+                    )
                 },
                 Modifier.weight(1f),
             )

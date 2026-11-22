@@ -24,7 +24,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.common.rememberWheelSelection
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
 data class NavigationItem(
     val label: String,
@@ -60,16 +63,26 @@ fun NavigationList(
             key = { i -> items[i].key ?: items[i].label },
         ) { index ->
             val item = items[index]
+            val showIcons = LocalInterfaceSettings.current.showIcons
             ListItem(
                 label = item.label,
                 subLabel = item.subLabel,
                 subLabelMaxLines = item.subLabelMaxLines,
                 icon = item.icon,
                 trailing =
-                    if (item.enabled && item.showIndicator && item.checked == null) ">" else null,
+                    if (!showIcons && item.enabled && item.showIndicator && item.checked == null) ">"
+                    else null,
                 trailingContent =
                     item.trailingContent
-                        ?: if (item.enabled && item.showIndicator && item.checked != null) {
+                        ?: if (showIcons && item.enabled && item.showIndicator && item.checked == null) {
+                            { color ->
+                                PixelIcon(
+                                    resId = R.drawable.ic_pixel_chevron_right,
+                                    size = 14.dp,
+                                    tint = color,
+                                )
+                            }
+                        } else if (item.enabled && item.showIndicator && item.checked != null) {
                             { color ->
                                 Canvas(Modifier.size(20.dp)) {
                                     val pixels =

@@ -32,9 +32,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.toAudioMetadata
+import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.ScrollingTrackText
 import com.pxr.cymatic.ui.components.screen.WheelScreenHeader
 import com.pxr.cymatic.ui.components.trackTextHeight
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.state.PlaybackState
 
@@ -134,11 +136,19 @@ internal fun WheelNowPlaying(
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    "♪",
-                                    fontSize = 28.sp,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                )
+                                if (LocalInterfaceSettings.current.showIcons) {
+                                    PixelIcon(
+                                        resId = R.drawable.ic_pixel_music_note,
+                                        size = 32.dp,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                    )
+                                } else {
+                                    Text(
+                                        "♪",
+                                        fontSize = 28.sp,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                    )
+                                }
                                 metadata?.artworkUri?.let {
                                     AsyncImage(
                                         it,

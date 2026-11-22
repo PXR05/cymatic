@@ -11,9 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncLayout
 import com.pxr.cymatic.sync.SyncNetwork
+import com.pxr.cymatic.ui.components.pixelIcon
 
 @Composable
 internal fun SyncBulkDownloadsPage(
@@ -33,6 +35,7 @@ internal fun SyncBulkDownloadsPage(
                         state.contentMode.label,
                         state.canEdit,
                         SyncContentMode.entries.map { it.label },
+                        icon = pixelIcon(R.drawable.ic_pixel_music_note),
                         onChoose = { value ->
                             onMode(SyncContentMode.entries.first { it.label == value })
                         },
@@ -45,6 +48,7 @@ internal fun SyncBulkDownloadsPage(
                             if (state.refreshingCatalog) "Loading playlists…"
                             else "${state.selection.size} selected",
                             enabled = state.canEdit,
+                            icon = pixelIcon(R.drawable.ic_pixel_playlist),
                             onClick = onPlaylists,
                         )
                     )
@@ -56,6 +60,7 @@ internal fun SyncBulkDownloadsPage(
                             if (state.network == SyncNetwork.NEVER) "Off · download manually"
                             else
                                 "${syncNetworkLabel(state.network)} · ${syncIntervals[state.interval] ?: "Every ${state.interval} hours"}",
+                            icon = pixelIcon(R.drawable.ic_pixel_clock),
                             onClick = onSchedule,
                         )
                     )
@@ -67,6 +72,7 @@ internal fun SyncBulkDownloadsPage(
                             else if (state.nextStep == SyncSetupStep.MUSIC) "Choose playlists first"
                             else "Save ${state.musicLabel.lowercase()} for local playback",
                             enabled = state.canEdit,
+                            icon = pixelIcon(R.drawable.ic_pixel_download),
                             onClick = onDownload,
                         )
                     )
@@ -95,6 +101,7 @@ internal fun SyncAdvancedPage(
                         else if (!state.folderAccessible) "Custom folder · access lost"
                         else syncFolderLabel(state.directory),
                         state.canEdit,
+                        icon = pixelIcon(R.drawable.ic_pixel_folder),
                         onClick = onFolder,
                     )
                 )
@@ -104,6 +111,7 @@ internal fun SyncAdvancedPage(
                             "Use Cymatic storage",
                             "No folder permission needed",
                             state.canEdit,
+                            icon = pixelIcon(R.drawable.ic_pixel_storage),
                             onClick = onManagedStorage,
                         )
                     )
@@ -113,6 +121,7 @@ internal fun SyncAdvancedPage(
                         state.layout.label,
                         state.canEdit,
                         SyncLayout.entries.map { it.label },
+                        icon = pixelIcon(R.drawable.ic_pixel_interface),
                         onChoose = { value ->
                             onLayout(SyncLayout.entries.first { it.label == value })
                         },
@@ -123,6 +132,7 @@ internal fun SyncAdvancedPage(
                         "Automatic downloads",
                         syncNetworkLabel(state.network),
                         state.canEdit,
+                        icon = pixelIcon(R.drawable.ic_pixel_clock),
                         onClick = onSchedule,
                     )
                 )
@@ -149,6 +159,7 @@ internal fun SyncSchedulePage(
                                 "Choose offline music",
                                 "Select music before enabling automatic downloads",
                                 enabled = state.canEdit && !state.running,
+                                icon = pixelIcon(R.drawable.ic_pixel_offline),
                                 onClick = onSetup,
                             )
                         )
@@ -159,6 +170,7 @@ internal fun SyncSchedulePage(
                             state.canEdit &&
                                     (state.nextStep == null || state.network != SyncNetwork.NEVER),
                             SyncNetwork.entries.map(::syncNetworkLabel),
+                            icon = pixelIcon(R.drawable.ic_pixel_wifi),
                             onChoose = { value ->
                                 onNetwork(
                                     SyncNetwork.entries.first { syncNetworkLabel(it) == value }
@@ -173,6 +185,7 @@ internal fun SyncSchedulePage(
                                 syncIntervals[state.interval] ?: "Every ${state.interval} hours",
                                 state.canEdit,
                                 syncIntervals.values.toList(),
+                                icon = pixelIcon(R.drawable.ic_pixel_clock),
                                 onChoose = { value ->
                                     onInterval(
                                         syncIntervals.entries.first { it.value == value }.key

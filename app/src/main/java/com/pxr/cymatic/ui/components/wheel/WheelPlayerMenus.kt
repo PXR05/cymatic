@@ -3,9 +3,11 @@ package com.pxr.cymatic.ui.components.wheel
 import androidx.compose.runtime.Composable
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.cycleRepeat
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.navigation.Screen
 import com.pxr.cymatic.ui.state.PlaybackState
@@ -27,6 +29,7 @@ internal fun WheelPlayerMenu(
                     NavigationItem(
                         "Shuffle",
                         subLabel = if (playback.isShuffling) "On" else "Off",
+                        icon = pixelIcon(R.drawable.ic_pixel_shuffle),
                         checked = playback.isShuffling,
                         onClick = { controller?.shuffleModeEnabled = !playback.isShuffling },
                     )
@@ -34,6 +37,7 @@ internal fun WheelPlayerMenu(
                 add(
                     NavigationItem(
                         "Repeat",
+                        icon = pixelIcon(R.drawable.ic_pixel_repeat),
                         checked = playback.repeatMode != Player.REPEAT_MODE_OFF,
                         subLabel =
                             when (playback.repeatMode) {
@@ -44,12 +48,25 @@ internal fun WheelPlayerMenu(
                         onClick = { controller?.cycleRepeat() },
                     )
                 )
-                add(NavigationItem("Current Queue", onClick = { state.open(Screen.Queue.route) }))
-                add(NavigationItem("Equalizer", onClick = { state.open(Screen.EQSettings.route) }))
+                add(
+                    NavigationItem(
+                        "Current Queue",
+                        icon = pixelIcon(R.drawable.ic_pixel_queue),
+                        onClick = { state.open(Screen.Queue.route) },
+                    )
+                )
+                add(
+                    NavigationItem(
+                        "Equalizer",
+                        icon = pixelIcon(R.drawable.ic_pixel_equalizer),
+                        onClick = { state.open(Screen.EQSettings.route) },
+                    )
+                )
                 if (trackActions) {
                     add(
                         NavigationItem(
                             "Add to Playlist",
+                            icon = pixelIcon(R.drawable.ic_pixel_add),
                             enabled = playback.currentMediaId?.toLongOrNull() != null,
                             onClick = {
                                 playback.currentMediaId?.toLongOrNull()?.let {
@@ -61,6 +78,7 @@ internal fun WheelPlayerMenu(
                     add(
                         NavigationItem(
                             "Track Info",
+                            icon = pixelIcon(R.drawable.ic_pixel_info),
                             enabled = playback.currentMediaId?.toLongOrNull() != null,
                             onClick = {
                                 playback.currentMediaId?.toLongOrNull()?.let {
@@ -72,11 +90,18 @@ internal fun WheelPlayerMenu(
                     add(
                         NavigationItem(
                             "Output info",
+                            icon = pixelIcon(R.drawable.ic_pixel_speaker),
                             onClick = { state.open(Screen.OutputInfo.route) },
                         )
                     )
                 }
-                add(NavigationItem("Return", onClick = state::back))
+                add(
+                    NavigationItem(
+                        "Return",
+                        icon = pixelIcon(R.drawable.ic_pixel_back),
+                        onClick = state::back,
+                    )
+                )
             }
         )
     }

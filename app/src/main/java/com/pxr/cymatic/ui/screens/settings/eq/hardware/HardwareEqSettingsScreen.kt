@@ -16,6 +16,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.audio.eq.dacProfile
 import com.pxr.cymatic.audio.eq.dacType
 import com.pxr.cymatic.data.model.EqBand
@@ -32,6 +33,7 @@ import com.pxr.cymatic.ui.components.eq.WheelEqBandEditor
 import com.pxr.cymatic.ui.components.eq.formatEqGain
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -78,6 +80,7 @@ internal fun HardwareEqSettingsScreen(
                                 NavigationItem(
                                     "EQ target",
                                     "USB DAC",
+                                    icon = pixelIcon(R.drawable.ic_pixel_usb),
                                     enabled = !state.busy,
                                     onClick = onPlayer,
                                 )
@@ -88,6 +91,7 @@ internal fun HardwareEqSettingsScreen(
                                     if (state.busy && state.progress > 0f)
                                         "${state.message} · ${(state.progress * 100).toInt()}%"
                                     else state.message,
+                                    icon = pixelIcon(R.drawable.ic_pixel_diamond),
                                     key = "dac-status",
                                     subLabelMaxLines = 2,
                                 ) {
@@ -100,6 +104,7 @@ internal fun HardwareEqSettingsScreen(
                                 add(
                                     NavigationItem(
                                         "Allow USB access",
+                                        icon = pixelIcon(R.drawable.ic_pixel_lock),
                                         enabled = !state.permissionPending && !state.busy,
                                         onClick = model::requestAccess,
                                     )
@@ -109,6 +114,7 @@ internal fun HardwareEqSettingsScreen(
                                     NavigationItem(
                                         "Preset",
                                         state.draft.name,
+                                        icon = pixelIcon(R.drawable.ic_pixel_sliders),
                                         enabled = !state.busy,
                                     ) {
                                         nav.navigate(Screen.HardwareEqPresets.route)
@@ -119,6 +125,7 @@ internal fun HardwareEqSettingsScreen(
                                         NavigationItem(
                                             "Preamp",
                                             formatEqGain(state.draft.preamp),
+                                            icon = pixelIcon(R.drawable.ic_pixel_speaker),
                                             enabled = editable,
                                         ) {
                                             number =
@@ -139,6 +146,7 @@ internal fun HardwareEqSettingsScreen(
                                     NavigationItem(
                                         "Bands",
                                         "${state.draft.bands.size} / ${target.caps.bands}",
+                                        icon = pixelIcon(R.drawable.ic_pixel_equalizer),
                                         enabled = !state.busy,
                                     ) {
                                         nav.navigate(Screen.HardwareEqBands.route)
@@ -148,6 +156,7 @@ internal fun HardwareEqSettingsScreen(
                                     add(
                                         NavigationItem(
                                             "Verify saved EQ",
+                                            icon = pixelIcon(R.drawable.ic_pixel_check),
                                             enabled = !state.busy && state.permission,
                                             onClick = model::readDac,
                                         )
@@ -157,6 +166,7 @@ internal fun HardwareEqSettingsScreen(
                                         NavigationItem(
                                             "Apply to DAC",
                                             if (state.onDac) "Applied" else null,
+                                            icon = pixelIcon(R.drawable.ic_pixel_save),
                                             enabled = state.canApply,
                                         ) {
                                             confirmApply = true
@@ -167,6 +177,7 @@ internal fun HardwareEqSettingsScreen(
                                         NavigationItem(
                                             "Cannot apply",
                                             state.issues.first(),
+                                            icon = pixelIcon(R.drawable.ic_pixel_warning),
                                             subLabelMaxLines = 2,
                                         ) {
                                             nav.navigate(Screen.HardwareEqIssues.route)
@@ -178,7 +189,11 @@ internal fun HardwareEqSettingsScreen(
                         Screen.HardwareEqPresets.route -> {
                             if (state.devices.size > 1)
                                 add(
-                                    NavigationItem("Select DAC", enabled = !state.busy) {
+                                    NavigationItem(
+                                        "Select DAC",
+                                        icon = pixelIcon(R.drawable.ic_pixel_usb),
+                                        enabled = !state.busy,
+                                    ) {
                                         chooseDevice = true
                                     }
                                 )
@@ -186,6 +201,7 @@ internal fun HardwareEqSettingsScreen(
                             add(
                                 NavigationItem(
                                     "Load from DAC",
+                                    icon = pixelIcon(R.drawable.ic_pixel_download),
                                     enabled = !state.busy && state.permission,
                                 ) {
                                     if (state.pendingVerification) model.readDac()
@@ -193,12 +209,20 @@ internal fun HardwareEqSettingsScreen(
                                 }
                             )
                             add(
-                                NavigationItem("Load preset", enabled = editable) {
+                                NavigationItem(
+                                    "Load preset",
+                                    icon = pixelIcon(R.drawable.ic_pixel_folder),
+                                    enabled = editable,
+                                ) {
                                     choosePreset = true
                                 }
                             )
                             add(
-                                NavigationItem("Save as preset", enabled = editable) {
+                                NavigationItem(
+                                    "Save as preset",
+                                    icon = pixelIcon(R.drawable.ic_pixel_save),
+                                    enabled = editable,
+                                ) {
                                     savePreset = true
                                 }
                             )
@@ -206,7 +230,10 @@ internal fun HardwareEqSettingsScreen(
 
                         Screen.HardwareEqBands.route -> {
                             add(
-                                NavigationItem("Response graph") {
+                                NavigationItem(
+                                    "Response graph",
+                                    icon = pixelIcon(R.drawable.ic_pixel_graph),
+                                ) {
                                     nav.navigate(Screen.HardwareEqGraphPage.route)
                                 }
                             )
@@ -217,6 +244,7 @@ internal fun HardwareEqSettingsScreen(
                                         if (!band.enabled) "Off · ${band.type.displayName}"
                                         else
                                             "${band.frequency.toInt()} Hz · ${formatEqGain(band.gain)} · ${band.type.displayName}",
+                                        icon = pixelIcon(R.drawable.ic_pixel_sliders),
                                         key = "dac-band-${band.id}",
                                         enabled = editable,
                                     ) {
@@ -227,6 +255,7 @@ internal fun HardwareEqSettingsScreen(
                             add(
                                 NavigationItem(
                                     "Add band",
+                                    icon = pixelIcon(R.drawable.ic_pixel_add),
                                     enabled =
                                         editable &&
                                                 state.draft.bands.size < (target?.caps?.bands ?: 0),

@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.audio.usb.UsbPlaybackState
 import com.pxr.cymatic.audio.usb.dsdSettingsKey
 import com.pxr.cymatic.data.store.DsdUsbMode
@@ -26,6 +27,7 @@ import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -93,6 +95,7 @@ internal fun UsbSettingsScreen(
                         NavigationItem(
                             "Direct USB",
                             playbackLabel,
+                            icon = pixelIcon(R.drawable.ic_pixel_usb),
                             enabled = !state.probing,
                             checked = enabled,
                         ) {
@@ -104,6 +107,7 @@ internal fun UsbSettingsScreen(
                             "Background playback",
                             if (batteryExempt) "Unrestricted · keeps playing when hidden"
                             else "Battery optimized · may stop when hidden",
+                            icon = pixelIcon(R.drawable.ic_pixel_battery),
                             key = "background-playback",
                         ) {
                             if (batteryExempt) BackgroundPlaybackGuide.openBatterySettings(context)
@@ -114,6 +118,7 @@ internal fun UsbSettingsScreen(
                         NavigationItem(
                             "Device steps",
                             "${BackgroundPlaybackGuide.manufacturerLabel()} · keep Cymatic alive",
+                            icon = pixelIcon(R.drawable.ic_pixel_device),
                             key = "background-steps",
                         ) {
                             nav.navigate(Screen.BackgroundPlaybackHelp.route)
@@ -124,6 +129,7 @@ internal fun UsbSettingsScreen(
                             NavigationItem(
                                 "DAC",
                                 if (state.inspecting) "Searching" else "Not connected",
+                                icon = pixelIcon(R.drawable.ic_pixel_diamond),
                                 enabled = false,
                             )
                         )
@@ -139,6 +145,7 @@ internal fun UsbSettingsScreen(
                                     !device.permission -> "Allow USB access"
                                     else -> "Connected · ${device.protocolLabel()}"
                                 },
+                                icon = pixelIcon(R.drawable.ic_pixel_diamond),
                                 key = device.device.deviceName,
                                 enabled = canOperate,
                             ) {
@@ -159,6 +166,7 @@ internal fun UsbSettingsScreen(
                                 NavigationItem(
                                     "DSD output",
                                     mode.label,
+                                    icon = pixelIcon(R.drawable.ic_pixel_wave),
                                     key = "dsd-${device.device.deviceName}",
                                     enabled = canOperate,
                                 ) {
@@ -185,6 +193,7 @@ internal fun UsbSettingsScreen(
                                 NavigationItem(
                                     "Check DAC",
                                     checkLabel,
+                                    icon = pixelIcon(R.drawable.ic_pixel_check),
                                     key = "check-${device.device.deviceName}",
                                     enabled = canOperate && (controller != null || !active),
                                 ) {
@@ -196,12 +205,20 @@ internal fun UsbSettingsScreen(
                         }
                     }
                     if (state.probing) {
-                        add(NavigationItem("Cancel", "Stop check", onClick = model::cancelProbe))
+                        add(
+                            NavigationItem(
+                                "Cancel",
+                                "Stop check",
+                                icon = pixelIcon(R.drawable.ic_pixel_close),
+                                onClick = model::cancelProbe,
+                            )
+                        )
                     }
                     add(
                         NavigationItem(
                             "Refresh",
                             if (state.inspecting) "Updating" else "Update connected DACs",
+                            icon = pixelIcon(R.drawable.ic_pixel_refresh),
                             enabled = canOperate,
                             onClick = model::refresh,
                         )
@@ -210,6 +227,7 @@ internal fun UsbSettingsScreen(
                         NavigationItem(
                             "Export",
                             if (state.exporting) "Saving" else "Save full report",
+                            icon = pixelIcon(R.drawable.ic_pixel_upload),
                             enabled = report != null && canOperate && !state.exporting,
                         ) {
                             if (model.prepareExport()) export.launch("cymatic-usb-diagnostics.json")

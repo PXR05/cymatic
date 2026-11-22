@@ -6,12 +6,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.licenses.LicenseCatalog
 import com.pxr.cymatic.data.licenses.LicenseGroup
 import com.pxr.cymatic.ui.components.common.ReadingDocument
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -58,7 +60,10 @@ internal fun LicensesSettingsScreen(
                     LicenseGroup.entries
                         .filter { it != LicenseGroup.ROOT }
                         .map { choice ->
-                            NavigationItem(choice.title) {
+                            NavigationItem(
+                                choice.title,
+                                icon = pixelIcon(R.drawable.ic_pixel_document),
+                            ) {
                                 nav.navigate(Screen.LicenseGroupPage.createRoute(choice.name))
                             }
                         }

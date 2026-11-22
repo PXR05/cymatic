@@ -12,11 +12,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.model.LibrarySourceFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.pixelIcon
 
 internal fun sourceFilterLabel(
     sourceFilter: LibrarySourceFilter,
@@ -53,9 +55,16 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
 
     val items = buildList {
         LibraryFilter.entries.forEach { filter ->
+            val iconRes =
+                when (filter) {
+                    LibraryFilter.ALL -> R.drawable.ic_pixel_music_note
+                    LibraryFilter.OFFLINE -> R.drawable.ic_pixel_offline
+                    LibraryFilter.NOT_OFFLINE -> R.drawable.ic_pixel_stream
+                }
             add(
                 NavigationItem(
                     label = filter.label,
+                    icon = pixelIcon(iconRes),
                     checked = filter == selected,
                     key = "availability_${filter.value}",
                     onClick = {
@@ -77,6 +86,7 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
             add(
                 NavigationItem(
                     label = "All sources",
+                    icon = pixelIcon(R.drawable.ic_pixel_filter),
                     checked = selectedSource == LibrarySourceFilter.All,
                     key = "source_all",
                     onClick = {
@@ -88,6 +98,7 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
             add(
                 NavigationItem(
                     label = "This device",
+                    icon = pixelIcon(R.drawable.ic_pixel_device),
                     checked = selectedSource == LibrarySourceFilter.Local,
                     key = "source_local",
                     onClick = {
@@ -101,6 +112,7 @@ fun LibraryFilterMenu(onDismiss: () -> Unit, onSelected: () -> Unit = onDismiss)
                 add(
                     NavigationItem(
                         label = config.displayName,
+                        icon = pixelIcon(R.drawable.ic_pixel_server),
                         checked = selectedSource == filter,
                         key = "source_${config.id}",
                         onClick = {

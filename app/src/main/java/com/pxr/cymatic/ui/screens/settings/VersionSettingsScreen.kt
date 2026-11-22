@@ -23,9 +23,11 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -129,6 +131,7 @@ internal fun VersionSettingsScreen(
                         NavigationItem(
                             "Current version",
                             "${currentVersion.name} (${currentVersion.code})",
+                            icon = pixelIcon(R.drawable.ic_pixel_tag),
                             enabled = false,
                         )
                     )
@@ -136,15 +139,30 @@ internal fun VersionSettingsScreen(
                         NavigationItem(
                             "Check updates",
                             if (model.isChecking) "Checking" else null,
+                            icon = pixelIcon(R.drawable.ic_pixel_refresh),
                             enabled = !model.isChecking,
                             onClick = ::checkUpdates,
                         )
                     )
                     model.latestRelease?.let { release ->
-                        add(NavigationItem("Latest version", release.versionName, enabled = false))
-                        add(NavigationItem("GitHub") { openUrl(context, release.versionUrl) })
                         add(
-                            NavigationItem("Changelog") {
+                            NavigationItem(
+                                "Latest version",
+                                release.versionName,
+                                icon = pixelIcon(R.drawable.ic_pixel_tag),
+                                enabled = false,
+                            )
+                        )
+                        add(
+                            NavigationItem("GitHub", icon = pixelIcon(R.drawable.ic_pixel_github)) {
+                                openUrl(context, release.versionUrl)
+                            }
+                        )
+                        add(
+                            NavigationItem(
+                                "Changelog",
+                                icon = pixelIcon(R.drawable.ic_pixel_document),
+                            ) {
                                 navController.navigate(Screen.Changelog.route)
                             }
                         )
@@ -153,6 +171,7 @@ internal fun VersionSettingsScreen(
                                 "Download",
                                 if (release.apkUrl == null) "No APK available"
                                 else model.downloadStatus,
+                                icon = pixelIcon(R.drawable.ic_pixel_download),
                                 enabled = release.apkUrl != null && model.downloadId == null,
                             ) {
                                 download(release)
@@ -161,7 +180,10 @@ internal fun VersionSettingsScreen(
                     }
                     if (model.downloadedApkUri != null)
                         add(
-                            NavigationItem("Install update") {
+                            NavigationItem(
+                                "Install update",
+                                icon = pixelIcon(R.drawable.ic_pixel_check),
+                            ) {
                                 installApk(
                                     context,
                                     model.downloadedApkUri,
@@ -169,7 +191,14 @@ internal fun VersionSettingsScreen(
                             }
                         )
                     model.errorMessage?.let {
-                        add(NavigationItem("Update status", it, enabled = false))
+                        add(
+                            NavigationItem(
+                                "Update status",
+                                it,
+                                icon = pixelIcon(R.drawable.ic_pixel_warning),
+                                enabled = false,
+                            )
+                        )
                     }
                 }
             )

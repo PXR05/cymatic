@@ -7,8 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 
 internal fun wheelContextMenuItems(
@@ -17,7 +19,12 @@ internal fun wheelContextMenuItems(
 ): List<NavigationItem> =
     items.mapIndexed { index, item ->
         item.copy(key = "wheel-menu:$index:${item.key ?: item.label}")
-    } + NavigationItem("Cancel", key = "wheel-menu:cancel", onClick = onDismiss)
+    } + NavigationItem(
+        "Cancel",
+        icon = pixelIcon(R.drawable.ic_pixel_close),
+        key = "wheel-menu:cancel",
+        onClick = onDismiss,
+    )
 
 @Composable
 fun WheelContextMenu(
@@ -69,7 +76,15 @@ fun WheelConfirmationMenu(
 ) {
     WheelContextMenu(
         title,
-        listOf(NavigationItem("Confirm", text, subLabelMaxLines = 8, onClick = onConfirm)),
+        listOf(
+            NavigationItem(
+                "Confirm",
+                text,
+                icon = pixelIcon(R.drawable.ic_pixel_check),
+                subLabelMaxLines = 8,
+                onClick = onConfirm,
+            )
+        ),
         onDismiss,
     )
 }

@@ -29,9 +29,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.common.EditorSubmitHint
 import com.pxr.cymatic.ui.components.common.submitOnEnter
 import com.pxr.cymatic.ui.components.list.ListItem
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
 @Composable
 internal fun SetupListItem(
@@ -39,8 +42,10 @@ internal fun SetupListItem(
     selected: Boolean,
     trailing: String? = null,
     subLabel: String? = null,
+    icon: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val showIcons = LocalInterfaceSettings.current.showIcons
     ListItem(
         modifier =
             Modifier
@@ -48,7 +53,18 @@ internal fun SetupListItem(
                 .revealWhenSelected(selected),
         label = label,
         subLabel = subLabel,
-        trailing = trailing,
+        icon = icon,
+        trailing = if (showIcons && trailing == ">") null else trailing,
+        trailingContent =
+            if (showIcons && trailing == ">") {
+                { color ->
+                    PixelIcon(
+                        resId = R.drawable.ic_pixel_chevron_right,
+                        size = 14.dp,
+                        tint = color,
+                    )
+                }
+            } else null,
         isActive = selected,
         onClick = onClick,
     )

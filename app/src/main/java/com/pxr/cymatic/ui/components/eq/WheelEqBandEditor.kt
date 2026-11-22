@@ -5,10 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.EqBand
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import java.util.Locale
 import kotlin.math.exp
@@ -34,14 +36,27 @@ internal fun WheelEqBandEditor(
                     NavigationItem(
                         "Enabled",
                         if (band.enabled) "On" else "Off",
+                        icon = pixelIcon(R.drawable.ic_pixel_power),
                         checked = band.enabled,
                     ) {
                         onChange(band.copy(enabled = !band.enabled))
                     }
                 )
-                add(NavigationItem("Type", band.type.displayName) { types = true })
                 add(
-                    NavigationItem("Frequency", "${band.frequency.toInt()} Hz") {
+                    NavigationItem(
+                        "Type",
+                        band.type.displayName,
+                        icon = pixelIcon(R.drawable.ic_pixel_sliders),
+                    ) {
+                        types = true
+                    }
+                )
+                add(
+                    NavigationItem(
+                        "Frequency",
+                        "${band.frequency.toInt()} Hz",
+                        icon = pixelIcon(R.drawable.ic_pixel_wave),
+                    ) {
                         number =
                             EqNumberEdit(
                                 "Frequency",
@@ -58,7 +73,11 @@ internal fun WheelEqBandEditor(
                 )
                 if (limits.showGain)
                     add(
-                        NavigationItem("Gain", formatEqGain(band.gain)) {
+                        NavigationItem(
+                            "Gain",
+                            formatEqGain(band.gain),
+                            icon = pixelIcon(R.drawable.ic_pixel_speaker),
+                        ) {
                             number =
                                 EqNumberEdit(
                                     "Gain",
@@ -72,7 +91,11 @@ internal fun WheelEqBandEditor(
                         }
                     )
                 add(
-                    NavigationItem("Q", String.format(Locale.US, "%.1f", band.q)) {
+                    NavigationItem(
+                        "Q",
+                        String.format(Locale.US, "%.1f", band.q),
+                        icon = pixelIcon(R.drawable.ic_pixel_graph),
+                    ) {
                         number =
                             EqNumberEdit(
                                 "Q",
@@ -85,7 +108,14 @@ internal fun WheelEqBandEditor(
                             }
                     }
                 )
-                add(NavigationItem("Remove band", enabled = canRemove, onClick = onRemove))
+                add(
+                    NavigationItem(
+                        "Remove band",
+                        icon = pixelIcon(R.drawable.ic_pixel_delete),
+                        enabled = canRemove,
+                        onClick = onRemove,
+                    )
+                )
             }
         )
     }

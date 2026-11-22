@@ -563,20 +563,29 @@ internal fun SetupPage(
                             label = label,
                             selected = index == tutorialIndex,
                             trailing = ">",
+                            icon = com.pxr.cymatic.ui.components.pixelIcon(com.pxr.cymatic.R.drawable.ic_pixel_folder),
                         ) {
                             model.openTutorialFolder(index)
                         }
                     }
 
                 MusicSetupStep.BACK -> {
-                    SetupListItem(label = "Back to folders", selected = false) {
+                    SetupListItem(
+                        label = "Back to folders",
+                        selected = false,
+                        icon = com.pxr.cymatic.ui.components.pixelIcon(com.pxr.cymatic.R.drawable.ic_pixel_back),
+                    ) {
                         model.back()
                     }
                 }
 
                 MusicSetupStep.BROWSE -> {
                     MusicSetupTutorial.items(state.tutorialFolder).forEachIndexed { index, label ->
-                        SetupListItem(label, selected = index == tutorialIndex) {
+                        SetupListItem(
+                            label,
+                            selected = index == tutorialIndex,
+                            icon = com.pxr.cymatic.ui.components.pixelIcon(com.pxr.cymatic.R.drawable.ic_pixel_music_note),
+                        ) {
                             model.selectTutorialItem(index)
                         }
                     }
@@ -599,6 +608,7 @@ internal fun SetupPage(
                         selected = sourceIndex == 0,
                         trailing = ">",
                         subLabel = "Device files",
+                        icon = com.pxr.cymatic.ui.components.pixelIcon(com.pxr.cymatic.R.drawable.ic_pixel_device),
                     ) {
                         model.choose(MusicSetupStep.DEVICE)
                     }
@@ -607,6 +617,7 @@ internal fun SetupPage(
                         selected = sourceIndex == 1,
                         trailing = ">",
                         subLabel = "Remote library",
+                        icon = com.pxr.cymatic.ui.components.pixelIcon(com.pxr.cymatic.R.drawable.ic_pixel_server),
                     ) {
                         model.choose(MusicSetupStep.ADDRESS)
                     }

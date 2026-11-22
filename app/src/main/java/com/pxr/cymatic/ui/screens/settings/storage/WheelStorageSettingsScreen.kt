@@ -13,11 +13,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.syncAudioFilesToDb
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -59,6 +61,7 @@ internal fun WheelStorageSettingsScreen(
                     NavigationItem(
                         "Scan status",
                         result ?: if (scanning) "Scanning" else "Last scan details",
+                        icon = pixelIcon(R.drawable.ic_pixel_info),
                     ) {
                         nav.navigate(Screen.ScanStatus.route)
                     }
@@ -68,6 +71,7 @@ internal fun WheelStorageSettingsScreen(
                         NavigationItem(
                             "Grant permission",
                             "Storage access required",
+                            icon = pixelIcon(R.drawable.ic_pixel_lock),
                             onClick = onGrantPermission,
                         )
                     )
@@ -75,6 +79,7 @@ internal fun WheelStorageSettingsScreen(
                     NavigationItem(
                         "Scan all media",
                         if (scanAll) "On" else "Off",
+                        icon = pixelIcon(R.drawable.ic_pixel_storage),
                         enabled = !scanning,
                         checked = scanAll,
                     ) {
@@ -85,6 +90,7 @@ internal fun WheelStorageSettingsScreen(
                     NavigationItem(
                         "Rescan",
                         if (scanning) "Scanning" else "Refresh local music",
+                        icon = pixelIcon(R.drawable.ic_pixel_refresh),
                         enabled = !scanning,
                     ) {
                         scanning = true
@@ -108,13 +114,22 @@ internal fun WheelStorageSettingsScreen(
                         }
                     }
                 )
-                add(NavigationItem("Add directory", enabled = !scanning) { picker.launch(null) })
+                add(
+                    NavigationItem(
+                        "Add directory",
+                        icon = pixelIcon(R.drawable.ic_pixel_folder_add),
+                        enabled = !scanning,
+                    ) {
+                        picker.launch(null)
+                    }
+                )
                 directories.forEach { directory ->
                     add(
                         NavigationItem(
                             Uri.parse(directory).lastPathSegment?.substringAfterLast(':')
                                 ?: directory,
                             "Select to remove",
+                            icon = pixelIcon(R.drawable.ic_pixel_folder),
                             enabled = !scanning,
                             key = directory,
                         ) {
@@ -129,7 +144,7 @@ internal fun WheelStorageSettingsScreen(
         WheelContextMenu(
             "Remove directory?",
             listOf(
-                NavigationItem("Remove") {
+                NavigationItem("Remove", icon = pixelIcon(R.drawable.ic_pixel_delete)) {
                     scope.launch { SettingsStore.removeScanDirectory(directory) }
                     removeDirectory = null
                 }

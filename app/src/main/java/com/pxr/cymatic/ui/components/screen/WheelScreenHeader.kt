@@ -24,6 +24,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.PixelIcon
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
 val LocalScreenHeaderStatus = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
@@ -80,12 +83,21 @@ fun WheelScreenHeader(
                             .padding(horizontal = 24.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(
-                            "<",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                        if (LocalInterfaceSettings.current.showIcons) {
+                            PixelIcon(
+                                resId = R.drawable.ic_pixel_chevron_left,
+                                contentDescription = "Back",
+                                size = 14.dp,
+                                tint = MaterialTheme.colorScheme.onBackground,
+                            )
+                        } else {
+                            Text(
+                                "<",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 } else {
                     val homeModifier = if (onMenuLongClick != null) {

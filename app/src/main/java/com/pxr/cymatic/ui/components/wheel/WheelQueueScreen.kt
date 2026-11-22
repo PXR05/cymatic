@@ -5,11 +5,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.state.rememberPlaybackState
@@ -28,14 +31,17 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                 message = "Choose a song from your library or playlists.",
             )
         } else {
+            val showIcons = LocalInterfaceSettings.current.showIcons
             NavigationList(
                 playback.queue.items.mapIndexed { index, entry ->
                     val metadata = entry.mediaItem.mediaMetadata
-                    val marker = if (index == playback.queue.currentIndex) "▶ " else ""
+                    val isCurrent = index == playback.queue.currentIndex
+                    val marker = if (isCurrent && !showIcons) "▶ " else ""
                     val title = metadata.title ?: "Unknown Title"
                     NavigationItem(
                         label = "$marker${index + 1}. $title",
                         subLabel = metadata.artist?.toString(),
+                        icon = if (isCurrent) pixelIcon(R.drawable.ic_pixel_play) else null,
                         subLabelMaxLines = 1,
                         showIndicator = false,
                         onClick = {
@@ -58,6 +64,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                     add(
                         NavigationItem(
                             "Play now",
+                            icon = pixelIcon(R.drawable.ic_pixel_play),
                             onClick = {
                                 controller?.seekTo(index, 0L)
                                 controller?.play()
@@ -70,6 +77,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                             add(
                                 NavigationItem(
                                     "Move up",
+                                    icon = pixelIcon(R.drawable.ic_pixel_arrow_up),
                                     onClick = {
                                         controller?.moveMediaItem(index, index - 1)
                                         selectedIndex = null
@@ -81,6 +89,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                             add(
                                 NavigationItem(
                                     "Move down",
+                                    icon = pixelIcon(R.drawable.ic_pixel_arrow_down),
                                     onClick = {
                                         controller?.moveMediaItem(index, index + 1)
                                         selectedIndex = null
@@ -92,6 +101,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                     add(
                         NavigationItem(
                             "Remove from queue",
+                            icon = pixelIcon(R.drawable.ic_pixel_delete),
                             onClick = {
                                 controller?.removeMediaItem(index)
                                 selectedIndex = null
@@ -101,6 +111,7 @@ internal fun WheelQueueScreen(onNowPlaying: () -> Unit) {
                     add(
                         NavigationItem(
                             "Clear queue",
+                            icon = pixelIcon(R.drawable.ic_pixel_close),
                             onClick = {
                                 controller?.clearMediaItems()
                                 selectedIndex = null

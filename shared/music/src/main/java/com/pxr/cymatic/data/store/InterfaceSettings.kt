@@ -25,6 +25,7 @@ data class InterfaceSettings(
     val screenAwakeMode: ScreenAwakeMode = ScreenAwakeMode.NEVER,
     val standbyTimeoutMs: Long = 0L,
     val screenPaddingDp: Float = 18f,
+    val showIcons: Boolean = true,
 )
 
 private val GesturePauseKey = longPreferencesKey("WHEEL_GESTURE_PAUSE_MS")
@@ -36,6 +37,7 @@ private val CoverDefaultKey = booleanPreferencesKey("WHEEL_COVER_VISIBLE_DEFAULT
 private val ScreenAwakeKey = stringPreferencesKey("INTERFACE_SCREEN_AWAKE_MODE")
 private val StandbyTimeoutKey = longPreferencesKey("INTERFACE_STANDBY_TIMEOUT_MS")
 private val ScreenPaddingKey = floatPreferencesKey("WHEEL_SCREEN_PADDING_DP")
+private val ShowIconsKey = booleanPreferencesKey("INTERFACE_SHOW_ICONS")
 
 private fun readInterfaceSettings(prefs: Preferences?): InterfaceSettings {
     val defaults = InterfaceSettings()
@@ -58,6 +60,7 @@ private fun readInterfaceSettings(prefs: Preferences?): InterfaceSettings {
             },
         screenPaddingDp =
             (prefs?.get(ScreenPaddingKey) ?: defaults.screenPaddingDp).coerceIn(0f, 48f),
+        showIcons = prefs?.get(ShowIconsKey) ?: defaults.showIcons,
     )
 }
 
@@ -93,6 +96,10 @@ suspend fun SettingsStore.setTextScrollDelayMs(value: Long) {
 
 suspend fun SettingsStore.setCoverVisibleByDefault(value: Boolean) {
     store.edit { it[CoverDefaultKey] = value }
+}
+
+suspend fun SettingsStore.setShowIcons(value: Boolean) {
+    store.edit { it[ShowIconsKey] = value }
 }
 
 suspend fun SettingsStore.setScreenAwakeMode(value: ScreenAwakeMode) {

@@ -42,10 +42,14 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.R
+import com.pxr.cymatic.ui.components.PixelIcon
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.theme.CymaticTheme
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -111,10 +115,18 @@ fun EmptyState(
     title: String = "NO CONTENT",
     message: String = "There is nothing to show here at the moment.",
     iconText: String = "( ! )",
+    @DrawableRes iconRes: Int? = null,
     actionLabel: String? = null,
     onActionClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val resolvedIcon =
+        iconRes
+            ?: when (iconText) {
+                "( ? )" -> R.drawable.ic_pixel_help
+                "[ X ]" -> R.drawable.ic_pixel_close
+                else -> R.drawable.ic_pixel_warning
+            }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -125,13 +137,21 @@ fun EmptyState(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = iconText,
-                fontSize = 32.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.headlineLarge,
-                textAlign = TextAlign.Center,
-            )
+            if (LocalInterfaceSettings.current.showIcons) {
+                PixelIcon(
+                    resId = resolvedIcon,
+                    size = 36.dp,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            } else {
+                Text(
+                    text = iconText,
+                    fontSize = 32.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = title.uppercase(),
@@ -195,6 +215,7 @@ fun PermissionDeniedState(
         title = "PERMISSION REQUIRED",
         message = "Cymatic needs storage permission to scan and play audio files on your device.",
         iconText = "[ ! ]",
+        iconRes = R.drawable.ic_pixel_lock,
         actionLabel = "GRANT PERMISSION",
         onActionClick = onGrantClick,
         modifier = modifier,

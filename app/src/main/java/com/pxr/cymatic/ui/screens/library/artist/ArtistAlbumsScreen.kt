@@ -10,10 +10,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.sync.LibraryOfflineManager
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LibraryContextMenu
@@ -107,6 +109,7 @@ fun ArtistAlbumsScreen(
                         listOf(
                             NavigationItem(
                                 label = "All",
+                                icon = pixelIcon(R.drawable.ic_pixel_music_note),
                                 trailingContent = { color ->
                                     LibraryGroupIndicator(artistGroup, color)
                                 },

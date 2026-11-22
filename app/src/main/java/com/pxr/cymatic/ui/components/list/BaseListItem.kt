@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -104,7 +105,7 @@ fun ListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        if (icon != null) {
+        if (icon != null && LocalInterfaceSettings.current.showIcons) {
             Box(modifier = Modifier.padding(end = 16.dp)) {
                 CompositionLocalProvider(LocalContentColor provides labelColor) { icon() }
             }

@@ -28,11 +28,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.R
 import com.pxr.cymatic.audio.resolveActiveOutput
 import com.pxr.cymatic.data.store.EqSettingsStore
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -178,19 +180,27 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
     ) {
         NavigationList(
             listOf(
-                NavigationItem("Audio output", activeDevice.label) { openOutputSwitcher() },
-                NavigationItem("USB audio") {
+                NavigationItem(
+                    "Audio output",
+                    activeDevice.label,
+                    icon = pixelIcon(R.drawable.ic_pixel_speaker),
+                ) {
+                    openOutputSwitcher()
+                },
+                NavigationItem("USB audio", icon = pixelIcon(R.drawable.ic_pixel_usb)) {
                     navController.navigate(Screen.UsbSettings.route)
                 },
                 NavigationItem(
                     "App notifications",
                     if (notificationsAllowed) "Allowed" else "Off",
+                    icon = pixelIcon(R.drawable.ic_pixel_bell),
                 ) {
                     openNotificationSettings()
                 },
                 NavigationItem(
                     "Auto-resume",
                     if (resumeOnBt) "On" else "Off",
+                    icon = pixelIcon(R.drawable.ic_pixel_repeat),
                     checked = resumeOnBt,
                 ) {
                     scope.launch { SettingsStore.setResumeOnBluetoothReconnect(!resumeOnBt) }
@@ -198,6 +208,7 @@ fun PlaybackSettingsScreen(modifier: Modifier = Modifier) {
                 NavigationItem(
                     "Fade in / out",
                     if (fadeEnabled) "On" else "Off",
+                    icon = pixelIcon(R.drawable.ic_pixel_wave),
                     checked = fadeEnabled,
                 ) {
                     scope.launch { SettingsStore.setFadeEnabled(!fadeEnabled) }

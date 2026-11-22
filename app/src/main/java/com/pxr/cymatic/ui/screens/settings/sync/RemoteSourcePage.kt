@@ -5,9 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.pxr.cymatic.R
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.pixelIcon
 
 private val streamingQualityOptions =
     listOf(
@@ -49,6 +51,7 @@ internal fun RemoteSourcePage(
                                     "Sign in to load this library"
                                 },
                             enabled = state.canEdit,
+                            icon = pixelIcon(if (state.connected) R.drawable.ic_pixel_link else R.drawable.ic_pixel_key),
                             onClick = onConnection,
                         )
                     )
@@ -63,6 +66,7 @@ internal fun RemoteSourcePage(
                                             "${it.tracks.size} songs · ${it.playlists.size} playlists"
                                         } ?: "Load songs and playlists",
                                 enabled = !state.saving,
+                                icon = pixelIcon(R.drawable.ic_pixel_music_note),
                                 onClick = onLibrary,
                             )
                         )
@@ -71,6 +75,7 @@ internal fun RemoteSourcePage(
                                 title = "Downloads",
                                 detail = state.musicLabel,
                                 enabled = state.canEdit,
+                                icon = pixelIcon(R.drawable.ic_pixel_download),
                                 onClick = { showDownloadsMenu = true },
                             )
                         )
@@ -82,6 +87,7 @@ internal fun RemoteSourcePage(
                                         if (state.refreshingCatalog) "Loading playlists…"
                                         else "${state.selection.size} selected",
                                     enabled = state.canEdit,
+                                    icon = pixelIcon(R.drawable.ic_pixel_playlist),
                                     onClick = onPlaylists,
                                 )
                             )
@@ -99,6 +105,7 @@ internal fun RemoteSourcePage(
                                     enabled = state.canEdit,
                                     options = streamingQualityOptions.map { it.first },
                                     selectedOption = currentLabel,
+                                    icon = pixelIcon(R.drawable.ic_pixel_wifi),
                                     onChoose = { chosen ->
                                         val (metered, kbps) =
                                             streamingQualityOptions.first { it.first == chosen }.second
@@ -115,6 +122,7 @@ internal fun RemoteSourcePage(
                             enabled = state.canEdit,
                             options = listOf("On", "Off"),
                             selectedOption = if (state.enabled) "On" else "Off",
+                            icon = pixelIcon(R.drawable.ic_pixel_power),
                             onChoose = { onToggleEnabled(it == "On") },
                         )
                     )
@@ -123,6 +131,7 @@ internal fun RemoteSourcePage(
                             title = "Remove library",
                             detail = "Disconnect and delete cached metadata",
                             enabled = !state.saving,
+                            icon = pixelIcon(R.drawable.ic_pixel_delete),
                             onClick = onRemove,
                         )
                     )
@@ -164,6 +173,7 @@ internal fun RemoteSourcePage(
                                         else ->
                                             "Save ${state.musicLabel.lowercase()} for offline playback"
                                     },
+                                icon = pixelIcon(R.drawable.ic_pixel_download),
                                 enabled = state.canEdit,
                                 onClick = {
                                     showDownloadsMenu = false

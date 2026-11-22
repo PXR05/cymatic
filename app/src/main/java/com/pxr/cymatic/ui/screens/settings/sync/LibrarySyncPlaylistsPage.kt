@@ -18,9 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
 
@@ -95,22 +97,38 @@ internal fun SyncPlaylistsPage(
         WheelContextMenu(
             "Playlists",
             listOf(
-                NavigationItem("Select all", enabled = enabled) {
+                NavigationItem(
+                    "Select all",
+                    icon = pixelIcon(R.drawable.ic_pixel_check),
+                    enabled = enabled,
+                ) {
                     onChange(ids)
                     showActions = false
                 },
-                NavigationItem("Clear selection", enabled = enabled) {
+                NavigationItem(
+                    "Clear selection",
+                    icon = pixelIcon(R.drawable.ic_pixel_close),
+                    enabled = enabled,
+                ) {
                     onChange(emptySet())
                     showActions = false
                 },
-                NavigationItem("Reload playlists", enabled = !state.running && !state.saving) {
+                NavigationItem(
+                    "Reload playlists",
+                    icon = pixelIcon(R.drawable.ic_pixel_refresh),
+                    enabled = !state.running && !state.saving,
+                ) {
                     onRefresh()
                     showActions = false
                 },
-                NavigationItem("Done", enabled = !state.saving) {
+                NavigationItem(
+                    "Done",
+                    icon = pixelIcon(R.drawable.ic_pixel_check),
+                    enabled = !state.saving,
+                ) {
                     onDismiss()
                 },
-                NavigationItem("Help") {
+                NavigationItem("Help", icon = pixelIcon(R.drawable.ic_pixel_help)) {
                     nav.navigate(Screen.SyncHelp.route)
                 },
             ),

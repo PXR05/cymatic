@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.EqPreset
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
@@ -20,6 +21,7 @@ import com.pxr.cymatic.ui.components.eq.WheelEqBandEditor
 import com.pxr.cymatic.ui.components.eq.formatEqGain
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -53,6 +55,7 @@ internal fun WheelEqSettingsScreen(
                         NavigationItem(
                             "EQ target",
                             "Player",
+                            icon = pixelIcon(R.drawable.ic_pixel_device),
                             onClick = onHardwareEq,
                         )
                     )
@@ -60,19 +63,35 @@ internal fun WheelEqSettingsScreen(
                         NavigationItem(
                             "Enabled",
                             if (state.eqEnabled) "On" else "Off",
+                            icon = pixelIcon(R.drawable.ic_pixel_power),
                             checked = state.eqEnabled,
                         ) {
                             viewModel.setEnabled(!state.eqEnabled)
                         }
                     )
                     add(
-                        NavigationItem("Preset", state.selectedPresetName) {
+                        NavigationItem(
+                            "Preset",
+                            state.selectedPresetName,
+                            icon = pixelIcon(R.drawable.ic_pixel_sliders),
+                        ) {
                             nav.navigate(Screen.EqPresets.route)
                         }
                     )
-                    add(NavigationItem("Response graph") { nav.navigate(Screen.EqGraphPage.route) })
                     add(
-                        NavigationItem("Preamp", formatEqGain(preset.preamp)) {
+                        NavigationItem(
+                            "Response graph",
+                            icon = pixelIcon(R.drawable.ic_pixel_graph),
+                        ) {
+                            nav.navigate(Screen.EqGraphPage.route)
+                        }
+                    )
+                    add(
+                        NavigationItem(
+                            "Preamp",
+                            formatEqGain(preset.preamp),
+                            icon = pixelIcon(R.drawable.ic_pixel_speaker),
+                        ) {
                             number =
                                 EqNumberEdit(
                                     "Preamp",
@@ -85,7 +104,11 @@ internal fun WheelEqSettingsScreen(
                         }
                     )
                     add(
-                        NavigationItem("Bands", "${preset.bands.size}") {
+                        NavigationItem(
+                            "Bands",
+                            "${preset.bands.size}",
+                            icon = pixelIcon(R.drawable.ic_pixel_equalizer),
+                        ) {
                             nav.navigate(Screen.EqBands.route)
                         }
                     )
@@ -103,6 +126,7 @@ internal fun WheelEqSettingsScreen(
                             NavigationItem(
                                 "Band ${index + 1}",
                                 "${band.frequency.toInt()} Hz · ${formatEqGain(band.gain)}",
+                                icon = pixelIcon(R.drawable.ic_pixel_sliders),
                                 key = band.id,
                             ) {
                                 nav.navigate(Screen.EqBand.createRoute(index))
@@ -112,6 +136,7 @@ internal fun WheelEqSettingsScreen(
                     add(
                         NavigationItem(
                             "Add band",
+                            icon = pixelIcon(R.drawable.ic_pixel_add),
                             enabled = preset.bands.size < EqViewModel.MAX_BANDS,
                             onClick = viewModel::addBand,
                         )
@@ -152,15 +177,19 @@ internal fun WheelEqSettingsScreen(
             title = presetName,
             items =
                 listOf(
-                    NavigationItem("Rename") {
+                    NavigationItem("Rename", icon = pixelIcon(R.drawable.ic_pixel_edit)) {
                         selectedPresetForActions = null
                         presetToRename = presetName
                     },
-                    NavigationItem("Delete", enabled = state.presets.size > 1) {
+                    NavigationItem(
+                        "Delete",
+                        icon = pixelIcon(R.drawable.ic_pixel_delete),
+                        enabled = state.presets.size > 1,
+                    ) {
                         selectedPresetForActions = null
                         presetToDelete = presetName
                     },
-                    NavigationItem("Export") {
+                    NavigationItem("Export", icon = pixelIcon(R.drawable.ic_pixel_upload)) {
                         selectedPresetForActions = null
                         onExport(presetName)
                     },
@@ -174,11 +203,11 @@ internal fun WheelEqSettingsScreen(
             title = "Presets",
             items =
                 listOf(
-                    NavigationItem("New preset") {
+                    NavigationItem("New preset", icon = pixelIcon(R.drawable.ic_pixel_add)) {
                         showPresetsPageMenu = false
                         showNewPresetDialog = true
                     },
-                    NavigationItem("Import") {
+                    NavigationItem("Import", icon = pixelIcon(R.drawable.ic_pixel_download)) {
                         showPresetsPageMenu = false
                         onImport()
                     },
@@ -214,7 +243,7 @@ internal fun WheelEqSettingsScreen(
             title = "Delete preset?",
             items =
                 listOf(
-                    NavigationItem("Delete $target") {
+                    NavigationItem("Delete $target", icon = pixelIcon(R.drawable.ic_pixel_delete)) {
                         viewModel.deletePreset(target)
                         presetToDelete = null
                     }

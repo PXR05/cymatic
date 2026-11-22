@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.OutputInfoReport
 import com.pxr.cymatic.playback.OutputInfoState
 import com.pxr.cymatic.ui.components.common.ReadingScreen
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -43,11 +45,20 @@ internal fun OutputInfoScreen(selected: String? = null) {
         report.sections.map { page ->
             NavigationItem(
                 page.title,
+                icon = pixelIcon(R.drawable.ic_pixel_info),
                 onClick = { nav.navigate(Screen.OutputInfoSection.createRoute(page.title)) },
             )
         } +
-                NavigationItem("Copy report", onClick = copy) +
-                NavigationItem("Return", onClick = onDismissRequest)
+                NavigationItem(
+                    "Copy report",
+                    icon = pixelIcon(R.drawable.ic_pixel_copy),
+                    onClick = copy,
+                ) +
+                NavigationItem(
+                    "Return",
+                    icon = pixelIcon(R.drawable.ic_pixel_back),
+                    onClick = onDismissRequest,
+                )
     if (selected == null) {
         BaseScreen("Output info", onDismissRequest) {
             if (report.sections.isEmpty())

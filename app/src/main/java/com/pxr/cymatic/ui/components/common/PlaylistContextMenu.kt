@@ -15,10 +15,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.primitives.CymaticDialog
 import com.pxr.cymatic.ui.components.primitives.CymaticDialogButton
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
@@ -120,6 +122,7 @@ fun PlaylistContextMenu(
             listOfNotNull(
                 NavigationItem(
                     "Play",
+                    icon = pixelIcon(R.drawable.ic_pixel_play),
                     onClick = {
                         onPlay()
                         wheel.onPlaybackRequested()
@@ -127,6 +130,7 @@ fun PlaylistContextMenu(
                 ),
                 NavigationItem(
                     "Play Next",
+                    icon = pixelIcon(R.drawable.ic_pixel_play_next),
                     onClick = {
                         onPlayNext()
                         onDismiss()
@@ -134,23 +138,30 @@ fun PlaylistContextMenu(
                 ),
                 NavigationItem(
                     "Add to Queue",
+                    icon = pixelIcon(R.drawable.ic_pixel_queue),
                     onClick = {
                         onAddToQueue()
                         onDismiss()
                     },
                 ),
                 if (playlist.availability != LibraryAvailability.OFFLINE)
-                    NavigationItem("Keep offline", onClick = keepOffline)
+                    NavigationItem(
+                        "Keep offline",
+                        icon = pixelIcon(R.drawable.ic_pixel_offline),
+                        onClick = keepOffline,
+                    )
                 else null,
                 if (playlist.sourceId == null)
                     NavigationItem(
                         "Rename",
+                        icon = pixelIcon(R.drawable.ic_pixel_edit),
                         onClick = { showRenameDialog = true },
                     )
                 else null,
                 if (playlist.sourceId == null)
                     NavigationItem(
                         "Delete",
+                        icon = pixelIcon(R.drawable.ic_pixel_delete),
                         onClick = { showDeleteConfirm = true },
                     )
                 else null,

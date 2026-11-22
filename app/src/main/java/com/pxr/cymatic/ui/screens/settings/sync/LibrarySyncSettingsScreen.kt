@@ -11,12 +11,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.sync.RemoteProvider
 import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.sync.SyncProgress
 import com.pxr.cymatic.ui.components.common.ScreenBackHandler
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -132,6 +134,7 @@ internal fun LibrarySyncSettingsScreen(
                                             else -> "$count libraries"
                                         },
                                     enabled = !state.saving,
+                                    icon = pixelIcon(R.drawable.ic_pixel_server),
                                     onClick = { open(Screen.SyncConnections.route) },
                                 )
                             )
@@ -140,6 +143,7 @@ internal fun LibrarySyncSettingsScreen(
                                     SyncSetting(
                                         "Downloads",
                                         state.statusSummary,
+                                        icon = pixelIcon(R.drawable.ic_pixel_download),
                                         onClick = { open(Screen.SyncStatus.route) },
                                     )
                                 )
@@ -148,11 +152,18 @@ internal fun LibrarySyncSettingsScreen(
                                         "Advanced",
                                         "Storage, folder layout and scheduling",
                                         state.canEdit,
+                                        icon = pixelIcon(R.drawable.ic_pixel_settings),
                                         onClick = { open(Screen.SyncAdvanced.route) },
                                     )
                                 )
                             }
-                            add(SyncSetting("Help", onClick = { open(Screen.SyncHelp.route) }))
+                            add(
+                                SyncSetting(
+                                    "Help",
+                                    icon = pixelIcon(R.drawable.ic_pixel_help),
+                                    onClick = { open(Screen.SyncHelp.route) },
+                                )
+                            )
                         }
                     }
                 )
@@ -173,6 +184,7 @@ internal fun LibrarySyncSettingsScreen(
                                         detail = summary.subtitle,
                                         enabled = !state.saving,
                                         key = summary.config.id,
+                                        icon = pixelIcon(R.drawable.ic_pixel_server),
                                         onClick = {
                                             open(Screen.SyncSource.createRoute(summary.config.id))
                                         },
@@ -186,6 +198,7 @@ internal fun LibrarySyncSettingsScreen(
                                         if (state.sources.isEmpty()) "Connect a remote music server"
                                         else "Connect another remote library",
                                     enabled = state.canEdit,
+                                    icon = pixelIcon(R.drawable.ic_pixel_add),
                                     onClick = { open(Screen.SyncAddSource.route) },
                                 )
                             )

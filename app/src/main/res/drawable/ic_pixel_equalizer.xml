@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon from Pixelarticons (MIT) by Gerrit Halfmann: sliders-vertical -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8 15H6v7H4v-7H2v-2h6v2Zm5 7h-2V11h2v11Zm9-5h-2v5h-2v-5h-2v-2h6v2Zm-2-4h-2V2h2v11ZM6 11H4V2h2v9Zm9-2H9V7h2V2h2v5h2v2Z" />
+</vector>

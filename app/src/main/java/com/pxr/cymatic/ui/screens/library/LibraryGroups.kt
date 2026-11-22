@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.library.albumDisplayName
 import com.pxr.cymatic.data.library.artistDisplayName
 import com.pxr.cymatic.data.media.AudioRepository
@@ -20,7 +21,9 @@ import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.data.store.SettingsStore
+import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.list.LibraryAvailabilityIcon
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -112,6 +115,14 @@ internal fun LibraryGroupIndicator(group: LibraryGroup?, color: Color) {
                         }
             LibraryAvailabilityIcon(it.availability, color, busy = busy)
         }
-        Text(">", color = color, fontSize = 20.sp)
+        if (LocalInterfaceSettings.current.showIcons) {
+            PixelIcon(
+                resId = R.drawable.ic_pixel_chevron_right,
+                size = 14.dp,
+                tint = color,
+            )
+        } else {
+            Text(">", color = color, fontSize = 20.sp)
+        }
     }
 }

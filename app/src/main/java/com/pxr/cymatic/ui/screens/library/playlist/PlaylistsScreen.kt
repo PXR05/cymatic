@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.playback.enqueueAudio
 import com.pxr.cymatic.playback.playAudioQueue
+import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LibraryContextMenu
@@ -30,6 +32,7 @@ import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
 import com.pxr.cymatic.ui.components.primitives.CymaticInputDialog
 import com.pxr.cymatic.ui.components.screen.BaseScreen
+import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -80,7 +83,15 @@ fun PlaylistsScreen(
                                                     playlist.remoteId.orEmpty(),
                                                 ) in work.playlists),
                         )
-                        Text(">", color = color, fontSize = 20.sp)
+                        if (LocalInterfaceSettings.current.showIcons) {
+                            PixelIcon(
+                                resId = R.drawable.ic_pixel_chevron_right,
+                                size = 14.dp,
+                                tint = color,
+                            )
+                        } else {
+                            Text(">", color = color, fontSize = 20.sp)
+                        }
                     }
                 },
                 onClick = {

@@ -8,10 +8,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.media.Playlist
 import com.pxr.cymatic.data.media.PlaylistRepository
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +97,14 @@ internal fun AddToPlaylistScreen(audioId: Long) {
                         }
                     )
                 }
-                add(NavigationItem("Done", key = "done", onClick = onDismiss))
+                add(
+                    NavigationItem(
+                        "Done",
+                        icon = pixelIcon(R.drawable.ic_pixel_check),
+                        key = "done",
+                        onClick = onDismiss,
+                    )
+                )
             }
         )
     }

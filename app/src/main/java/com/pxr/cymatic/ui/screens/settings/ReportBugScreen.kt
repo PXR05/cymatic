@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import com.pxr.cymatic.R
 import com.pxr.cymatic.playback.OutputInfoReport
 import com.pxr.cymatic.playback.OutputInfoState
 import com.pxr.cymatic.ui.components.common.EditorSubmitHint
@@ -42,6 +43,7 @@ import com.pxr.cymatic.ui.components.common.WheelEditorSubmit
 import com.pxr.cymatic.ui.components.common.submitOnEnter
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import kotlinx.coroutines.CancellationException
@@ -55,6 +57,16 @@ private enum class ReportStep(val title: String) {
     DETAILS("Describe what happened"),
     REVIEW("Review and email"),
 }
+
+private fun BugCategory.iconRes(): Int =
+    when (this) {
+        BugCategory.PLAYBACK -> R.drawable.ic_pixel_speaker
+        BugCategory.USB -> R.drawable.ic_pixel_usb
+        BugCategory.LIBRARY -> R.drawable.ic_pixel_stream
+        BugCategory.INTERFACE -> R.drawable.ic_pixel_interface
+        BugCategory.CRASH -> R.drawable.ic_pixel_warning
+        BugCategory.OTHER -> R.drawable.ic_pixel_bug
+    }
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -153,7 +165,10 @@ internal fun ReportBugScreen() {
                 ReportStep.CATEGORY ->
                     NavigationList(
                         BugCategory.entries.map { option ->
-                            NavigationItem(option.label) {
+                            NavigationItem(
+                                option.label,
+                                icon = pixelIcon(option.iconRes()),
+                            ) {
                                 if (category != option) {
                                     capturedDiagnostics = null
                                 }
@@ -189,7 +204,14 @@ internal fun ReportBugScreen() {
                 ReportStep.REVIEW ->
                     NavigationList(
                         buildList {
-                            add(NavigationItem("Bug type", category?.label, enabled = false))
+                            add(
+                                NavigationItem(
+                                    "Bug type",
+                                    category?.label,
+                                    icon = pixelIcon((category ?: BugCategory.OTHER).iconRes()),
+                                    enabled = false,
+                                )
+                            )
                             add(
                                 NavigationItem(
                                     "Summary",
@@ -210,6 +232,7 @@ internal fun ReportBugScreen() {
                                 NavigationItem(
                                     label = "Include diagnostics",
                                     subLabel = "App and device details",
+                                    icon = pixelIcon(R.drawable.ic_pixel_document),
                                     enabled = !busy,
                                     checked = includeDiagnostics,
                                 ) {
@@ -220,6 +243,7 @@ internal fun ReportBugScreen() {
                                 NavigationItem(
                                     "Email report",
                                     "Open a draft in your email app",
+                                    icon = pixelIcon(R.drawable.ic_pixel_mail),
                                     enabled = !busy,
                                 ) {
                                     prepareReport { selected, report ->
@@ -247,6 +271,7 @@ internal fun ReportBugScreen() {
                                 NavigationItem(
                                     "Save report",
                                     "Export a text file",
+                                    icon = pixelIcon(R.drawable.ic_pixel_save),
                                     enabled = !busy,
                                 ) {
                                     prepareReport { _, report ->

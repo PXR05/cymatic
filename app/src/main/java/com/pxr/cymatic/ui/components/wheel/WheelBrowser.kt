@@ -4,8 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import com.pxr.cymatic.R
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalMediaController
 import com.pxr.cymatic.ui.navigation.MusicNavHost
@@ -36,7 +38,11 @@ internal fun WheelBrowser(
             if (state.blocksBrowserInput) Modifier.clearAndSetSemantics {} else Modifier,
         home = { MainMenu(state) },
         settingsItems =
-            listOf(NavigationItem("Interface") { state.open(Screen.InterfaceSettings.route) }),
+            listOf(
+                NavigationItem("Interface", icon = pixelIcon(R.drawable.ic_pixel_interface)) {
+                    state.open(Screen.InterfaceSettings.route)
+                }
+            ),
         additionalRoutes =
             mapOf(
                 Screen.NowPlaying.route to
@@ -75,16 +81,41 @@ private fun MainMenu(state: WheelPlayerState) {
     BaseScreen(title = "Main menu") {
         NavigationList(
             listOf(
-                NavigationItem("Now Playing", onClick = state::nowPlaying),
+                NavigationItem(
+                    "Now Playing",
+                    icon = pixelIcon(R.drawable.ic_pixel_headphone),
+                    onClick = state::nowPlaying,
+                ),
                 NavigationItem(
                     "All Songs",
+                    icon = pixelIcon(R.drawable.ic_pixel_music_note),
                     onClick = { state.open(Screen.AllSongs.createRoute()) },
                 ),
-                NavigationItem("Artists", onClick = { state.open(Screen.Artists.route) }),
-                NavigationItem("Albums", onClick = { state.open(Screen.Albums.route) }),
-                NavigationItem("Playlists", onClick = { state.open(Screen.Playlists.route) }),
-                NavigationItem("Current Queue", onClick = { state.open(Screen.Queue.route) }),
-                NavigationItem("Settings", onClick = { state.open(Screen.Settings.route) }),
+                NavigationItem(
+                    "Artists",
+                    icon = pixelIcon(R.drawable.ic_pixel_artist),
+                    onClick = { state.open(Screen.Artists.route) },
+                ),
+                NavigationItem(
+                    "Albums",
+                    icon = pixelIcon(R.drawable.ic_pixel_disc),
+                    onClick = { state.open(Screen.Albums.route) },
+                ),
+                NavigationItem(
+                    "Playlists",
+                    icon = pixelIcon(R.drawable.ic_pixel_playlist),
+                    onClick = { state.open(Screen.Playlists.route) },
+                ),
+                NavigationItem(
+                    "Current Queue",
+                    icon = pixelIcon(R.drawable.ic_pixel_queue),
+                    onClick = { state.open(Screen.Queue.route) },
+                ),
+                NavigationItem(
+                    "Settings",
+                    icon = pixelIcon(R.drawable.ic_pixel_settings),
+                    onClick = { state.open(Screen.Settings.route) },
+                ),
             )
         )
     }

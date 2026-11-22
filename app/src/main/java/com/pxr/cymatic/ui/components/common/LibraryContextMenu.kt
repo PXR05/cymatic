@@ -9,8 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.ui.components.list.NavigationItem
+import com.pxr.cymatic.ui.components.pixelIcon
 
 @Composable
 fun LibraryContextMenu(
@@ -51,6 +53,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Play",
+                    icon = pixelIcon(R.drawable.ic_pixel_play),
                     onClick = {
                         onPlay()
                         wheel.onPlaybackRequested()
@@ -62,6 +65,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Play Next",
+                    icon = pixelIcon(R.drawable.ic_pixel_play_next),
                     onClick = {
                         onPlayNext()
                         onDismiss()
@@ -73,6 +77,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Add to Queue",
+                    icon = pixelIcon(R.drawable.ic_pixel_queue),
                     onClick = {
                         onAddToQueue()
                         onDismiss()
@@ -84,6 +89,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Keep offline",
+                    icon = pixelIcon(R.drawable.ic_pixel_offline),
                     onClick = {
                         onKeepOffline()
                         onDismiss()
@@ -94,6 +100,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Show · $filterSummary",
+                    icon = pixelIcon(R.drawable.ic_pixel_filter),
                     onClick = { choosingFilter = true },
                 )
             )
@@ -101,6 +108,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "New playlist",
+                    icon = pixelIcon(R.drawable.ic_pixel_add),
                     onClick = {
                         onCreatePlaylist()
                         onDismiss()
@@ -112,6 +120,7 @@ fun LibraryContextMenu(
             add(
                 NavigationItem(
                     "Search",
+                    icon = pixelIcon(R.drawable.ic_pixel_search),
                     onClick = {
                         onSearch()
                         onDismiss()

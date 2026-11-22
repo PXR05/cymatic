@@ -7,12 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.pxr.cymatic.R
 import com.pxr.cymatic.data.store.ScreenAwakeMode
 import com.pxr.cymatic.data.store.SettingsStore
 import com.pxr.cymatic.data.store.setCoverVisibleByDefault
 import com.pxr.cymatic.data.store.setGesturePauseMs
 import com.pxr.cymatic.data.store.setScreenAwakeMode
 import com.pxr.cymatic.data.store.setScreenPaddingDp
+import com.pxr.cymatic.data.store.setShowIcons
 import com.pxr.cymatic.data.store.setStandbyTimeoutMs
 import com.pxr.cymatic.data.store.setTextScrollDelayMs
 import com.pxr.cymatic.data.store.setTextScrollSpeed
@@ -22,6 +24,7 @@ import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.common.WheelNumberEditor
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalInterfaceSettings
 import com.pxr.cymatic.ui.locals.LocalNavController
@@ -66,7 +69,11 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
         BaseScreen(title = "Interface", onBackClick = { nav.popBackStack() }) {
             NavigationList(
                 listOf(
-                    NavigationItem("Wheel size", percent(settings.wheelSizePercent)) {
+                    NavigationItem(
+                        "Wheel size",
+                        percent(settings.wheelSizePercent),
+                        icon = pixelIcon(R.drawable.ic_pixel_wheel),
+                    ) {
                         number =
                             InterfaceNumberEdit(
                                 "Wheel size",
@@ -78,7 +85,11 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                                 SettingsStore.setWheelSizePercent(it)
                             }
                     },
-                    NavigationItem("Wheel sensitivity", percent(sensitivity * 100)) {
+                    NavigationItem(
+                        "Wheel sensitivity",
+                        percent(sensitivity * 100),
+                        icon = pixelIcon(R.drawable.ic_pixel_sliders),
+                    ) {
                         number =
                             InterfaceNumberEdit(
                                 "Wheel sensitivity",
@@ -93,6 +104,7 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                     NavigationItem(
                         "Haptic feedback",
                         if (settings.hapticsEnabled) "On" else "Off",
+                        icon = pixelIcon(R.drawable.ic_pixel_vibrate),
                         checked = settings.hapticsEnabled,
                     ) {
                         scope.launch {
@@ -102,6 +114,7 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                     NavigationItem(
                         "Gesture pause",
                         milliseconds(settings.gesturePauseMs.toFloat()),
+                        icon = pixelIcon(R.drawable.ic_pixel_clock),
                     ) {
                         number =
                             InterfaceNumberEdit(
@@ -114,7 +127,11 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                                 SettingsStore.setGesturePauseMs(it.roundToLong())
                             }
                     },
-                    NavigationItem("Screen padding", densityPixels(settings.screenPaddingDp)) {
+                    NavigationItem(
+                        "Screen padding",
+                        densityPixels(settings.screenPaddingDp),
+                        icon = pixelIcon(R.drawable.ic_pixel_interface),
+                    ) {
                         number =
                             InterfaceNumberEdit(
                                 "Screen padding",
@@ -129,6 +146,7 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                     NavigationItem(
                         "Cover art default",
                         if (settings.coverVisibleByDefault) "Shown" else "Hidden",
+                        icon = pixelIcon(R.drawable.ic_pixel_image),
                         checked = settings.coverVisibleByDefault,
                     ) {
                         scope.launch {
@@ -136,18 +154,32 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                         }
                     },
                     NavigationItem(
+                        "Show icons",
+                        if (settings.showIcons) "On" else "Off",
+                        icon = pixelIcon(R.drawable.ic_pixel_diamond),
+                        checked = settings.showIcons,
+                    ) {
+                        scope.launch { SettingsStore.setShowIcons(!settings.showIcons) }
+                    },
+                    NavigationItem(
                         "Text scrolling",
                         "${percent(settings.textScrollSpeed / 24 * 100)} · ${seconds(settings.textScrollDelayMs.toFloat())}",
+                        icon = pixelIcon(R.drawable.ic_pixel_text),
                     ) {
                         nav.navigate(Screen.TextScrollingSettings.route)
                     },
-                    NavigationItem("Keep screen awake", settings.screenAwakeMode.label) {
+                    NavigationItem(
+                        "Keep screen awake",
+                        settings.screenAwakeMode.label,
+                        icon = pixelIcon(R.drawable.ic_pixel_sun),
+                    ) {
                         showScreenAwake = true
                     },
                     NavigationItem(
                         "Standby",
                         if (settings.standbyTimeoutMs == 0L) "Off"
                         else "After ${settings.standbyTimeoutMs / 1000} s",
+                        icon = pixelIcon(R.drawable.ic_pixel_moon),
                     ) {
                         showStandby = true
                     },
@@ -159,7 +191,11 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
         BaseScreen("Text scrolling", { nav.popBackStack() }) {
             NavigationList(
                 listOf(
-                    NavigationItem("Speed", percent(settings.textScrollSpeed / 24 * 100)) {
+                    NavigationItem(
+                        "Speed",
+                        percent(settings.textScrollSpeed / 24 * 100),
+                        icon = pixelIcon(R.drawable.ic_pixel_speed),
+                    ) {
                         number =
                             InterfaceNumberEdit(
                                 "Scroll speed",
@@ -171,7 +207,11 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                                 SettingsStore.setTextScrollSpeed(24 * it / 100)
                             }
                     },
-                    NavigationItem("Start delay", seconds(settings.textScrollDelayMs.toFloat())) {
+                    NavigationItem(
+                        "Start delay",
+                        seconds(settings.textScrollDelayMs.toFloat()),
+                        icon = pixelIcon(R.drawable.ic_pixel_clock),
+                    ) {
                         number =
                             InterfaceNumberEdit(
                                 "Start delay",
