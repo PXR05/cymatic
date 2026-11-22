@@ -44,6 +44,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
     private var requestBaseline: SyncProgress? = null
 
     internal var connectionPassword by mutableStateOf("")
+    internal var connectionApiKey by mutableStateOf("")
     internal var lastPresentedError: String? = null
     internal var errorDetails by mutableStateOf<String?>(null)
 
@@ -207,6 +208,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         url: String,
         username: String,
         password: String,
+        apiKey: String = "",
         displayName: String,
         onAdded: (RemoteSourceConfig) -> Unit,
     ) {
@@ -215,6 +217,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
         save(
             onSaved = {
                 connectionPassword = ""
+                connectionApiKey = ""
                 created?.let { config ->
                     onAdded(config)
                     LibraryCatalogManager.refresh(context, config.id)
@@ -230,6 +233,7 @@ internal class LibrarySyncSettingsViewModel(application: Application) :
                             address = url,
                             username = username,
                             password = password,
+                            apiKey = apiKey,
                             displayName = displayName,
                         ),
                     )

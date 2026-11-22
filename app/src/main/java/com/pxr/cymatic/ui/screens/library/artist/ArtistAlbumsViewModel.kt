@@ -14,9 +14,16 @@ import com.pxr.cymatic.data.store.LibraryFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
-data class ArtistAlbum(val name: String, val trackCount: Int)
+data class ArtistAlbum(val name: String, val trackCount: Int, val sourceId: String? = null) {
+    val sourceKey: String
+        get() = sourceId ?: "local"
+
+    val key: String
+        get() = "$sourceKey:$name"
+}
 
 data class ArtistAlbumsState(
     val isLoading: Boolean = true,
@@ -44,7 +51,7 @@ class ArtistAlbumsViewModel(application: Application, savedStateHandle: SavedSta
 
     init {
         viewModelScope.launch {
-            libraryRefreshEvents().collect {
+            libraryRefreshEvents().drop(1).collect {
                 currentArtist?.let { load(it, force = true) }
             }
         }
@@ -53,9 +60,11 @@ class ArtistAlbumsViewModel(application: Application, savedStateHandle: SavedSta
     fun load(artistName: String, force: Boolean = false) {
         if (!force && currentArtist == artistName && hasLoaded) return
         currentArtist = artistName
-        repository.getCachedAudio()?.let { cached ->
-            _uiState.value = buildState(cached, artistName, isLoading = false)
-            hasLoaded = true
+        if (!hasLoaded) {
+            repository.getCachedAudio()?.let { cached ->
+                _uiState.value = buildState(cached, artistName, isLoading = false)
+                hasLoaded = true
+            }
         }
         viewModelScope.launch(Dispatchers.IO) {
             if (!hasLoaded) {
@@ -84,10 +93,15 @@ class ArtistAlbumsViewModel(application: Application, savedStateHandle: SavedSta
         val artistSongs = filterByArtist(LibraryFilterStore.audio(songs), artistName)
         val albums =
             artistSongs
-                .groupingBy(::albumDisplayName)
+                .groupingBy { albumDisplayName(it) to it.sourceId }
                 .eachCount()
-                .map { (name, count) -> ArtistAlbum(name, count) }
-                .sortedBy { it.name.lowercase() }
+                .map { (key, count) -> ArtistAlbum(key.first, count, key.second) }
+                .sortedWith(
+                    compareBy<ArtistAlbum>(
+                        { it.name.lowercase() },
+                        { it.sourceId.orEmpty() },
+                    )
+                )
         return ArtistAlbumsState(
             isLoading = isLoading,
             albums = albums,

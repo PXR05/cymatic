@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.playback.enqueueAudio
 import com.pxr.cymatic.playback.playAudioQueue
 import com.pxr.cymatic.sync.LibraryOfflineManager
@@ -54,22 +55,35 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
     }
 
     var showPageMenu by remember { mutableStateOf(false) }
-    var selectedName by remember { mutableStateOf<String?>(null) }
+    var selectedItem by remember { mutableStateOf<LibraryCategoryItem?>(null) }
     val uiState by viewModel.uiState.collectAsState()
 
     val groups = rememberLibraryGroups()
+    val sources by RemoteSourceRegistry.sourcesFlow.collectAsState(
+        initial = RemoteSourceRegistry.currentSources
+    )
+    val sourceNames = remember(sources) { sources.associate { it.id to it.displayName } }
+    val showSourceSubLabel = remember(category, uiState.items) {
+        category.splitBySource && uiState.items.map { it.sourceId }.distinct().size > 1
+    }
 
     val items =
-        uiState.items.map { groupName ->
+        uiState.items.map { item ->
+            val subLabel =
+                if (showSourceSubLabel) {
+                    item.sourceId?.let { sourceNames[it] ?: "Remote" } ?: "This device"
+                } else null
             NavigationItem(
-                label = groupName,
+                label = item.name,
+                subLabel = subLabel,
+                key = item.key,
                 trailingContent = { color ->
-                    LibraryGroupIndicator(category.groups(groups)[groupName], color)
+                    LibraryGroupIndicator(category.group(groups, item), color)
                 },
                 onClick = {
-                    navController.navigate(category.browseRoute(groupName))
+                    navController.navigate(category.browseRoute(item))
                 },
-                onLongClick = { selectedName = groupName },
+                onLongClick = { selectedItem = item },
             )
         }
 
@@ -134,30 +148,30 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
         }
     }
 
-    selectedName?.let { groupName ->
+    selectedItem?.let { item ->
         LibraryContextMenu(
-            title = groupName,
+            title = item.name,
             onKeepOffline =
                 category
-                    .groups(groups)[groupName]
+                    .group(groups, item)
                     ?.takeIf { it.canKeepOffline }
                     ?.let { group ->
-                        { LibraryOfflineManager.keepSongs(context, group.songs, groupName) }
+                        { LibraryOfflineManager.keepSongs(context, group.songs, item.name) }
                     },
-            onDismiss = { selectedName = null },
+            onDismiss = { selectedItem = null },
             onPlay = {
                 mediaController?.let { controller ->
-                    viewModel.getSongs(groupName) { songs ->
-                        controller.playAudioQueue(songs, category.songsRoute(groupName))
+                    viewModel.getSongs(item) { songs ->
+                        controller.playAudioQueue(songs, category.songsRoute(item))
                     }
                 }
             },
             onPlayNext = {
                 mediaController?.let { controller ->
-                    viewModel.getSongs(groupName) { songs ->
+                    viewModel.getSongs(item) { songs ->
                         controller.enqueueAudio(
                             songs,
-                            category.songsRoute(groupName),
+                            category.songsRoute(item),
                             next = true,
                         )
                     }
@@ -165,8 +179,8 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
             },
             onAddToQueue = {
                 mediaController?.let { controller ->
-                    viewModel.getSongs(groupName) { songs ->
-                        controller.enqueueAudio(songs, category.songsRoute(groupName))
+                    viewModel.getSongs(item) { songs ->
+                        controller.enqueueAudio(songs, category.songsRoute(item))
                     }
                 }
             },

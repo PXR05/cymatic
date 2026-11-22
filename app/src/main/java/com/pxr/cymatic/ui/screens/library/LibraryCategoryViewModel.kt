@@ -16,30 +16,51 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal data class LibraryCategoryItem(
+    val name: String,
+    val sourceId: String? = null,
+) {
+    val sourceKey: String
+        get() = sourceId ?: "local"
+
+    val key: String
+        get() = "$sourceKey:$name"
+}
+
 internal enum class LibraryCategory(
     val title: String,
     val displayName: (AudioFile) -> String,
-    val filterSongs: (List<AudioFile>, String) -> List<AudioFile>,
+    val splitBySource: Boolean,
 ) {
-    ARTISTS("Artists", ::artistDisplayName, ::filterByArtist),
-    ALBUMS("Albums", ::albumDisplayName, ::filterByAlbum);
+    ARTISTS("Artists", ::artistDisplayName, splitBySource = false),
+    ALBUMS("Albums", ::albumDisplayName, splitBySource = true);
 
-    fun browseRoute(name: String): String =
+    fun browseRoute(item: LibraryCategoryItem): String =
         when (this) {
-            ARTISTS -> Screen.ArtistAlbums.createRoute(name)
-            ALBUMS -> Screen.AlbumSongs.createRoute(name)
+            ARTISTS -> Screen.ArtistAlbums.createRoute(item.name)
+            ALBUMS -> Screen.AlbumSongs.createRoute(item.name, sourceKey = item.sourceKey)
         }
 
-    fun songsRoute(name: String): String =
+    fun songsRoute(item: LibraryCategoryItem): String =
         when (this) {
-            ARTISTS -> Screen.ArtistSongs.createRoute(name)
-            ALBUMS -> Screen.AlbumSongs.createRoute(name)
+            ARTISTS -> Screen.ArtistSongs.createRoute(item.name)
+            ALBUMS -> Screen.AlbumSongs.createRoute(item.name, sourceKey = item.sourceKey)
         }
 
-    fun groups(library: LibraryGroups): Map<String, LibraryGroup> =
+    fun filterSongs(songs: List<AudioFile>, item: LibraryCategoryItem): List<AudioFile> =
         when (this) {
-            ARTISTS -> library.artists
-            ALBUMS -> library.albums
+            ARTISTS -> filterByArtist(songs, item.name)
+            ALBUMS ->
+                filterByAlbum(
+                    songs.filter { it.sourceId == item.sourceId },
+                    item.name,
+                )
+        }
+
+    fun group(library: LibraryGroups, item: LibraryCategoryItem): LibraryGroup? =
+        when (this) {
+            ARTISTS -> library.artists[item.name]
+            ALBUMS -> library.albumsBySource[item.name to item.sourceId]
         }
 }
 
@@ -51,11 +72,11 @@ internal class LibraryCategoryViewModel(
     private val collection =
         SearchableLibraryCollection(
             scope = viewModelScope,
-            cachedItems = repository.getCachedAudio()?.let(::groupNames),
+            cachedItems = repository.getCachedAudio()?.let(::groupItems),
             changes = libraryRefreshEvents(),
             failureMessage = "Failed to load ${category.title.lowercase()}",
-            loadItems = { groupNames(repository.getAllAudio()) },
-            matches = { name, text -> name.contains(text, ignoreCase = true) },
+            loadItems = { groupItems(repository.getAllAudio()) },
+            matches = { item, text -> item.name.contains(text, ignoreCase = true) },
         )
 
     val searchQuery
@@ -72,18 +93,33 @@ internal class LibraryCategoryViewModel(
 
     fun onSearchActiveChange(active: Boolean) = collection.search.setActive(active)
 
-    fun getSongs(name: String, onResult: (List<AudioFile>) -> Unit) {
+    fun getSongs(item: LibraryCategoryItem, onResult: (List<AudioFile>) -> Unit) {
         viewModelScope.launch {
             val songs =
                 withContext(Dispatchers.IO) {
-                    category.filterSongs(LibraryFilterStore.audio(repository.getAllAudio()), name)
+                    category.filterSongs(LibraryFilterStore.audio(repository.getAllAudio()), item)
                 }
             onResult(songs)
         }
     }
 
-    private fun groupNames(songs: List<AudioFile>): List<String> =
-        LibraryFilterStore.audio(songs).map(category.displayName).distinct().sortedBy {
-            it.lowercase()
+    private fun groupItems(songs: List<AudioFile>): List<LibraryCategoryItem> {
+        val filtered = LibraryFilterStore.audio(songs)
+        return if (category.splitBySource) {
+            filtered
+                .map { LibraryCategoryItem(category.displayName(it), it.sourceId) }
+                .distinct()
+                .sortedWith(
+                    compareBy<LibraryCategoryItem>(
+                        { it.name.lowercase() },
+                        { it.sourceId.orEmpty() },
+                    )
+                )
+        } else {
+            filtered
+                .map { LibraryCategoryItem(category.displayName(it)) }
+                .distinct()
+                .sortedBy { it.name.lowercase() }
         }
+    }
 }

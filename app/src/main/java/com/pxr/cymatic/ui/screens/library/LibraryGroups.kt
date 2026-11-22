@@ -43,6 +43,8 @@ internal data class LibraryGroup(val songs: List<AudioFile>) {
 
 internal class LibraryGroups(songs: List<AudioFile>) {
     val albums = songs.groupBy(::albumDisplayName).mapValues { LibraryGroup(it.value) }
+    val albumsBySource =
+        songs.groupBy { albumDisplayName(it) to it.sourceId }.mapValues { LibraryGroup(it.value) }
     val artists = songs.groupBy(::artistDisplayName).mapValues { LibraryGroup(it.value) }
 }
 

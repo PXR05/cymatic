@@ -21,6 +21,7 @@ class AlbumSongsViewModel(application: Application, savedStateHandle: SavedState
     private var albumName =
         savedStateHandle.get<String>("albumName")?.takeIf(String::isNotBlank) ?: UnknownAlbum
     private var artistName = savedStateHandle.get<String>("artistName")?.takeIf(String::isNotBlank)
+    private var sourceKey = savedStateHandle.get<String>("sourceKey")?.takeIf(String::isNotBlank)
 
     private val loader =
         LibraryCollectionLoader(
@@ -39,17 +40,31 @@ class AlbumSongsViewModel(application: Application, savedStateHandle: SavedState
     fun loadAlbumSongs(
         albumName: String,
         artistName: String? = this.artistName,
+        sourceKey: String? = this.sourceKey,
         force: Boolean = false,
     ) {
-        if (!force && this.albumName == albumName && this.artistName == artistName) return
+        if (
+            !force &&
+            this.albumName == albumName &&
+            this.artistName == artistName &&
+            this.sourceKey == sourceKey
+        ) return
         this.albumName = albumName
         this.artistName = artistName
+        this.sourceKey = sourceKey
         loader.updateCached(repository.getCachedAudio()?.let(::filterSongs))
         loader.refresh()
     }
 
     private fun filterSongs(songs: List<AudioFile>): List<AudioFile> {
-        val filtered = LibraryFilterStore.audio(songs)
+        val filtered =
+            LibraryFilterStore.audio(songs).let { list ->
+                when (val key = sourceKey) {
+                    null -> list
+                    "local" -> list.filter { it.sourceId == null }
+                    else -> list.filter { it.sourceId == key }
+                }
+            }
         val artist = artistName
         return if (artist == null) filterByAlbum(filtered, albumName)
         else filterByArtistAndAlbum(filtered, artist, albumName)

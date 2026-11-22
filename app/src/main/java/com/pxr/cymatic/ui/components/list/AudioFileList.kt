@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.rememberWheelSelection
 
@@ -41,6 +43,13 @@ fun AudioFileList(
 ) {
     val listState = rememberLazyListState()
     val wheel = LocalWheelNavigation.current
+    val showSourceLabel = remember(audioFiles) {
+        audioFiles.map { it.sourceId }.distinct().size > 1
+    }
+    val sources by RemoteSourceRegistry.sourcesFlow.collectAsState(
+        initial = RemoteSourceRegistry.currentSources
+    )
+    val sourceNames = remember(sources) { sources.associate { it.id to it.displayName } }
     val selectedIndex =
         rememberWheelSelection(
             audioFiles.size,
@@ -74,9 +83,14 @@ fun AudioFileList(
             if (i == 0 && topOffset > 0.dp) {
                 Box(modifier = Modifier.height(topOffset))
             }
+            val sourceLabel =
+                if (showSourceLabel) {
+                    audioFile.sourceId?.let { sourceNames[it] ?: "Remote" } ?: "This device"
+                } else null
             AudioFileItem(
                 audioFile = audioFile,
                 isCurrent = isCurrent,
+                sourceLabel = sourceLabel,
                 onClick = {
                     onItemClick(audioFile)
                     wheel?.onPlaybackRequested?.invoke()
@@ -97,6 +111,7 @@ fun AudioFileItem(
     isCurrent: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    sourceLabel: String? = null,
     onLongClick: () -> Unit = {},
 ) {
     val metadata = audioFile.metadata
@@ -117,9 +132,10 @@ fun AudioFileItem(
         return String.format("%d:%02d", minutes, seconds)
     }
 
+    val artistText = metadata.artist ?: "Unknown Artist"
     ListItem(
         label = metadata.title ?: "Unknown Title",
-        subLabel = metadata.artist ?: "Unknown Artist",
+        subLabel = if (sourceLabel != null) "$artistText · $sourceLabel" else artistText,
         trailing = parseDuration(metadata.duration),
         trailingContent = { color ->
             Row(

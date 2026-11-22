@@ -15,7 +15,10 @@ import com.pxr.cymatic.audio.flac.IntegerFlacExtractor
 internal class UsbExtractorsFactory(
     private val directUsb: () -> Boolean = { UsbPlaybackState.routeToUsb }
 ) : ExtractorsFactory {
-    private val normal = DefaultExtractorsFactory()
+    private val normal =
+        DefaultExtractorsFactory().setMp3ExtractorFlags(
+            Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING
+        )
 
     override fun createExtractors(): Array<Extractor> =
         if (directUsb()) directExtractors() else wrapMp4(normal.createExtractors())
@@ -33,7 +36,7 @@ internal class UsbExtractorsFactory(
             StrictPcmWavExtractor(),
             IntegerFlacExtractor(),
             AlacMp4Extractor(usbOnly = true),
-            Mp3Extractor(),
+            Mp3Extractor(Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING),
             DirectOggExtractor(),
         )
 

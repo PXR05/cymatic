@@ -47,6 +47,7 @@ internal class RemoteSourceViewModel(
     private var playlistsDirty = false
 
     internal var connectionPassword by mutableStateOf("")
+    internal var connectionApiKey by mutableStateOf("")
 
     private fun initialState(): RemoteSourceState {
         val config = RemoteSourceRegistry.cached(sourceId) ?: return RemoteSourceState()
@@ -194,6 +195,7 @@ internal class RemoteSourceViewModel(
         url: String,
         username: String,
         password: String,
+        apiKey: String = "",
         displayName: String,
         onSaved: () -> Unit = {},
     ) {
@@ -202,6 +204,7 @@ internal class RemoteSourceViewModel(
         save(
             onSaved = {
                 connectionPassword = ""
+                connectionApiKey = ""
                 onSaved()
                 refreshLibrary()
             }
@@ -216,6 +219,7 @@ internal class RemoteSourceViewModel(
                             address = url,
                             username = username,
                             password = password,
+                            apiKey = apiKey,
                             displayName = displayName,
                             existingId = sourceId,
                         ),
@@ -238,6 +242,16 @@ internal class RemoteSourceViewModel(
             }
         }
     }
+
+    fun setStreamingQuality(transcodeOnMetered: Boolean, bitrateKbps: Int) =
+        save(reschedule = false) {
+            RemoteSourceRegistry.update(sourceId) {
+                it.copy(
+                    transcodeOnMetered = transcodeOnMetered,
+                    transcodeBitrateKbps = bitrateKbps,
+                )
+            }
+        }
 
     fun setEnabled(enabled: Boolean) = save {
         if (!enabled) {

@@ -65,7 +65,9 @@ internal fun LibrarySyncSettingsScreen(
             if (pageRoute == Screen.SyncSourcePlaylists.route) sourceModel?.commitPlaylists()
             else {
                 model.connectionPassword = ""
+                model.connectionApiKey = ""
                 sourceModel?.connectionPassword = ""
+                sourceModel?.connectionApiKey = ""
             }
         }
         nav.popBackStack()
@@ -119,27 +121,18 @@ internal fun LibrarySyncSettingsScreen(
                         if (state.loading) {
                             add(SyncSetting("Loading…", enabled = false))
                         } else {
-                            state.sources.forEach { summary ->
-                                add(
-                                    SyncSetting(
-                                        title = summary.config.displayName,
-                                        detail = summary.subtitle,
-                                        enabled = !state.saving,
-                                        key = summary.config.id,
-                                        onClick = {
-                                            open(Screen.SyncSource.createRoute(summary.config.id))
-                                        },
-                                    )
-                                )
-                            }
+                            val count = state.sources.size
                             add(
                                 SyncSetting(
-                                    title = "Add library",
+                                    title = "Connections",
                                     detail =
-                                        if (state.sources.isEmpty()) "Connect a remote music server"
-                                        else "Connect another remote library",
-                                    enabled = state.canEdit,
-                                    onClick = { open(Screen.SyncAddSource.route) },
+                                        when (count) {
+                                            0 -> "Add a remote music server"
+                                            1 -> "1 library"
+                                            else -> "$count libraries"
+                                        },
+                                    enabled = !state.saving,
+                                    onClick = { open(Screen.SyncConnections.route) },
                                 )
                             )
                             if (state.sources.isNotEmpty()) {
@@ -166,11 +159,48 @@ internal fun LibrarySyncSettingsScreen(
             }
         }
 
+        Screen.SyncConnections.route -> {
+            SyncSettingsPage("Connections", ::close) {
+                SyncSettingsList(
+                    buildList {
+                        if (state.loading) {
+                            add(SyncSetting("Loading…", enabled = false))
+                        } else {
+                            state.sources.forEach { summary ->
+                                add(
+                                    SyncSetting(
+                                        title = summary.config.displayName,
+                                        detail = summary.subtitle,
+                                        enabled = !state.saving,
+                                        key = summary.config.id,
+                                        onClick = {
+                                            open(Screen.SyncSource.createRoute(summary.config.id))
+                                        },
+                                    )
+                                )
+                            }
+                            add(
+                                SyncSetting(
+                                    title = "Add library",
+                                    detail =
+                                        if (state.sources.isEmpty()) "Connect a remote music server"
+                                        else "Connect another remote library",
+                                    enabled = state.canEdit,
+                                    onClick = { open(Screen.SyncAddSource.route) },
+                                )
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
         Screen.SyncAddSource.route -> {
             AddRemoteSourcePage(
                 onDismiss = ::close,
                 onSelect = { provider ->
                     model.connectionPassword = ""
+                    model.connectionApiKey = ""
                     open(Screen.SyncAddSourceConnection.createRoute(provider.value))
                 },
             )
@@ -183,14 +213,23 @@ internal fun LibrarySyncSettingsScreen(
                 saving = state.saving,
                 running = state.running,
                 onDismiss = ::close,
-                onConnect = { url, username, password, displayName ->
-                    model.addSource(provider, url, username, password, displayName) { created ->
-                        nav.popBackStack(Screen.LibrarySyncSettings.route, inclusive = false)
+                onConnect = { url, username, password, apiKey, displayName ->
+                    model.addSource(
+                        provider,
+                        url,
+                        username,
+                        password,
+                        apiKey,
+                        displayName
+                    ) { created ->
+                        nav.popBackStack(Screen.SyncConnections.route, inclusive = false)
                         open(Screen.SyncSource.createRoute(created.id))
                     }
                 },
                 password = model.connectionPassword,
                 onPasswordChange = { model.connectionPassword = it },
+                apiKey = model.connectionApiKey,
+                onApiKeyChange = { model.connectionApiKey = it },
             )
         }
 
@@ -213,6 +252,7 @@ internal fun LibrarySyncSettingsScreen(
                         if (current.catalog == null) sm.refreshLibrary()
                     },
                     onDownload = ::downloadSource,
+                    onStreamingQuality = sm::setStreamingQuality,
                     onToggleEnabled = { sm.setEnabled(it) },
                     onRemove = { open(Screen.SyncSourceRemove.createRoute(id)) },
                 )
@@ -233,13 +273,15 @@ internal fun LibrarySyncSettingsScreen(
                     running = current.running,
                     connected = current.connected,
                     onDismiss = ::close,
-                    onSave = { url, username, password, displayName ->
-                        sm.saveConnection(url, username, password, displayName)
+                    onSave = { url, username, password, apiKey, displayName ->
+                        sm.saveConnection(url, username, password, apiKey, displayName)
                     },
                     onDisplayNameSave = sm::updateDisplayName,
                     onCheck = sm::refreshLibrary,
                     password = sm.connectionPassword,
                     onPasswordChange = { sm.connectionPassword = it },
+                    apiKey = sm.connectionApiKey,
+                    onApiKeyChange = { sm.connectionApiKey = it },
                 )
             }
         }
@@ -288,7 +330,7 @@ internal fun LibrarySyncSettingsScreen(
                     onDismiss = ::close,
                     onRemove = { deleteDownloads ->
                         sm.remove(deleteDownloads) {
-                            nav.popBackStack(Screen.LibrarySyncSettings.route, inclusive = false)
+                            nav.popBackStack(Screen.SyncConnections.route, inclusive = false)
                         }
                     },
                 )

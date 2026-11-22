@@ -48,6 +48,7 @@ private enum class AddConnectionStep {
     ADDRESS,
     USERNAME,
     PASSWORD,
+    API_KEY,
     NAME,
 }
 
@@ -57,26 +58,53 @@ internal fun AddRemoteSourceConnectionPage(
     saving: Boolean,
     running: Boolean,
     onDismiss: () -> Unit,
-    onConnect: (url: String, username: String, password: String, displayName: String) -> Unit,
+    onConnect: (url: String, username: String, password: String, apiKey: String, displayName: String) -> Unit,
     password: String,
     onPasswordChange: (String) -> Unit,
+    apiKey: String,
+    onApiKeyChange: (String) -> Unit,
 ) {
+    val steps =
+        remember(provider) {
+            when (provider) {
+                RemoteProvider.SUBSONIC ->
+                    listOf(
+                        AddConnectionStep.ADDRESS,
+                        AddConnectionStep.USERNAME,
+                        AddConnectionStep.PASSWORD,
+                        AddConnectionStep.API_KEY,
+                        AddConnectionStep.NAME,
+                    )
+
+                else ->
+                    listOf(
+                        AddConnectionStep.ADDRESS,
+                        AddConnectionStep.USERNAME,
+                        AddConnectionStep.PASSWORD,
+                        AddConnectionStep.NAME,
+                    )
+            }
+        }
     var stepIndex by rememberSaveable { mutableIntStateOf(0) }
     var url by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var displayName by rememberSaveable { mutableStateOf("") }
-    val step = AddConnectionStep.entries[stepIndex.coerceIn(0, AddConnectionStep.entries.lastIndex)]
+    val step = steps[stepIndex.coerceIn(0, steps.lastIndex)]
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
     val requester = remember { FocusRequester() }
 
+    val supportsApiKey = provider == RemoteProvider.SUBSONIC
     val canAdvance =
         !saving &&
                 !running &&
                 when (step) {
                     AddConnectionStep.ADDRESS -> runCatching { normalizeCandidateUrls(url) }.isSuccess
-                    AddConnectionStep.USERNAME -> username.isNotBlank()
-                    AddConnectionStep.PASSWORD -> password.isNotEmpty()
+                    AddConnectionStep.USERNAME -> supportsApiKey || username.isNotBlank()
+                    AddConnectionStep.PASSWORD -> supportsApiKey || password.isNotEmpty()
+                    AddConnectionStep.API_KEY ->
+                        apiKey.isNotBlank() || (password.isNotEmpty() && username.isNotBlank())
+
                     AddConnectionStep.NAME -> true
                 }
 
@@ -89,31 +117,27 @@ internal fun AddRemoteSourceConnectionPage(
 
     fun submitStep() {
         if (!canAdvance) return
-        when (step) {
-            AddConnectionStep.ADDRESS,
-            AddConnectionStep.USERNAME,
-            AddConnectionStep.PASSWORD -> {
-                stepIndex++
-            }
-
-            AddConnectionStep.NAME -> {
-                keyboard?.hide()
-                focus.clearFocus()
-                onConnect(url, username, password, displayName)
-            }
+        if (stepIndex < steps.lastIndex) {
+            stepIndex++
+        } else {
+            keyboard?.hide()
+            focus.clearFocus()
+            onConnect(url, username, password, apiKey, displayName)
         }
     }
 
     ScreenBackHandler(onBack = ::goBack)
 
+    val stepCounter = "(${stepIndex + 1}/${steps.size})"
     val title =
         if (saving) "Connecting…"
         else
             when (step) {
-                AddConnectionStep.ADDRESS -> "Server address (1/4)"
-                AddConnectionStep.USERNAME -> "Username (2/4)"
-                AddConnectionStep.PASSWORD -> "Password (3/4)"
-                AddConnectionStep.NAME -> "Library name (4/4)"
+                AddConnectionStep.ADDRESS -> "Server address $stepCounter"
+                AddConnectionStep.USERNAME -> "Username $stepCounter"
+                AddConnectionStep.PASSWORD -> "Password $stepCounter"
+                AddConnectionStep.API_KEY -> "API key $stepCounter"
+                AddConnectionStep.NAME -> "Library name $stepCounter"
             }
 
     SyncSettingsPage(title, ::goBack) {
@@ -130,6 +154,7 @@ internal fun AddRemoteSourceConnectionPage(
                     AddConnectionStep.ADDRESS -> url
                     AddConnectionStep.USERNAME -> username
                     AddConnectionStep.PASSWORD -> password
+                    AddConnectionStep.API_KEY -> apiKey
                     AddConnectionStep.NAME -> displayName
                 }
             val defaultName =
@@ -139,13 +164,28 @@ internal fun AddRemoteSourceConnectionPage(
             val instruction =
                 when (step) {
                     AddConnectionStep.ADDRESS ->
-                        "Enter your ${provider.label} server address."
+                        "Enter your ${provider.label} server address. HTTPS is tried first if omitted."
 
                     AddConnectionStep.USERNAME ->
-                        "Enter the username for your ${provider.label} account."
+                        if (supportsApiKey) {
+                            "Enter your ${provider.label} username, or leave blank if using an OpenSubsonic API key."
+                        } else {
+                            "Enter the username for your ${provider.label} account."
+                        }
 
                     AddConnectionStep.PASSWORD ->
-                        "Enter the password for your ${provider.label} account."
+                        if (supportsApiKey) {
+                            "Enter your password, or leave blank to sign in with an API key on the next step."
+                        } else {
+                            "Enter the password for your ${provider.label} account."
+                        }
+
+                    AddConnectionStep.API_KEY ->
+                        if (password.isNotEmpty()) {
+                            "Optional API key (OpenSubsonic servers). Leave blank to use your password."
+                        } else {
+                            "Enter your API key (OpenSubsonic servers)."
+                        }
 
                     AddConnectionStep.NAME ->
                         "Optional name shown in Cymatic. Leave blank to use $defaultName."
@@ -155,16 +195,20 @@ internal fun AddRemoteSourceConnectionPage(
                     AddConnectionStep.ADDRESS -> "Server address"
                     AddConnectionStep.USERNAME -> "Username"
                     AddConnectionStep.PASSWORD -> "Password"
+                    AddConnectionStep.API_KEY -> "API key"
                     AddConnectionStep.NAME -> "Name"
                 }
             val hint =
                 when (step) {
                     AddConnectionStep.ADDRESS -> "music.example.com"
-                    AddConnectionStep.USERNAME -> "Username"
-                    AddConnectionStep.PASSWORD -> "Password"
+                    AddConnectionStep.USERNAME -> if (supportsApiKey) "Optional with API key" else "Username"
+                    AddConnectionStep.PASSWORD -> if (supportsApiKey) "Optional with API key" else "Password"
+                    AddConnectionStep.API_KEY ->
+                        if (password.isNotEmpty()) "Optional" else "Required without password"
+
                     AddConnectionStep.NAME -> defaultName
                 }
-            val isPassword = step == AddConnectionStep.PASSWORD
+            val isSecret = step == AddConnectionStep.PASSWORD || step == AddConnectionStep.API_KEY
             val actionVerb = if (step == AddConnectionStep.NAME) "connect" else "continue"
 
             Column(
@@ -195,6 +239,7 @@ internal fun AddRemoteSourceConnectionPage(
                             AddConnectionStep.ADDRESS -> url = updated
                             AddConnectionStep.USERNAME -> username = updated
                             AddConnectionStep.PASSWORD -> onPasswordChange(updated)
+                            AddConnectionStep.API_KEY -> onApiKeyChange(updated)
                             AddConnectionStep.NAME -> displayName = updated
                         }
                     },
@@ -207,13 +252,15 @@ internal fun AddRemoteSourceConnectionPage(
                     shape = RectangleShape,
                     supportingText = { EditorSubmitHint(actionVerb) },
                     visualTransformation =
-                        if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+                        if (isSecret) PasswordVisualTransformation() else VisualTransformation.None,
                     keyboardOptions =
                         KeyboardOptions(
                             keyboardType =
                                 when (step) {
                                     AddConnectionStep.ADDRESS -> KeyboardType.Uri
-                                    AddConnectionStep.PASSWORD -> KeyboardType.Password
+                                    AddConnectionStep.PASSWORD,
+                                    AddConnectionStep.API_KEY -> KeyboardType.Password
+
                                     else -> KeyboardType.Text
                                 },
                             imeAction =
@@ -242,24 +289,36 @@ internal fun SyncConnectionPage(
     running: Boolean,
     connected: Boolean,
     onDismiss: () -> Unit,
-    onSave: (url: String, username: String, password: String, displayName: String) -> Unit,
+    onSave: (url: String, username: String, password: String, apiKey: String, displayName: String) -> Unit,
     onDisplayNameSave: (String) -> Unit,
     onCheck: (() -> Unit)?,
     password: String,
     onPasswordChange: (String) -> Unit,
+    apiKey: String = "",
+    onApiKeyChange: (String) -> Unit = {},
 ) {
     var url by rememberSaveable(initialUrl) { mutableStateOf(initialUrl) }
     var username by rememberSaveable(initialUsername) { mutableStateOf(initialUsername) }
     var displayName by rememberSaveable(initialDisplayName) { mutableStateOf(initialDisplayName) }
     var field by remember { mutableStateOf<String?>(null) }
     val nav = LocalNavController.current
-    fun isValid(candidateUrl: String, candidateUser: String, candidatePass: String): Boolean {
+    val supportsApiKey = provider == RemoteProvider.SUBSONIC
+
+    fun isValid(
+        candidateUrl: String,
+        candidateUser: String,
+        candidatePass: String,
+        candidateKey: String,
+    ): Boolean {
         val okUrl = runCatching { normalizeCandidateUrls(candidateUrl) }.isSuccess
         val canKeep = hasSavedCredentials && candidateUser.trim() == initialUsername.trim()
-        return okUrl && candidateUser.isNotBlank() && (candidatePass.isNotEmpty() || canKeep)
+        val hasSecret = candidatePass.isNotEmpty() || candidateKey.isNotBlank() || canKeep
+        val hasUser =
+            candidateUser.isNotBlank() || (supportsApiKey && (candidateKey.isNotBlank() || canKeep))
+        return okUrl && hasUser && hasSecret
     }
 
-    val keepPassword = hasSavedCredentials && username.trim() == initialUsername.trim()
+    val keepSecret = hasSavedCredentials && username.trim() == initialUsername.trim()
     val enabled = !saving && !running
     val cleartextWarning = isCleartextPublicUrl(url)
 
@@ -289,7 +348,7 @@ internal fun SyncConnectionPage(
                     add(
                         SyncSetting(
                             "Username",
-                            username.ifBlank { "Required" },
+                            username.ifBlank { if (supportsApiKey) "Optional with API key" else "Required" },
                             enabled,
                             onClick = { field = "Username" },
                         )
@@ -299,13 +358,28 @@ internal fun SyncConnectionPage(
                             "Password",
                             when {
                                 password.isNotEmpty() -> "New password entered"
-                                keepPassword -> "Saved · leave blank to keep"
+                                keepSecret -> "Saved · leave blank to keep"
+                                supportsApiKey -> "Optional with API key"
                                 else -> "Required"
                             },
                             enabled,
                             onClick = { field = "Password" },
                         )
                     )
+                    if (supportsApiKey) {
+                        add(
+                            SyncSetting(
+                                "API key",
+                                when {
+                                    apiKey.isNotBlank() -> "New API key entered"
+                                    keepSecret -> "Optional (OpenSubsonic servers)"
+                                    else -> "Optional (OpenSubsonic servers)"
+                                },
+                                enabled,
+                                onClick = { field = "API key" },
+                            )
+                        )
+                    }
                     if (saving) {
                         add(SyncSetting("Saving…", enabled = false))
                     } else if (connected && onCheck != null) {
@@ -331,23 +405,26 @@ internal fun SyncConnectionPage(
                     "Name" -> displayName
                     "Server address" -> url
                     "Username" -> username
+                    "API key" -> apiKey
                     else -> password
                 },
-            password = title == "Password",
+            password = title == "Password" || title == "API key",
             hint =
                 when (title) {
                     "Name" -> "Display name"
                     "Server address" -> "music.example.com"
                     "Username" -> "Enter username"
-                    else -> if (keepPassword) "Leave blank to keep saved" else "Enter password"
+                    "API key" -> "OpenSubsonic API key"
+                    else -> if (keepSecret) "Leave blank to keep saved" else "Enter password"
                 },
             instruction =
                 when (title) {
                     "Name" -> "Name shown for this library in Cymatic."
-                    "Server address" -> "Enter the server address."
+                    "Server address" -> "Enter the server address. HTTPS is tried first if omitted."
                     "Username" -> "Enter the username for your ${provider.label} account."
+                    "API key" -> "Enter an API key (OpenSubsonic servers)."
                     else ->
-                        if (keepPassword) "Enter a new password, or leave blank to keep the saved one."
+                        if (keepSecret) "Enter a new password, or leave blank to keep the saved one."
                         else "Enter the password for your ${provider.label} account."
                 },
             onSave = { newValue ->
@@ -363,25 +440,32 @@ internal fun SyncConnectionPage(
                     "Server address" -> {
                         url = newValue
                         if (newValue.trim() != initialUrl.trim() &&
-                            isValid(newValue, username, password)
+                            isValid(newValue, username, password, apiKey)
                         ) {
-                            onSave(newValue, username, password, preservedName)
+                            onSave(newValue, username, password, apiKey, preservedName)
                         }
                     }
 
                     "Username" -> {
                         username = newValue
                         if (newValue.trim() != initialUsername.trim() &&
-                            isValid(url, newValue, password)
+                            isValid(url, newValue, password, apiKey)
                         ) {
-                            onSave(url, newValue, password, preservedName)
+                            onSave(url, newValue, password, apiKey, preservedName)
+                        }
+                    }
+
+                    "API key" -> {
+                        onApiKeyChange(newValue)
+                        if (newValue.isNotBlank() && isValid(url, username, password, newValue)) {
+                            onSave(url, username, password, newValue, preservedName)
                         }
                     }
 
                     else -> {
                         onPasswordChange(newValue)
-                        if (newValue.isNotEmpty() && isValid(url, username, newValue)) {
-                            onSave(url, username, newValue, preservedName)
+                        if (newValue.isNotEmpty() && isValid(url, username, newValue, apiKey)) {
+                            onSave(url, username, newValue, apiKey, preservedName)
                         }
                     }
                 }

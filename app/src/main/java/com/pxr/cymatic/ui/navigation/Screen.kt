@@ -25,20 +25,37 @@ sealed class Screen(val route: String) {
         }
     }
 
-    object ArtistAlbumSongs : Screen("artist/{artistName}/album/{albumName}?scrollId={scrollId}") {
-        fun createRoute(artistName: String, albumName: String, scrollId: Long? = null): String {
+    object ArtistAlbumSongs :
+        Screen("artist/{artistName}/album/{albumName}?scrollId={scrollId}&sourceKey={sourceKey}") {
+        fun createRoute(
+            artistName: String,
+            albumName: String,
+            scrollId: Long? = null,
+            sourceKey: String? = null,
+        ): String {
             val base = "artist/${Uri.encode(artistName)}/album/${Uri.encode(albumName)}"
-            return if (scrollId != null) "$base?scrollId=$scrollId" else base
+            val params = buildList {
+                if (scrollId != null) add("scrollId=$scrollId")
+                if (!sourceKey.isNullOrBlank()) add("sourceKey=${Uri.encode(sourceKey)}")
+            }
+            return if (params.isEmpty()) base else "$base?${params.joinToString("&")}"
         }
     }
 
     object Albums : Screen("albums")
 
-    object AlbumSongs : Screen("album/{albumName}?scrollId={scrollId}") {
-        fun createRoute(albumName: String, scrollId: Long? = null): String {
-            val encodedName = Uri.encode(albumName)
-            return if (scrollId != null) "album/$encodedName?scrollId=$scrollId"
-            else "album/$encodedName"
+    object AlbumSongs : Screen("album/{albumName}?scrollId={scrollId}&sourceKey={sourceKey}") {
+        fun createRoute(
+            albumName: String,
+            scrollId: Long? = null,
+            sourceKey: String? = null,
+        ): String {
+            val base = "album/${Uri.encode(albumName)}"
+            val params = buildList {
+                if (scrollId != null) add("scrollId=$scrollId")
+                if (!sourceKey.isNullOrBlank()) add("sourceKey=${Uri.encode(sourceKey)}")
+            }
+            return if (params.isEmpty()) base else "$base?${params.joinToString("&")}"
         }
     }
 
@@ -140,6 +157,8 @@ sealed class Screen(val route: String) {
     object HardwareEqGraphPage : Screen("setting/eq/dac/response")
 
     object SyncGraph : Screen("sync_graph")
+
+    object SyncConnections : Screen("setting/library-sync/connections")
 
     object SyncAddSource : Screen("setting/library-sync/add")
 

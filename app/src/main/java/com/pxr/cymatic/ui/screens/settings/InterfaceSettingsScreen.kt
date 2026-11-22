@@ -66,6 +66,18 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
         BaseScreen(title = "Interface", onBackClick = { nav.popBackStack() }) {
             NavigationList(
                 listOf(
+                    NavigationItem("Wheel size", percent(settings.wheelSizePercent)) {
+                        number =
+                            InterfaceNumberEdit(
+                                "Wheel size",
+                                settings.wheelSizePercent,
+                                60f..120f,
+                                5f,
+                                ::percent,
+                            ) {
+                                SettingsStore.setWheelSizePercent(it)
+                            }
+                    },
                     NavigationItem("Wheel sensitivity", percent(sensitivity * 100)) {
                         number =
                             InterfaceNumberEdit(
@@ -77,6 +89,15 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                             ) {
                                 SettingsStore.setWheelSensitivity(it / 100)
                             }
+                    },
+                    NavigationItem(
+                        "Haptic feedback",
+                        if (settings.hapticsEnabled) "On" else "Off",
+                        checked = settings.hapticsEnabled,
+                    ) {
+                        scope.launch {
+                            SettingsStore.setWheelHapticsEnabled(!settings.hapticsEnabled)
+                        }
                     },
                     NavigationItem(
                         "Gesture pause",
@@ -93,27 +114,6 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                                 SettingsStore.setGesturePauseMs(it.roundToLong())
                             }
                     },
-                    NavigationItem(
-                        "Haptic feedback",
-                        if (settings.hapticsEnabled) "On" else "Off",
-                        checked = settings.hapticsEnabled,
-                    ) {
-                        scope.launch {
-                            SettingsStore.setWheelHapticsEnabled(!settings.hapticsEnabled)
-                        }
-                    },
-                    NavigationItem("Wheel size", percent(settings.wheelSizePercent)) {
-                        number =
-                            InterfaceNumberEdit(
-                                "Wheel size",
-                                settings.wheelSizePercent,
-                                60f..120f,
-                                5f,
-                                ::percent,
-                            ) {
-                                SettingsStore.setWheelSizePercent(it)
-                            }
-                    },
                     NavigationItem("Screen padding", densityPixels(settings.screenPaddingDp)) {
                         number =
                             InterfaceNumberEdit(
@@ -127,12 +127,6 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                             }
                     },
                     NavigationItem(
-                        "Text scrolling",
-                        "${percent(settings.textScrollSpeed / 24 * 100)} · ${seconds(settings.textScrollDelayMs.toFloat())}",
-                    ) {
-                        nav.navigate(Screen.TextScrollingSettings.route)
-                    },
-                    NavigationItem(
                         "Cover art default",
                         if (settings.coverVisibleByDefault) "Shown" else "Hidden",
                         checked = settings.coverVisibleByDefault,
@@ -140,6 +134,12 @@ internal fun InterfaceSettingsScreen(pageRoute: String = Screen.InterfaceSetting
                         scope.launch {
                             SettingsStore.setCoverVisibleByDefault(!settings.coverVisibleByDefault)
                         }
+                    },
+                    NavigationItem(
+                        "Text scrolling",
+                        "${percent(settings.textScrollSpeed / 24 * 100)} · ${seconds(settings.textScrollDelayMs.toFloat())}",
+                    ) {
+                        nav.navigate(Screen.TextScrollingSettings.route)
                     },
                     NavigationItem("Keep screen awake", settings.screenAwakeMode.label) {
                         showScreenAwake = true

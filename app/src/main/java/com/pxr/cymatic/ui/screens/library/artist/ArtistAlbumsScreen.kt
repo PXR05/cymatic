@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.sync.LibraryOfflineManager
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
@@ -51,9 +52,17 @@ fun ArtistAlbumsScreen(
 
     val groups = rememberLibraryGroups()
     val artistGroup = groups.artists[artistName]
-    val albums = remember(artistGroup) { LibraryGroups(artistGroup?.songs.orEmpty()).albums }
+    val albumsBySource =
+        remember(artistGroup) { LibraryGroups(artistGroup?.songs.orEmpty()).albumsBySource }
+    val sources by RemoteSourceRegistry.sourcesFlow.collectAsState(
+        initial = RemoteSourceRegistry.currentSources
+    )
+    val sourceNames = remember(sources) { sources.associate { it.id to it.displayName } }
+    val showSourceLabel = remember(state.albums) {
+        state.albums.map { it.sourceId }.distinct().size > 1
+    }
     var showHeaderMenu by remember { mutableStateOf(false) }
-    var selectedAlbum by remember { mutableStateOf<String?>(null) }
+    var selectedAlbum by remember { mutableStateOf<ArtistAlbum?>(null) }
     BaseScreen(
         title = artistName,
         onMenuLongClick = { showHeaderMenu = true },
@@ -107,22 +116,32 @@ fun ArtistAlbumsScreen(
                             )
                         ) +
                                 state.albums.map { album ->
+                                    val countText =
+                                        "${album.trackCount} ${trackLabel(album.trackCount)}"
+                                    val subLabel =
+                                        if (showSourceLabel) {
+                                            val src =
+                                                album.sourceId?.let { sourceNames[it] ?: "Remote" }
+                                                    ?: "This device"
+                                            "$countText · $src"
+                                        } else countText
                                     NavigationItem(
                                         label = album.name,
+                                        key = album.key,
                                         trailingContent = { color ->
                                             LibraryGroupIndicator(
-                                                albums[album.name],
+                                                albumsBySource[album.name to album.sourceId],
                                                 color,
                                             )
                                         },
-                                        onLongClick = { selectedAlbum = album.name },
-                                        subLabel =
-                                            "${album.trackCount} ${trackLabel(album.trackCount)}",
+                                        onLongClick = { selectedAlbum = album },
+                                        subLabel = subLabel,
                                         onClick = {
                                             navController.navigate(
                                                 Screen.ArtistAlbumSongs.createRoute(
                                                     artistName,
                                                     album.name,
+                                                    sourceKey = album.sourceKey,
                                                 )
                                             )
                                         },
@@ -143,15 +162,15 @@ fun ArtistAlbumsScreen(
                         { LibraryOfflineManager.keepSongs(context, group.songs, artistName) }
                     },
         )
-    selectedAlbum?.let { albumName ->
+    selectedAlbum?.let { album ->
         LibraryContextMenu(
-            title = albumName,
+            title = album.name,
             onDismiss = { selectedAlbum = null },
             onKeepOffline =
-                albums[albumName]
+                albumsBySource[album.name to album.sourceId]
                     ?.takeIf { it.canKeepOffline }
                     ?.let { group ->
-                        { LibraryOfflineManager.keepSongs(context, group.songs, albumName) }
+                        { LibraryOfflineManager.keepSongs(context, group.songs, album.name) }
                     },
         )
     }

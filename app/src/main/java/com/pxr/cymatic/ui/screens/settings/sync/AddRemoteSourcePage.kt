@@ -16,6 +16,11 @@ internal fun AddRemoteSourcePage(
                     detail = "Self-hosted AudioStream server",
                     onClick = { onSelect(RemoteProvider.AUDIOSTREAM) },
                 ),
+                SyncSetting(
+                    title = "Subsonic",
+                    detail = "Subsonic compatible API like Navidrome",
+                    onClick = { onSelect(RemoteProvider.SUBSONIC) },
+                ),
             )
         )
     }

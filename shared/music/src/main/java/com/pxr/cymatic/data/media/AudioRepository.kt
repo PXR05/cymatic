@@ -9,7 +9,10 @@ import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class AudioRepository private constructor(private val audioDao: AudioDao) {
+class AudioRepository private constructor(
+    private val context: Context,
+    private val audioDao: AudioDao,
+) {
     @Volatile
     private var cachedAudio: List<AudioFile>? = null
     private val cacheMutex = Mutex()
@@ -36,7 +39,20 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
             val remoteCopies =
                 enabledRecords.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
             enabledRecords.filter { it.sourceId != null || it.uri !in remoteCopies }
-                .map { it.toAudioFile() }
+                .map { entity ->
+                    val remoteTrack =
+                        if (entity.sourceId != null && entity.remoteId != null) {
+                            com.pxr.cymatic.sync.SyncCatalogStore.track(
+                                context,
+                                entity.sourceId,
+                                entity.remoteId,
+                            )
+                        } else null
+                    entity.toAudioFile(
+                        trackNumber = remoteTrack?.trackNumber,
+                        discNumber = remoteTrack?.discNumber,
+                    )
+                }
         }
 
     fun getCachedAudio(): List<AudioFile>? {
@@ -100,7 +116,10 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
             return instance
                 ?: synchronized(this) {
                     instance
-                        ?: AudioRepository(CymaticDatabase.getInstance(context).audioDao()).also {
+                        ?: AudioRepository(
+                            context.applicationContext,
+                            CymaticDatabase.getInstance(context).audioDao(),
+                        ).also {
                             instance = it
                         }
                 }
@@ -108,7 +127,10 @@ class AudioRepository private constructor(private val audioDao: AudioDao) {
     }
 }
 
-fun AudioEntity.toAudioFile(): AudioFile {
+fun AudioEntity.toAudioFile(
+    trackNumber: Int? = null,
+    discNumber: Int? = null,
+): AudioFile {
     return AudioFile(
         id = id,
         uri = uri.toUri(),
@@ -126,6 +148,8 @@ fun AudioEntity.toAudioFile(): AudioFile {
                 sampleRate = sampleRate,
                 format = format,
                 artworkUri = artworkUri?.let(Uri::parse),
+                trackNumber = trackNumber,
+                discNumber = discNumber,
             ),
     )
 }

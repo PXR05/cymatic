@@ -9,6 +9,15 @@ import com.pxr.cymatic.sync.SyncContentMode
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.list.NavigationItem
 
+private val streamingQualityOptions =
+    listOf(
+        "Original" to (false to 192),
+        "MP3 128 kbps on mobile data" to (true to 128),
+        "MP3 192 kbps on mobile data" to (true to 192),
+        "MP3 256 kbps on mobile data" to (true to 256),
+        "MP3 320 kbps on mobile data" to (true to 320),
+    )
+
 @Composable
 internal fun RemoteSourcePage(
     state: RemoteSourceState,
@@ -18,6 +27,7 @@ internal fun RemoteSourcePage(
     onMode: (SyncContentMode) -> Unit,
     onPlaylists: () -> Unit,
     onDownload: () -> Unit,
+    onStreamingQuality: (Boolean, Int) -> Unit,
     onToggleEnabled: (Boolean) -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -73,6 +83,27 @@ internal fun RemoteSourcePage(
                                         else "${state.selection.size} selected",
                                     enabled = state.canEdit,
                                     onClick = onPlaylists,
+                                )
+                            )
+                        }
+                        if (state.provider.supportsTranscoding) {
+                            val transcode = state.config?.transcodeOnMetered == true
+                            val bitrate = state.config?.transcodeBitrateKbps ?: 192
+                            val currentLabel =
+                                if (!transcode) "Original"
+                                else "MP3 $bitrate kbps on mobile data"
+                            add(
+                                SyncSetting(
+                                    title = "Streaming quality",
+                                    detail = currentLabel,
+                                    enabled = state.canEdit,
+                                    options = streamingQualityOptions.map { it.first },
+                                    selectedOption = currentLabel,
+                                    onChoose = { chosen ->
+                                        val (metered, kbps) =
+                                            streamingQualityOptions.first { it.first == chosen }.second
+                                        onStreamingQuality(metered, kbps)
+                                    },
                                 )
                             )
                         }

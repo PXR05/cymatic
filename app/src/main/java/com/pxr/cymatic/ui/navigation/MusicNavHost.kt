@@ -98,9 +98,11 @@ fun MusicNavHost(
                         val artistName = entry.arguments?.getString("artistName") ?: UnknownArtist
                         val albumName = entry.arguments?.getString("albumName") ?: UnknownAlbum
                         val scrollId = entry.arguments?.getString("scrollId")
+                        val sourceKey = entry.arguments?.getString("sourceKey")
                         AlbumSongsScreen(
                             albumName = albumName,
                             artistName = artistName,
+                            sourceKey = sourceKey,
                             scrollTargetId = scrollId?.toLongOrNull(),
                         )
                     },
@@ -110,8 +112,10 @@ fun MusicNavHost(
                         val rawName = entry.arguments?.getString("albumName")
                         val albumName = rawName ?: UnknownAlbum
                         val scrollId = entry.arguments?.getString("scrollId")
+                        val sourceKey = entry.arguments?.getString("sourceKey")
                         AlbumSongsScreen(
                             albumName = albumName,
+                            sourceKey = sourceKey,
                             scrollTargetId = scrollId?.toLongOrNull(),
                         )
                     },
@@ -283,6 +287,7 @@ fun MusicNavHost(
                 ) {
                     listOf(
                         Screen.LibrarySyncSettings,
+                        Screen.SyncConnections,
                         Screen.SyncAddSource,
                         Screen.SyncAddSourceConnection,
                         Screen.SyncSource,

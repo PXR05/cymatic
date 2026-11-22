@@ -24,26 +24,17 @@ internal fun SyncRemoteLibraryPage(
                 SyncSetting(
                     "Songs",
                     "${state.catalog?.tracks?.size ?: 0}",
-                    onClick = {
-                        onDismiss()
-                        nav.navigate(Screen.AllSongs.createRoute())
-                    },
+                    onClick = { nav.navigate(Screen.AllSongs.createRoute()) },
                 ),
                 SyncSetting(
                     "Albums",
                     "$albumCount",
-                    onClick = {
-                        onDismiss()
-                        nav.navigate(Screen.Albums.route)
-                    },
+                    onClick = { nav.navigate(Screen.Albums.route) },
                 ),
                 SyncSetting(
                     "Playlists",
                     "${state.catalog?.playlists?.size ?: 0}",
-                    onClick = {
-                        onDismiss()
-                        nav.navigate(Screen.Playlists.route)
-                    },
+                    onClick = { nav.navigate(Screen.Playlists.route) },
                 ),
                 SyncSetting(
                     if (state.refreshingCatalog) "Stop refresh" else "Refresh library",

@@ -2,6 +2,9 @@ package com.pxr.cymatic.sync
 
 import android.content.Context
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
+import com.pxr.cymatic.sync.subsonic.SubsonicClient
+import com.pxr.cymatic.sync.subsonic.SubsonicMapping
+import com.pxr.cymatic.sync.subsonic.SubsonicVerification
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -58,7 +61,7 @@ class RemoteSourceConnector(
                             "Enter a valid server address (for example, music.example.com)."
                         )
                     }
-            val username = input.username.trim()
+            var resolvedAccount = input.username.trim()
             val allExisting = RemoteSourceRegistry.all(application)
             val existing = input.existingId?.let { id -> allExisting.firstOrNull { it.id == id } }
             val existingCreds = existing?.let { SyncCredentialStore.get(application, it.id) }
@@ -70,7 +73,7 @@ class RemoteSourceConnector(
 
             when (input.provider) {
                 RemoteProvider.AUDIOSTREAM -> {
-                    require(username.isNotBlank()) { "Enter your username." }
+                    require(resolvedAccount.isNotBlank()) { "Enter your username." }
                     val secret =
                         input.password.takeIf { it.isNotEmpty() }
                             ?: existingCreds?.password
@@ -82,7 +85,7 @@ class RemoteSourceConnector(
                             allExisting,
                             input.provider.value,
                             candidateUrls.first(),
-                            username,
+                            resolvedAccount,
                             null
                         )
                     }
@@ -90,7 +93,7 @@ class RemoteSourceConnector(
                     var matchedUrl: String? = null
                     var lastError: Throwable? = null
                     for ((index, candidate) in candidateUrls.withIndex()) {
-                        val client = AudioStreamClient(candidate, username, secret)
+                        val client = AudioStreamClient(candidate, resolvedAccount, secret)
                         activeClient = client
                         try {
                             if (cancelled.get()) throw SyncCancelledException()
@@ -131,6 +134,109 @@ class RemoteSourceConnector(
                     extras = emptyMap()
                 }
 
+                RemoteProvider.SUBSONIC -> {
+                    val password =
+                        input.password.takeIf { it.isNotEmpty() }
+                            ?: existingCreds?.password
+                    val apiKey =
+                        input.apiKey.trim().takeIf { it.isNotEmpty() }
+                            ?: existingCreds?.apiKey
+                    require(!password.isNullOrEmpty() || !apiKey.isNullOrEmpty()) {
+                        "Enter your password or an API key."
+                    }
+                    if (apiKey.isNullOrEmpty()) {
+                        require(resolvedAccount.isNotBlank()) { "Enter your username." }
+                    }
+
+                    val subsonicCandidates =
+                        candidateUrls.map(SubsonicMapping::normalizeBaseUrl).distinct()
+                    if (existing == null && subsonicCandidates.size == 1 && resolvedAccount.isNotBlank()) {
+                        checkNotDuplicate(
+                            allExisting,
+                            input.provider.value,
+                            subsonicCandidates.first(),
+                            resolvedAccount,
+                            null,
+                        )
+                    }
+
+                    var matchedUrl: String? = null
+                    var verification: SubsonicVerification? = null
+                    var lastError: Throwable? = null
+                    for ((index, candidate) in subsonicCandidates.withIndex()) {
+                        val client =
+                            SubsonicClient(
+                                baseUrl = candidate,
+                                username = resolvedAccount,
+                                password = password,
+                                apiKey = apiKey,
+                                supportsApiKey = !apiKey.isNullOrEmpty(),
+                                apiKeyRejected = false,
+                            )
+                        activeClient = client
+                        try {
+                            if (cancelled.get()) throw SyncCancelledException()
+                            val result = client.verify()
+                            currentCoroutineContext().ensureActive()
+                            if (cancelled.get()) throw SyncCancelledException()
+                            matchedUrl = candidate
+                            verification = result
+                            break
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: SyncCancelledException) {
+                            throw error
+                        } catch (error: RemoteRequestException) {
+                            lastError = error
+                            if (error.status == 401 || error.status == 403 || index == subsonicCandidates.lastIndex) {
+                                throw error
+                            }
+                        } catch (error: Throwable) {
+                            lastError = error
+                            if (index == subsonicCandidates.lastIndex) throw error
+                        } finally {
+                            client.cancel()
+                            activeClient = null
+                        }
+                    }
+                    resolvedUrl =
+                        matchedUrl ?: throw (lastError ?: IOException("Could not connect."))
+                    val verified =
+                        verification ?: throw IOException("Could not verify Subsonic server.")
+                    if (resolvedAccount.isBlank()) {
+                        resolvedAccount = verified.resolvedUsername.orEmpty()
+                    }
+                    if (password.isNullOrEmpty() && resolvedAccount.isBlank()) {
+                        resolvedAccount = "api-key"
+                    }
+                    credentials = RemoteCredentials(password = password, apiKey = apiKey)
+                    val serverLabel =
+                        verified.serverType
+                            ?.takeIf(String::isNotBlank)
+                            ?.replaceFirstChar { it.titlecase(Locale.ROOT) }
+                    verifiedDisplayName =
+                        input.displayName.trim()
+                            .ifBlank { existing?.displayName.orEmpty().trim() }
+                            .ifBlank {
+                                serverLabel
+                                    ?: RemoteSourceMigrationPlanner.hostDisplayName(
+                                        resolvedUrl,
+                                        input.provider.value,
+                                    )
+                            }
+                    extras = buildMap {
+                        put("openSubsonic", verified.openSubsonic.toString())
+                        if (verified.extensions.isNotEmpty()) {
+                            put("extensions", verified.extensions.joinToString(","))
+                        }
+                        verified.serverType?.let { put("serverType", it) }
+                        verified.serverVersion?.let { put("serverVersion", it) }
+                        if (verified.apiKeyRejected) {
+                            put("apiKeyRejected", "true")
+                        }
+                    }
+                }
+
                 else -> error("This library provider is not supported yet")
             }
 
@@ -138,7 +244,7 @@ class RemoteSourceConnector(
                 allExisting,
                 input.provider.value,
                 resolvedUrl,
-                username,
+                resolvedAccount,
                 existing?.id,
             )
 
@@ -147,7 +253,7 @@ class RemoteSourceConnector(
             }
 
             val id = existing?.id ?: RemoteLibrarySource.newId()
-            val usernameChanged = existing != null && existing.account != username
+            val usernameChanged = existing != null && existing.account != resolvedAccount
 
             if (usernameChanged) {
                 RemoteSourceRemover.clearData(application, id, deleteDownloads = true)
@@ -167,7 +273,7 @@ class RemoteSourceConnector(
                             provider = input.provider.value,
                             displayName = verifiedDisplayName,
                             address = resolvedUrl,
-                            account = username,
+                            account = resolvedAccount,
                             enabled = true,
                             folderName = folderName,
                             extras = extras,
@@ -180,7 +286,7 @@ class RemoteSourceConnector(
                         current.copy(
                             displayName = verifiedDisplayName,
                             address = resolvedUrl,
-                            account = username,
+                            account = resolvedAccount,
                             extras = extras,
                             lastError = null,
                             contentMode = if (usernameChanged) SyncContentMode.NONE.value else current.contentMode,

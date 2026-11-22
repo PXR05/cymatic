@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
+import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.playback.enqueueAudio
 import com.pxr.cymatic.playback.playAudioQueue
 import com.pxr.cymatic.ui.components.common.EmptyState
@@ -45,10 +46,23 @@ fun PlaylistsScreen(
     var showPageMenu by remember { mutableStateOf(false) }
 
     val work by com.pxr.cymatic.sync.LibraryOfflineManager.workState.collectAsState()
+    val sources by RemoteSourceRegistry.sourcesFlow.collectAsState(
+        initial = RemoteSourceRegistry.currentSources
+    )
+    val sourceNames = remember(sources) { sources.associate { it.id to it.displayName } }
+    val showSourceSubLabel = remember(uiState.items) {
+        uiState.items.map { it.sourceId }.distinct().size > 1
+    }
     val items =
         uiState.items.map { playlist ->
+            val subLabel =
+                if (showSourceSubLabel) {
+                    playlist.sourceId?.let { sourceNames[it] ?: "Remote" } ?: "This device"
+                } else null
             NavigationItem(
-                playlist.name,
+                label = playlist.name,
+                subLabel = subLabel,
+                key = "playlist_${playlist.id}",
                 trailingContent = { color ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

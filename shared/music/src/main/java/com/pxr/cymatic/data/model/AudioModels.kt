@@ -10,7 +10,9 @@ data class AudioMetadata(
     val bitRate: Long?,
     val sampleRate: Long?,
     val format: String?,
-    val artworkUri: Uri?
+    val artworkUri: Uri?,
+    val trackNumber: Int? = null,
+    val discNumber: Int? = null,
 )
 
 data class AudioFile(

@@ -1,6 +1,7 @@
 package com.pxr.cymatic.sync
 
 import android.content.Context
+import android.net.ConnectivityManager
 import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
@@ -41,19 +42,21 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
                     dataSpec.uri.pathSegments.single()
                 )
             } else null
-            if (key != null) {
-                val config =
-                    RemoteSourceRegistry.cached(key.sourceId)
-                        ?: runBlocking {
-                            RemoteSourceRegistry.get(
-                                key.sourceId,
-                                context
-                            )
-                        }
-                if (config == null || !config.enabled) {
-                    throw IOException("This library is disabled.")
-                }
-            }
+            val config =
+                if (key != null) {
+                    val found =
+                        RemoteSourceRegistry.cached(key.sourceId)
+                            ?: runBlocking {
+                                RemoteSourceRegistry.get(
+                                    key.sourceId,
+                                    context
+                                )
+                            }
+                    if (found == null || !found.enabled) {
+                        throw IOException("This library is disabled.")
+                    }
+                    found
+                } else null
             val record = key?.let {
                 runBlocking {
                     CymaticDatabase.getInstance(context).audioDao().getAudio(it.audioId())
@@ -77,13 +80,28 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
             } else {
                 val source = SyncCatalogStore.source(context, key!!.sourceId)
                     ?: throw IOException("This library connection is unavailable. Reconnect in Settings.")
+                val audioId = key.audioId()
+                val quality =
+                    if (dataSpec.position == 0L) {
+                        val chosen = resolveStreamQuality(config)
+                        StreamQualityMemory.put(audioId, chosen)
+                        chosen
+                    } else {
+                        StreamQualityMemory.get(audioId) ?: StreamQuality.Original
+                    }
                 val client = RemoteLibraries.client(context, source, ClientPurpose.STREAM)
-                val response = client.openStream(key.remoteId, dataSpec.position, dataSpec.length)
+                val response =
+                    client.openStream(key.remoteId, dataSpec.position, dataSpec.length, quality)
                 remote = response
-                val size = response.contentLength?.toLongOrNull()?.takeIf { it >= 0L }
-                    ?: record?.size?.takeIf { it > 0 && it < Int.MAX_VALUE }
-                        ?.let { (it.toLong() - dataSpec.position).coerceAtLeast(0L) }
-                    ?: C.LENGTH_UNSET.toLong()
+                val size =
+                    response.contentLength?.toLongOrNull()?.takeIf { it >= 0L }
+                        ?: if (quality == StreamQuality.Original) {
+                            record?.size?.takeIf { it > 0 && it < Int.MAX_VALUE }
+                                ?.let { (it.toLong() - dataSpec.position).coerceAtLeast(0L) }
+                        } else {
+                            null
+                        }
+                        ?: C.LENGTH_UNSET.toLong()
                 if (dataSpec.length == C.LENGTH_UNSET.toLong()) size
                 else if (size < 0) dataSpec.length else minOf(size, dataSpec.length)
             }
@@ -149,6 +167,15 @@ internal class RemoteLibraryDataSource(private val context: Context) : DataSourc
             started = false
             remaining = C.LENGTH_UNSET.toLong()
         }
+    }
+
+    private fun resolveStreamQuality(config: RemoteSourceConfig?): StreamQuality {
+        if (config == null || !config.transcodeOnMetered) return StreamQuality.Original
+        val provider = RemoteProvider.from(config.provider) ?: return StreamQuality.Original
+        if (!provider.supportsTranscoding) return StreamQuality.Original
+        val cm = context.getSystemService(ConnectivityManager::class.java)
+        val metered = runCatching { cm?.isActiveNetworkMetered == true }.getOrDefault(false)
+        return if (metered) StreamQuality.Mp3(config.transcodeBitrateKbps) else StreamQuality.Original
     }
 
     class Factory(private val context: Context) : DataSource.Factory {
