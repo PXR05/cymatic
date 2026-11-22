@@ -61,6 +61,10 @@ internal fun SongListScreen(
     var showHeaderMenu by remember { mutableStateOf(false) }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val hasActiveFilter =
+        availabilityFilter != LibraryFilter.ALL ||
+            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = title,
@@ -72,7 +76,7 @@ internal fun SongListScreen(
         if (
             needsStoragePermission &&
             !permission.granted &&
-            availabilityFilter == LibraryFilter.ALL &&
+            !hasActiveFilter &&
             audioFiles.isEmpty()
         ) {
             PermissionDeniedState(
@@ -87,7 +91,7 @@ internal fun SongListScreen(
             )
         } else if (isLoading && audioFiles.isEmpty()) {
             LoadingState()
-        } else if (availabilityFilter != LibraryFilter.ALL && audioFiles.isEmpty()) {
+        } else if (hasActiveFilter && audioFiles.isEmpty()) {
             LibraryFilteredEmptyState()
         } else if (audioFiles.isEmpty()) {
             emptyContent()

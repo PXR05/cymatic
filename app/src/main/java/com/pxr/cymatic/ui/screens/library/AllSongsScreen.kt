@@ -81,6 +81,10 @@ fun AllSongsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val hasActiveFilter =
+        availabilityFilter != LibraryFilter.ALL ||
+            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = "All Songs",
@@ -122,7 +126,7 @@ fun AllSongsScreen(
         } else if (
             !permission.granted &&
             remoteConnected != true &&
-            availabilityFilter == LibraryFilter.ALL &&
+            !hasActiveFilter &&
             uiState.items.isEmpty()
         ) {
             PermissionDeniedState(
@@ -138,7 +142,7 @@ fun AllSongsScreen(
         } else if (uiState.isLoading) {
             LoadingState()
         } else if (
-            availabilityFilter != LibraryFilter.ALL &&
+            hasActiveFilter &&
             !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
             uiState.items.isEmpty()
         ) {

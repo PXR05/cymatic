@@ -88,6 +88,10 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
         }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val hasActiveFilter =
+        availabilityFilter != LibraryFilter.ALL ||
+            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = category.title,
@@ -103,7 +107,7 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
         LibraryFilterStatus(availabilityFilter)
         if (
             !permission.granted &&
-            availabilityFilter == LibraryFilter.ALL &&
+            !hasActiveFilter &&
             uiState.items.isEmpty()
         ) {
             PermissionDeniedState(
@@ -119,7 +123,7 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
         } else if (uiState.isLoading) {
             LoadingState()
         } else if (
-            availabilityFilter != LibraryFilter.ALL &&
+            hasActiveFilter &&
             !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
             uiState.items.isEmpty()
         ) {

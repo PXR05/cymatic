@@ -52,6 +52,11 @@ private enum class AddConnectionStep {
     NAME,
 }
 
+private enum class SubsonicAuthChoice {
+    PASSWORD,
+    API_KEY,
+}
+
 @Composable
 internal fun AddRemoteSourceConnectionPage(
     provider: RemoteProvider,
@@ -64,19 +69,60 @@ internal fun AddRemoteSourceConnectionPage(
     apiKey: String,
     onApiKeyChange: (String) -> Unit,
 ) {
+    val needsAuthChoice = provider == RemoteProvider.SUBSONIC
+    var authChoice by rememberSaveable(provider) {
+        mutableStateOf(if (needsAuthChoice) null else SubsonicAuthChoice.PASSWORD)
+    }
+    var stepIndex by rememberSaveable(provider) { mutableIntStateOf(0) }
+    var url by rememberSaveable(provider) { mutableStateOf("") }
+    var username by rememberSaveable(provider) { mutableStateOf("") }
+    var displayName by rememberSaveable(provider) { mutableStateOf("") }
+
+    val selectedAuth = authChoice
+    if (selectedAuth == null) {
+        val back: () -> Unit = { if (!saving) onDismiss() }
+        ScreenBackHandler(onBack = back)
+        SyncSettingsPage("Sign-in method", back) {
+            SyncSettingsList(
+                listOf(
+                    SyncSetting(
+                        title = "Username & password",
+                        detail = "Sign in with your Subsonic account",
+                        enabled = !saving && !running,
+                        onClick = {
+                            onApiKeyChange("")
+                            stepIndex = 0
+                            authChoice = SubsonicAuthChoice.PASSWORD
+                        },
+                    ),
+                    SyncSetting(
+                        title = "API key",
+                        detail = "Sign in with an OpenSubsonic API key",
+                        enabled = !saving && !running,
+                        onClick = {
+                            username = ""
+                            onPasswordChange("")
+                            stepIndex = 0
+                            authChoice = SubsonicAuthChoice.API_KEY
+                        },
+                    ),
+                )
+            )
+        }
+        return
+    }
+
     val steps =
-        remember(provider) {
-            when (provider) {
-                RemoteProvider.SUBSONIC ->
+        remember(selectedAuth) {
+            when (selectedAuth) {
+                SubsonicAuthChoice.API_KEY ->
                     listOf(
                         AddConnectionStep.ADDRESS,
-                        AddConnectionStep.USERNAME,
-                        AddConnectionStep.PASSWORD,
                         AddConnectionStep.API_KEY,
                         AddConnectionStep.NAME,
                     )
 
-                else ->
+                SubsonicAuthChoice.PASSWORD ->
                     listOf(
                         AddConnectionStep.ADDRESS,
                         AddConnectionStep.USERNAME,
@@ -85,26 +131,19 @@ internal fun AddRemoteSourceConnectionPage(
                     )
             }
         }
-    var stepIndex by rememberSaveable { mutableIntStateOf(0) }
-    var url by rememberSaveable { mutableStateOf("") }
-    var username by rememberSaveable { mutableStateOf("") }
-    var displayName by rememberSaveable { mutableStateOf("") }
     val step = steps[stepIndex.coerceIn(0, steps.lastIndex)]
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
     val requester = remember { FocusRequester() }
 
-    val supportsApiKey = provider == RemoteProvider.SUBSONIC
     val canAdvance =
         !saving &&
                 !running &&
                 when (step) {
                     AddConnectionStep.ADDRESS -> runCatching { normalizeCandidateUrls(url) }.isSuccess
-                    AddConnectionStep.USERNAME -> supportsApiKey || username.isNotBlank()
-                    AddConnectionStep.PASSWORD -> supportsApiKey || password.isNotEmpty()
-                    AddConnectionStep.API_KEY ->
-                        apiKey.isNotBlank() || (password.isNotEmpty() && username.isNotBlank())
-
+                    AddConnectionStep.USERNAME -> username.isNotBlank()
+                    AddConnectionStep.PASSWORD -> password.isNotEmpty()
+                    AddConnectionStep.API_KEY -> apiKey.isNotBlank()
                     AddConnectionStep.NAME -> true
                 }
 
@@ -112,7 +151,13 @@ internal fun AddRemoteSourceConnectionPage(
         if (saving) return
         keyboard?.hide()
         focus.clearFocus()
-        if (stepIndex > 0) stepIndex-- else onDismiss()
+        if (stepIndex > 0) {
+            stepIndex--
+        } else if (needsAuthChoice) {
+            authChoice = null
+        } else {
+            onDismiss()
+        }
     }
 
     fun submitStep() {
@@ -122,7 +167,10 @@ internal fun AddRemoteSourceConnectionPage(
         } else {
             keyboard?.hide()
             focus.clearFocus()
-            onConnect(url, username, password, apiKey, displayName)
+            when (selectedAuth) {
+                SubsonicAuthChoice.API_KEY -> onConnect(url, "", "", apiKey, displayName)
+                SubsonicAuthChoice.PASSWORD -> onConnect(url, username, password, "", displayName)
+            }
         }
     }
 
@@ -167,25 +215,13 @@ internal fun AddRemoteSourceConnectionPage(
                         "Enter your ${provider.label} server address. HTTPS is tried first if omitted."
 
                     AddConnectionStep.USERNAME ->
-                        if (supportsApiKey) {
-                            "Enter your ${provider.label} username, or leave blank if using an OpenSubsonic API key."
-                        } else {
-                            "Enter the username for your ${provider.label} account."
-                        }
+                        "Enter the username for your ${provider.label} account."
 
                     AddConnectionStep.PASSWORD ->
-                        if (supportsApiKey) {
-                            "Enter your password, or leave blank to sign in with an API key on the next step."
-                        } else {
-                            "Enter the password for your ${provider.label} account."
-                        }
+                        "Enter the password for your ${provider.label} account."
 
                     AddConnectionStep.API_KEY ->
-                        if (password.isNotEmpty()) {
-                            "Optional API key (OpenSubsonic servers). Leave blank to use your password."
-                        } else {
-                            "Enter your API key (OpenSubsonic servers)."
-                        }
+                        "Enter your OpenSubsonic API key."
 
                     AddConnectionStep.NAME ->
                         "Optional name shown in Cymatic. Leave blank to use $defaultName."
@@ -201,11 +237,9 @@ internal fun AddRemoteSourceConnectionPage(
             val hint =
                 when (step) {
                     AddConnectionStep.ADDRESS -> "music.example.com"
-                    AddConnectionStep.USERNAME -> if (supportsApiKey) "Optional with API key" else "Username"
-                    AddConnectionStep.PASSWORD -> if (supportsApiKey) "Optional with API key" else "Password"
-                    AddConnectionStep.API_KEY ->
-                        if (password.isNotEmpty()) "Optional" else "Required without password"
-
+                    AddConnectionStep.USERNAME -> "Username"
+                    AddConnectionStep.PASSWORD -> "Password"
+                    AddConnectionStep.API_KEY -> "API key"
                     AddConnectionStep.NAME -> defaultName
                 }
             val isSecret = step == AddConnectionStep.PASSWORD || step == AddConnectionStep.API_KEY
@@ -225,7 +259,12 @@ internal fun AddRemoteSourceConnectionPage(
                 )
                 if (step == AddConnectionStep.ADDRESS && isCleartextPublicUrl(url)) {
                     Text(
-                        text = "Your password will be sent unencrypted over HTTP.",
+                        text =
+                            if (selectedAuth == SubsonicAuthChoice.API_KEY) {
+                                "Your API key will be sent unencrypted over HTTP."
+                            } else {
+                                "Your password will be sent unencrypted over HTTP."
+                            },
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                     )
@@ -420,7 +459,7 @@ internal fun SyncConnectionPage(
             instruction =
                 when (title) {
                     "Name" -> "Name shown for this library in Cymatic."
-                    "Server address" -> "Enter the server address. HTTPS is tried first if omitted."
+                    "Server address" -> "Enter the server address."
                     "Username" -> "Enter the username for your ${provider.label} account."
                     "API key" -> "Enter an API key (OpenSubsonic servers)."
                     else ->

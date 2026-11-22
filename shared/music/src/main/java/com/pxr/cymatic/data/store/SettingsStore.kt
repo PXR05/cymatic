@@ -47,10 +47,17 @@ object SettingsStore {
     private val RESUME_ON_BLUETOOTH_RECONNECT_KEY =
         booleanPreferencesKey("RESUME_ON_BLUETOOTH_RECONNECT")
     private val LIBRARY_FILTER_KEY = stringPreferencesKey("LIBRARY_FILTER")
+    private val LIBRARY_SOURCE_FILTER_KEY = stringPreferencesKey("LIBRARY_SOURCE_FILTER")
     val libraryFilterFlow: Flow<String>
         get() = store.data.map { it[LIBRARY_FILTER_KEY] ?: "all" }.distinctUntilChanged()
 
+    val librarySourceFilterFlow: Flow<String>
+        get() = store.data.map { it[LIBRARY_SOURCE_FILTER_KEY] ?: "all" }.distinctUntilChanged()
+
     suspend fun setLibraryFilter(value: String) = store.edit { it[LIBRARY_FILTER_KEY] = value }
+
+    suspend fun setLibrarySourceFilter(value: String) =
+        store.edit { it[LIBRARY_SOURCE_FILTER_KEY] = value }
 
     fun init(context: Context) {
         dataStore = context.applicationContext.dataStore

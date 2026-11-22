@@ -63,9 +63,27 @@ private fun SongInformation(audio: AudioFile?) {
         return
     }
     val metadata = audio.metadata
+    val sourceLabel =
+        remember(audio.sourceId) {
+            val id = audio.sourceId
+            if (id == null) {
+                "This device"
+            } else {
+                val config = com.pxr.cymatic.data.store.RemoteSourceRegistry.cached(id)
+                if (config != null) {
+                    val provider =
+                        com.pxr.cymatic.sync.RemoteProvider.from(config.provider)?.label
+                            ?: config.provider
+                    "${config.displayName} ($provider)"
+                } else {
+                    "Remote library"
+                }
+            }
+        }
     InfoItem("Title", metadata.title ?: "Unknown")
     InfoItem("Artist", metadata.artist ?: "Unknown")
     InfoItem("Album", metadata.album ?: "Unknown")
+    InfoItem("Source", sourceLabel)
     InfoItem("Duration", metadata.duration?.let(::formatDuration) ?: "Unknown")
     InfoItem("Format", metadata.format ?: "Unknown")
     InfoItem("Bit Rate", metadata.bitRate?.let { "${it / 1000} kbps" } ?: "Unknown")

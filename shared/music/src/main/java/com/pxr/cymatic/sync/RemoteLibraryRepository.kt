@@ -158,7 +158,12 @@ internal object RemoteLibraryRepository {
                     val existing =
                         playlistDao.getRemotePlaylist(source.id, playlist.id)
                             ?: mappings[playlist.id]?.let { playlistDao.getPlaylist(it) }
-                    var name = playlist.name.ifBlank { "Unnamed playlist" }
+                    var name =
+                        if (playlist.id == UNFILED_PLAYLIST_ID) {
+                            "Not in playlists · $disambiguationLabel"
+                        } else {
+                            playlist.name.ifBlank { "Unnamed playlist" }
+                        }
                     val base = name
                     var suffix = 1
                     while (usedNames[name.lowercase()]?.id?.let { it != existing?.id } == true) {

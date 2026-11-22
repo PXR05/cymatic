@@ -36,6 +36,12 @@ fun LibraryContextMenu(
     }
     var choosingFilter by remember { mutableStateOf(false) }
     val filter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val sources by com.pxr.cymatic.data.store.RemoteSourceRegistry.sourcesFlow.collectAsState(
+        initial = com.pxr.cymatic.data.store.RemoteSourceRegistry.currentSources
+    )
+    val sourceNames = remember(sources) { sources.associate { it.id to it.displayName } }
+    val filterSummary = libraryFilterSummary(filter, sourceFilter, sourceNames)
     if (choosingFilter) {
         LibraryFilterMenu({ choosingFilter = false }, onSelected = onDismiss)
         return
@@ -87,7 +93,7 @@ fun LibraryContextMenu(
         if (showLibraryFilter)
             add(
                 NavigationItem(
-                    "Show · ${filter.label}",
+                    "Show · $filterSummary",
                     onClick = { choosingFilter = true },
                 )
             )

@@ -49,6 +49,10 @@ fun ArtistAlbumsScreen(
     LaunchedEffect(artistName) { viewModel.load(artistName) }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val hasActiveFilter =
+        availabilityFilter != LibraryFilter.ALL ||
+            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     val groups = rememberLibraryGroups()
     val artistGroup = groups.artists[artistName]
@@ -72,7 +76,7 @@ fun ArtistAlbumsScreen(
         LibraryFilterStatus(availabilityFilter)
         when {
             !permission.granted &&
-                    availabilityFilter == LibraryFilter.ALL &&
+                    !hasActiveFilter &&
                     state.albums.isEmpty() ->
                 PermissionDeniedState(
                     onGrantClick = {
@@ -87,7 +91,7 @@ fun ArtistAlbumsScreen(
                 )
 
             state.isLoading -> LoadingState()
-            availabilityFilter != LibraryFilter.ALL && state.totalTracks == 0 ->
+            hasActiveFilter && state.totalTracks == 0 ->
                 LibraryFilteredEmptyState()
 
             state.totalTracks == 0 ->

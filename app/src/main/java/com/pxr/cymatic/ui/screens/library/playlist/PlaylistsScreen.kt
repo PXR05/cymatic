@@ -91,6 +91,10 @@ fun PlaylistsScreen(
         }
 
     val availabilityFilter by LibraryFilterStore.filter.collectAsState()
+    val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
+    val hasActiveFilter =
+        availabilityFilter != LibraryFilter.ALL ||
+            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = "Playlists",
@@ -112,7 +116,7 @@ fun PlaylistsScreen(
         } else if (uiState.isLoading) {
             LoadingState()
         } else if (
-            availabilityFilter != LibraryFilter.ALL &&
+            hasActiveFilter &&
             !(viewModel.isSearchActive && viewModel.searchQuery.isNotEmpty()) &&
             uiState.items.isEmpty()
         ) {
