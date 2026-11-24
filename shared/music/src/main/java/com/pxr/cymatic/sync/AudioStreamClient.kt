@@ -1,10 +1,12 @@
 package com.pxr.cymatic.sync
 
 import com.pxr.cymatic.sync.http.HttpTransport
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
+import java.util.Locale
 
 class AudioStreamClient(
     baseUrl: String,
@@ -31,6 +33,19 @@ class AudioStreamClient(
             for (index in 0 until files.length()) {
                 val item = files.getJSONObject(index)
                 val metadata = item.optJSONObject("metadata")
+                val artists = parseArtists(metadata?.optJSONArray("artists"))
+                val rawArtist =
+                    (metadata?.opt("artist") as? String)?.trim()?.takeIf(String::isNotEmpty)
+                val title =
+                    (metadata?.opt("title") as? String)?.trim()?.takeIf(String::isNotEmpty)
+                        ?: item.getString("filename").substringBeforeLast('.')
+                val artist =
+                    rawArtist
+                        ?: artists.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                        ?: "Unknown artist"
+                val album =
+                    (metadata?.opt("album") as? String)?.trim()?.takeIf(String::isNotEmpty)
+                        ?: "Unknown album"
                 result +=
                     RemoteTrack(
                         id = item.getString("id"),
@@ -41,15 +56,10 @@ class AudioStreamClient(
                         filename = item.getString("filename"),
                         size = item.optLong("size", -1L),
                         updatedAt = item.optString("updatedAt"),
-                        title =
-                            metadata?.optString("title")?.takeIf(String::isNotBlank)
-                                ?: item.getString("filename").substringBeforeLast('.'),
-                        artist =
-                            metadata?.optString("artist")?.takeIf(String::isNotBlank)
-                                ?: "Unknown artist",
-                        album =
-                            metadata?.optString("album")?.takeIf(String::isNotBlank)
-                                ?: "Unknown album",
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        artists = artists,
                     )
             }
             page++
@@ -200,6 +210,20 @@ class AudioStreamClient(
     }
 
     companion object {
+        internal fun parseArtists(array: JSONArray?): List<String> {
+            if (array == null) return emptyList()
+            val seen = HashSet<String>()
+            val result = ArrayList<String>(array.length())
+            for (index in 0 until array.length()) {
+                val cleaned = (array.opt(index) as? String)?.trim().orEmpty()
+                if (cleaned.isEmpty()) continue
+                if (seen.add(cleaned.lowercase(Locale.ROOT))) {
+                    result.add(cleaned)
+                }
+            }
+            return result
+        }
+
         fun normalizeBaseUrl(value: String): String {
             val uri = URI(value.trim())
             require(uri.scheme == "https" || uri.scheme == "http") {

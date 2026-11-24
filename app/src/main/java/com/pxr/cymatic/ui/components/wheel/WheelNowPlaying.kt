@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pxr.cymatic.R
+import com.pxr.cymatic.data.library.artistDisplayTextOrNull
 import com.pxr.cymatic.playback.toAudioMetadata
 import com.pxr.cymatic.ui.components.PixelIcon
 import com.pxr.cymatic.ui.components.ScrollingTrackText
@@ -161,7 +162,7 @@ internal fun WheelNowPlaying(
                         }
                     }
                     ScrollingTrackText(
-                        metadata?.artist ?: "Browse your music",
+                        metadata?.let(::artistDisplayTextOrNull) ?: "Browse your music",
                         fontSize = artistSize,
                         lineHeight = artistLineHeight,
                         height = artistHeight,

@@ -19,7 +19,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.pxr.cymatic.data.library.UnknownAlbum
 import com.pxr.cymatic.data.library.UnknownArtist
 import com.pxr.cymatic.data.library.albumDisplayName
-import com.pxr.cymatic.data.library.artistDisplayName
+import com.pxr.cymatic.data.library.artistDisplayNames
+import com.pxr.cymatic.data.library.artistDisplayTextOrNull
 import com.pxr.cymatic.data.library.filterByAlbum
 import com.pxr.cymatic.data.library.filterByArtist
 import com.pxr.cymatic.data.media.AudioRepository
@@ -137,7 +138,7 @@ class AutoMediaLibraryCallback(
                         buildPlayableItem(
                             audio.id,
                             audio.metadata.title,
-                            audio.metadata.artist,
+                            artistDisplayTextOrNull(audio.metadata),
                             audio.metadata.artworkUri?.toString(),
                             audio.uri.toString(),
                         ),
@@ -234,7 +235,7 @@ class AutoMediaLibraryCallback(
                         buildPlayableItem(
                             id = audio.id,
                             title = audio.metadata.title,
-                            artist = audio.metadata.artist,
+                            artist = artistDisplayTextOrNull(audio.metadata),
                             artworkUriStr = audio.metadata.artworkUri?.toString(),
                             contentUriStr = audio.uri.toString(),
                         )
@@ -259,7 +260,7 @@ class AutoMediaLibraryCallback(
             buildPlayableItem(
                 id = audio.id,
                 title = audio.metadata.title,
-                artist = audio.metadata.artist,
+                artist = artistDisplayTextOrNull(audio.metadata),
                 artworkUriStr = audio.metadata.artworkUri?.toString(),
                 contentUriStr = audio.uri.toString(),
             )
@@ -287,7 +288,7 @@ class AutoMediaLibraryCallback(
             buildPlayableItem(
                 id = audio.id,
                 title = audio.metadata.title,
-                artist = audio.metadata.artist,
+                artist = artistDisplayTextOrNull(audio.metadata),
                 artworkUriStr = audio.metadata.artworkUri?.toString(),
                 contentUriStr = audio.uri.toString(),
             )
@@ -297,8 +298,8 @@ class AutoMediaLibraryCallback(
     private suspend fun buildArtistNodes(): List<MediaItem> {
         return repository
             .getAllAudio()
-            .groupBy { artistDisplayName(it) }
-            .keys
+            .flatMap { artistDisplayNames(it) }
+            .distinct()
             .sorted()
             .map { artistName ->
                 buildBrowsableItem(
@@ -315,7 +316,7 @@ class AutoMediaLibraryCallback(
             buildPlayableItem(
                 id = audio.id,
                 title = audio.metadata.title,
-                artist = audio.metadata.artist,
+                artist = artistDisplayTextOrNull(audio.metadata),
                 artworkUriStr = audio.metadata.artworkUri?.toString(),
                 contentUriStr = audio.uri.toString(),
             )
@@ -337,7 +338,7 @@ class AutoMediaLibraryCallback(
             buildPlayableItem(
                 id = audio.id,
                 title = audio.metadata.title,
-                artist = audio.metadata.artist,
+                artist = artistDisplayTextOrNull(audio.metadata),
                 artworkUriStr = audio.metadata.artworkUri?.toString(),
                 contentUriStr = audio.uri.toString(),
             )

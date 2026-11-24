@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.pxr.cymatic.data.library.artistDisplayText
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
@@ -132,7 +133,7 @@ fun AudioFileItem(
         return String.format("%d:%02d", minutes, seconds)
     }
 
-    val artistText = metadata.artist ?: "Unknown Artist"
+    val artistText = artistDisplayText(metadata)
     ListItem(
         label = metadata.title ?: "Unknown Title",
         subLabel = if (sourceLabel != null) "$artistText · $sourceLabel" else artistText,

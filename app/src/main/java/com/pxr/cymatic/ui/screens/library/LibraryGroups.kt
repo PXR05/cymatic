@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.R
 import com.pxr.cymatic.data.library.albumDisplayName
-import com.pxr.cymatic.data.library.artistDisplayName
+import com.pxr.cymatic.data.library.artistDisplayNames
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.media.LibraryChanges
 import com.pxr.cymatic.data.model.AudioFile
@@ -48,7 +48,15 @@ internal class LibraryGroups(songs: List<AudioFile>) {
     val albums = songs.groupBy(::albumDisplayName).mapValues { LibraryGroup(it.value) }
     val albumsBySource =
         songs.groupBy { albumDisplayName(it) to it.sourceId }.mapValues { LibraryGroup(it.value) }
-    val artists = songs.groupBy(::artistDisplayName).mapValues { LibraryGroup(it.value) }
+    val artists =
+        buildMap<String, MutableList<AudioFile>> {
+            for (song in songs) {
+                for (name in artistDisplayNames(song)) {
+                    getOrPut(name) { mutableListOf() }.add(song)
+                }
+            }
+        }
+            .mapValues { LibraryGroup(it.value) }
 }
 
 private object LibraryGroupsCache {
