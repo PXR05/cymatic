@@ -39,6 +39,7 @@ data class RemoteTrack(
     val title: String,
     val artist: String,
     val album: String,
+    val artists: List<String> = emptyList(),
     val trackNumber: Int? = null,
     val durationMs: Long? = null,
     val bitRate: Long? = null,

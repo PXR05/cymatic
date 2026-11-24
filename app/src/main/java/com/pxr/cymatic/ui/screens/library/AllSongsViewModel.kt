@@ -20,7 +20,7 @@ class AllSongsViewModel(application: Application) : AndroidViewModel(application
                 with(file.metadata) {
                     listOf(title, artist, album).any {
                         it.orEmpty().contains(text, ignoreCase = true)
-                    }
+                    } || artists.any { it.contains(text, ignoreCase = true) }
                 }
             },
         )

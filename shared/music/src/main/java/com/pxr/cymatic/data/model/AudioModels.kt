@@ -13,6 +13,7 @@ data class AudioMetadata(
     val artworkUri: Uri?,
     val trackNumber: Int? = null,
     val discNumber: Int? = null,
+    val artists: List<String> = emptyList(),
 )
 
 data class AudioFile(

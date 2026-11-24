@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pxr.cymatic.data.library.artistNames
 import com.pxr.cymatic.data.media.AudioRepository
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.playback.formatSampleRate
@@ -80,8 +81,12 @@ private fun SongInformation(audio: AudioFile?) {
                 }
             }
         }
+    val artists = artistNames(metadata)
     InfoItem("Title", metadata.title ?: "Unknown")
-    InfoItem("Artist", metadata.artist ?: "Unknown")
+    InfoItem(
+        if (artists.size > 1) "Artists" else "Artist",
+        if (artists.isNotEmpty()) artists.joinToString(", ") else "Unknown",
+    )
     InfoItem("Album", metadata.album ?: "Unknown")
     InfoItem("Source", sourceLabel)
     InfoItem("Duration", metadata.duration?.let(::formatDuration) ?: "Unknown")

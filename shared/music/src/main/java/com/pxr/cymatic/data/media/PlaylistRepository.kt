@@ -19,6 +19,7 @@ data class Playlist(
 data class PlaylistAvailabilityCount(val playlistId: Long, val total: Int, val offline: Int)
 
 class PlaylistRepository private constructor(
+    private val context: Context,
     private val playlistDao: PlaylistDao
 ) {
     @Volatile
@@ -58,7 +59,21 @@ class PlaylistRepository private constructor(
         val disabledIds = disabledSourceIds()
         return playlistDao.getPlaylistAudio(playlistId)
             .filter { it.sourceId == null || it.sourceId !in disabledIds }
-            .map { it.toAudioFile() }
+            .map { entity ->
+                val remoteTrack =
+                    if (entity.sourceId != null && entity.remoteId != null) {
+                        com.pxr.cymatic.sync.SyncCatalogStore.track(
+                            context,
+                            entity.sourceId,
+                            entity.remoteId,
+                        )
+                    } else null
+                entity.toAudioFile(
+                    trackNumber = remoteTrack?.trackNumber,
+                    discNumber = remoteTrack?.discNumber,
+                    artists = remoteTrack?.artists.orEmpty(),
+                )
+            }
     }
 
     suspend fun getPlaylists(): List<Playlist> {
@@ -201,8 +216,10 @@ class PlaylistRepository private constructor(
 
         fun getInstance(context: Context): PlaylistRepository {
             return instance ?: synchronized(this) {
-                instance ?: PlaylistRepository(CymaticDatabase.getInstance(context).playlistDao())
-                    .also { instance = it }
+                instance ?: PlaylistRepository(
+                    context.applicationContext,
+                    CymaticDatabase.getInstance(context).playlistDao(),
+                ).also { instance = it }
             }
         }
     }

@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pxr.cymatic.data.library.albumDisplayName
-import com.pxr.cymatic.data.library.artistDisplayName
+import com.pxr.cymatic.data.library.artistDisplayNames
 import com.pxr.cymatic.data.library.filterByAlbum
 import com.pxr.cymatic.data.library.filterByArtist
 import com.pxr.cymatic.data.library.libraryRefreshEvents
@@ -29,11 +29,11 @@ internal data class LibraryCategoryItem(
 
 internal enum class LibraryCategory(
     val title: String,
-    val displayName: (AudioFile) -> String,
+    val displayNames: (AudioFile) -> List<String>,
     val splitBySource: Boolean,
 ) {
-    ARTISTS("Artists", ::artistDisplayName, splitBySource = false),
-    ALBUMS("Albums", ::albumDisplayName, splitBySource = true);
+    ARTISTS("Artists", ::artistDisplayNames, splitBySource = false),
+    ALBUMS("Albums", { listOf(albumDisplayName(it)) }, splitBySource = true);
 
     fun browseRoute(item: LibraryCategoryItem): String =
         when (this) {
@@ -107,7 +107,9 @@ internal class LibraryCategoryViewModel(
         val filtered = LibraryFilterStore.audio(songs)
         return if (category.splitBySource) {
             filtered
-                .map { LibraryCategoryItem(category.displayName(it), it.sourceId) }
+                .flatMap { song ->
+                    category.displayNames(song).map { LibraryCategoryItem(it, song.sourceId) }
+                }
                 .distinct()
                 .sortedWith(
                     compareBy<LibraryCategoryItem>(
@@ -117,7 +119,7 @@ internal class LibraryCategoryViewModel(
                 )
         } else {
             filtered
-                .map { LibraryCategoryItem(category.displayName(it)) }
+                .flatMap { song -> category.displayNames(song).map { LibraryCategoryItem(it) } }
                 .distinct()
                 .sortedBy { it.name.lowercase() }
         }

@@ -39,21 +39,24 @@ class AudioRepository private constructor(
             val remoteCopies =
                 enabledRecords.filter { it.sourceId != null }.mapNotNull { it.offlineUri }.toSet()
             enabledRecords.filter { it.sourceId != null || it.uri !in remoteCopies }
-                .map { entity ->
-                    val remoteTrack =
-                        if (entity.sourceId != null && entity.remoteId != null) {
-                            com.pxr.cymatic.sync.SyncCatalogStore.track(
-                                context,
-                                entity.sourceId,
-                                entity.remoteId,
-                            )
-                        } else null
-                    entity.toAudioFile(
-                        trackNumber = remoteTrack?.trackNumber,
-                        discNumber = remoteTrack?.discNumber,
-                    )
-                }
+                .map { it.toEnrichedAudioFile() }
         }
+
+    private fun AudioEntity.toEnrichedAudioFile(): AudioFile {
+        val remoteTrack =
+            if (sourceId != null && remoteId != null) {
+                com.pxr.cymatic.sync.SyncCatalogStore.track(
+                    context,
+                    sourceId,
+                    remoteId,
+                )
+            } else null
+        return toAudioFile(
+            trackNumber = remoteTrack?.trackNumber,
+            discNumber = remoteTrack?.discNumber,
+            artists = remoteTrack?.artists.orEmpty(),
+        )
+    }
 
     fun getCachedAudio(): List<AudioFile>? {
         return cachedAudio
@@ -82,7 +85,7 @@ class AudioRepository private constructor(
     suspend fun getAudioByIds(ids: List<Long>): List<AudioFile> {
         if (ids.isEmpty()) return emptyList()
         val results = audioDao.getAudioByIds(ids).associateBy { it.id }
-        return ids.mapNotNull { results[it]?.toAudioFile() }
+        return ids.mapNotNull { results[it]?.toEnrichedAudioFile() }
     }
 
     internal suspend fun updateTechnicalMetadata(id: Long, metadata: AudioTechnicalMetadata) {
@@ -130,6 +133,7 @@ class AudioRepository private constructor(
 fun AudioEntity.toAudioFile(
     trackNumber: Int? = null,
     discNumber: Int? = null,
+    artists: List<String> = emptyList(),
 ): AudioFile {
     return AudioFile(
         id = id,
@@ -150,6 +154,7 @@ fun AudioEntity.toAudioFile(
                 artworkUri = artworkUri?.let(Uri::parse),
                 trackNumber = trackNumber,
                 discNumber = discNumber,
+                artists = artists,
             ),
     )
 }

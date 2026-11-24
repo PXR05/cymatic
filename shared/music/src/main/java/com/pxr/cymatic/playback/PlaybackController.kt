@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import com.pxr.cymatic.data.library.artistDisplayTextOrNull
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.AudioMetadata
 
@@ -19,12 +20,15 @@ fun createMediaItem(audioFile: AudioFile, queueSource: String? = null): MediaIte
             audioFile.metadata.bitRate?.let { putLong("bit_rate", it) }
             audioFile.metadata.sampleRate?.let { putLong("sample_rate", it) }
             audioFile.metadata.format?.let { putString("format", it) }
+            if (audioFile.metadata.artists.isNotEmpty()) {
+                putStringArrayList("artists", ArrayList(audioFile.metadata.artists))
+            }
         }
 
     val mediaMetadata =
         MediaMetadata.Builder()
             .setTitle(audioFile.metadata.title)
-            .setArtist(audioFile.metadata.artist)
+            .setArtist(artistDisplayTextOrNull(audioFile.metadata))
             .setAlbumTitle(audioFile.metadata.album)
             .setArtworkUri(audioFile.metadata.artworkUri)
             .setIsBrowsable(false)
@@ -59,6 +63,7 @@ fun MediaItem.toAudioMetadata(): AudioMetadata {
             else null,
         format = extras?.getString("format"),
         artworkUri = meta.artworkUri,
+        artists = extras?.getStringArrayList("artists")?.toList().orEmpty(),
     )
 }
 
