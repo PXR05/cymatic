@@ -42,6 +42,7 @@ import com.pxr.cymatic.playback.PlaybackOutputMonitor
 import com.pxr.cymatic.playback.PlaybackStateLogger
 import com.pxr.cymatic.playback.PlaybackStatePersistence
 import com.pxr.cymatic.playback.PlaybackTechnicalMetadata
+import com.pxr.cymatic.playback.RadioAutoExtender
 import com.pxr.cymatic.playback.SquareArtworkBitmapLoader
 import com.pxr.cymatic.sync.RemoteLibraryDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -79,6 +80,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var persistence: PlaybackStatePersistence
     private lateinit var logger: PlaybackStateLogger
     private lateinit var usbPlayback: UsbPlaybackCoordinator
+    private lateinit var radioAutoExtender: RadioAutoExtender
 
     override fun onCreate() {
         super.onCreate()
@@ -117,6 +119,7 @@ class PlaybackService : MediaLibraryService() {
         logger = PlaybackStateLogger(player)
         deviceTracker = PlaybackDeviceTracker(audioManager, player, serviceScope)
         usbPlayback = UsbPlaybackCoordinator(this, player, fadingPlayer, audioAttributes)
+        radioAutoExtender = RadioAutoExtender(this, player, serviceScope)
         serviceScope.launch(Dispatchers.Main) {
             PlaybackOutputMonitor(
                 this@PlaybackService,
@@ -157,6 +160,7 @@ class PlaybackService : MediaLibraryService() {
             object : Player.Listener {
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     refreshCurrentLibraryMetadata()
+                    radioAutoExtender.checkAndExtend()
                     logger.log(
                         "media item transition: ${mediaItem?.mediaId}, reason=${
                             logger.transitionReasonName(
@@ -252,6 +256,7 @@ class PlaybackService : MediaLibraryService() {
 
                 override fun onRepeatModeChanged(repeatMode: Int) {
                     persistence.save()
+                    radioAutoExtender.checkAndExtend()
                 }
 
                 override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -261,6 +266,7 @@ class PlaybackService : MediaLibraryService() {
                 override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                     if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) {
                         persistence.save()
+                        radioAutoExtender.checkAndExtend()
                     }
                 }
 

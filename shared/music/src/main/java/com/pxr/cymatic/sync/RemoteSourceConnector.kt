@@ -79,7 +79,6 @@ class RemoteSourceConnector(
                             ?: existingCreds?.password
                     require(!secret.isNullOrEmpty()) { "Enter your password." }
 
-                    // Reject duplicate before authenticating if all candidate endpoints already match an existing source.
                     if (existing == null && candidateUrls.size == 1) {
                         checkNotDuplicate(
                             allExisting,

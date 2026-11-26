@@ -15,7 +15,6 @@ import com.pxr.cymatic.data.model.LibraryFilter
 import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.data.store.RemoteSourceRegistry
 import com.pxr.cymatic.sync.LibraryOfflineManager
-import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.common.EmptyState
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LibraryContextMenu
@@ -26,6 +25,7 @@ import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.rememberStoragePermission
 import com.pxr.cymatic.ui.components.list.NavigationItem
 import com.pxr.cymatic.ui.components.list.NavigationList
+import com.pxr.cymatic.ui.components.pixelIcon
 import com.pxr.cymatic.ui.components.screen.BaseScreen
 import com.pxr.cymatic.ui.locals.LocalNavController
 import com.pxr.cymatic.ui.navigation.Screen
@@ -54,7 +54,7 @@ fun ArtistAlbumsScreen(
     val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
     val hasActiveFilter =
         availabilityFilter != LibraryFilter.ALL ||
-            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
+                sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     val groups = rememberLibraryGroups()
     val artistGroup = groups.artists[artistName]

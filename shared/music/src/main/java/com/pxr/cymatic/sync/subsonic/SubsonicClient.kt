@@ -239,6 +239,33 @@ class SubsonicClient(
         return transport.wrapDownload(connection)
     }
 
+    override fun getRadioTracks(trackId: String, limit: Int): List<RemoteTrack> {
+        val count = limit.coerceIn(1, 500).toString()
+        val songs2 =
+            requestJson("getSimilarSongs2", listOf("id" to trackId, "count" to count))
+                .optJSONObject("similarSongs2")
+                ?.optJSONArray("song")
+        val songs =
+            if (songs2 != null && songs2.length() > 0) {
+                songs2
+            } else {
+                requestJson("getSimilarSongs", listOf("id" to trackId, "count" to count))
+                    .optJSONObject("similarSongs")
+                    ?.optJSONArray("song")
+            } ?: return emptyList()
+
+        val seen = HashSet<String>()
+        val result = ArrayList<RemoteTrack>(songs.length())
+        for (i in 0 until songs.length()) {
+            val track = SubsonicMapping.parseTrack(songs.getJSONObject(i)) ?: continue
+            if (track.id == trackId) continue
+            if (seen.add(track.id)) {
+                result += track
+            }
+        }
+        return result
+    }
+
     private fun currentAuthMode(): SubsonicAuthMode {
         if (useApiKey && !apiKey.isNullOrEmpty()) {
             return SubsonicAuthMode.ApiKey(apiKey)

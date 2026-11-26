@@ -83,6 +83,14 @@ object LibraryCatalogManager {
                                     if (cancelled.get()) throw SyncCancelledException()
                                 }
                         RemoteLibraryRepository.publish(application, source, catalog)
+                        RadioEmbeddingStore.syncBestEffort(
+                            application,
+                            source,
+                            connection,
+                            catalog.tracks.mapTo(mutableSetOf()) { it.id },
+                        ) {
+                            if (cancelled.get()) throw SyncCancelledException()
+                        }
                         RemoteSourceRegistry.update(source.id) { it.copy(lastError = null) }
                         refreshed += source
                     } catch (error: SyncCancelledException) {

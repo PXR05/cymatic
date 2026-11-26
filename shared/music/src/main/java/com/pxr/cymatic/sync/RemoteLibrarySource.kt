@@ -8,14 +8,21 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Locale
 
+enum class RadioSupport {
+    NONE,
+    EMBEDDINGS,
+    SERVER_ONLY,
+}
+
 enum class RemoteProvider(
     val value: String,
     val label: String,
     val supportsTranscoding: Boolean,
+    val radioSupport: RadioSupport,
 ) {
-    AUDIOSTREAM("audiostream", "AudioStream", false),
-    SUBSONIC("subsonic", "Subsonic", true),
-    JELLYFIN("jellyfin", "Jellyfin", true);
+    AUDIOSTREAM("audiostream", "AudioStream", false, RadioSupport.EMBEDDINGS),
+    SUBSONIC("subsonic", "Subsonic", true, RadioSupport.SERVER_ONLY),
+    JELLYFIN("jellyfin", "Jellyfin", true, RadioSupport.SERVER_ONLY);
 
     companion object {
         fun from(value: String): RemoteProvider? =
@@ -112,6 +119,7 @@ enum class ClientPurpose {
     DOWNLOAD,
     STREAM,
     ARTWORK,
+    RADIO,
 }
 
 sealed interface StreamQuality {
@@ -141,6 +149,16 @@ interface RemoteLibraryClient {
         quality: StreamQuality = StreamQuality.Original,
     ): RemoteLibraryDownload =
         throw UnsupportedOperationException("Streaming is not supported by this source")
+
+    fun getRadioTracks(trackId: String, limit: Int = 25): List<RemoteTrack> =
+        throw UnsupportedOperationException("Radio is not supported by this source")
+
+    fun fetchRadioEmbeddings(
+        sinceMs: Long? = null,
+        cursor: String? = null,
+        limit: Int = 500,
+    ): RadioEmbeddingsPage =
+        throw UnsupportedOperationException("Radio embeddings are not supported by this source")
 
     fun cancel()
 }

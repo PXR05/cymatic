@@ -300,6 +300,13 @@ object LibrarySyncManager {
         val catalog =
             RemoteLibraries.catalogRepository(context).refresh(source, client, ::checkCancelled)
         RemoteLibraryRepository.publish(context, source, catalog)
+        RadioEmbeddingStore.syncBestEffort(
+            context,
+            source,
+            client,
+            catalog.tracks.mapTo(mutableSetOf()) { it.id },
+            ::checkCancelled,
+        )
         val tracks = catalog.tracks
         val remotePlaylists = catalog.playlists
 

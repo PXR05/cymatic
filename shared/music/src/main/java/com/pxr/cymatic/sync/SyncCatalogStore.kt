@@ -166,7 +166,12 @@ object SyncCatalogStore {
                     .put("title", track.title)
                     .put("artist", track.artist)
                     .put("album", track.album)
-                    .apply { if (track.artists.isNotEmpty()) put("artists", JSONArray(track.artists)) }
+                    .apply {
+                        if (track.artists.isNotEmpty()) put(
+                            "artists",
+                            JSONArray(track.artists)
+                        )
+                    }
                     .apply { track.trackNumber?.let { put("trackNumber", it) } }
                     .apply { track.durationMs?.let { put("durationMs", it) } }
                     .apply { track.bitRate?.let { put("bitRate", it) } }

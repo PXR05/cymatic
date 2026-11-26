@@ -28,7 +28,11 @@ object RemoteLibraries {
         source: RemoteLibrarySource,
         purpose: ClientPurpose = ClientPurpose.CATALOG,
     ): RemoteLibraryClient {
-        if (purpose == ClientPurpose.ARTWORK || purpose == ClientPurpose.STREAM) {
+        if (
+            purpose == ClientPurpose.ARTWORK ||
+            purpose == ClientPurpose.STREAM ||
+            purpose == ClientPurpose.RADIO
+        ) {
             return cachedClients.computeIfAbsent(source.id) {
                 createClient(context.applicationContext, source)
             }

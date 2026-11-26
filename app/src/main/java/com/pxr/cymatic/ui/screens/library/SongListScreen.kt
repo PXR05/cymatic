@@ -14,11 +14,13 @@ import com.pxr.cymatic.data.store.LibraryFilterStore
 import com.pxr.cymatic.playback.enqueueAudio
 import com.pxr.cymatic.playback.playAudioQueue
 import com.pxr.cymatic.playback.playAudioSelection
+import com.pxr.cymatic.sync.LibraryRadioManager
 import com.pxr.cymatic.ui.components.common.ErrorState
 import com.pxr.cymatic.ui.components.common.LibraryContextMenu
 import com.pxr.cymatic.ui.components.common.LibraryFilterStatus
 import com.pxr.cymatic.ui.components.common.LibraryFilteredEmptyState
 import com.pxr.cymatic.ui.components.common.LoadingState
+import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.PermissionDeniedState
 import com.pxr.cymatic.ui.components.common.rememberStoragePermission
 import com.pxr.cymatic.ui.components.list.AudioFileContextMenu
@@ -64,7 +66,7 @@ internal fun SongListScreen(
     val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
     val hasActiveFilter =
         availabilityFilter != LibraryFilter.ALL ||
-            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
+                sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = title,
@@ -147,6 +149,8 @@ internal fun SongListDialogs(
 ) {
     val nav = LocalNavController.current
     val mediaController = LocalMediaController.current
+    val context = LocalContext.current
+    val wheel = LocalWheelNavigation.current
     state.contextMenuFile?.let { file ->
         AudioFileContextMenu(
             audioFile = file,
@@ -155,6 +159,12 @@ internal fun SongListDialogs(
             onPlayNext = { mediaController?.enqueueAudio(listOf(it), queueSource, next = true) },
             onAddToQueue = { mediaController?.enqueueAudio(listOf(it), queueSource) },
             onTrackInfo = { nav.navigate(Screen.SongInfo.createRoute(it.id)) },
+            onStartRadio = { seed ->
+                LibraryRadioManager.startRadio(context, seed) { tracks, radioQueueSource ->
+                    mediaController?.playAudioQueue(tracks, queueSource = radioQueueSource)
+                    wheel?.onPlaybackRequested?.invoke()
+                }
+            },
         )
     }
 }

@@ -56,7 +56,6 @@ internal object SubsonicMapping {
             item.optLong("duration", -1L)
                 .takeIf { item.has("duration") && it >= 0L }
                 ?.times(1000L)
-        // Subsonic reports bitRate in kbps; Cymatic stores bitRate in bps.
         val bitRate =
             item.optLong("bitRate", -1L)
                 .takeIf { item.has("bitRate") && it > 0L }

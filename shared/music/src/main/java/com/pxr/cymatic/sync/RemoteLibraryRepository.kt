@@ -21,13 +21,12 @@ internal object RemoteLibraryRepository {
     suspend fun restore(context: Context) {
         val configs = RemoteSourceRegistry.all(context)
         val knownIds = configs.mapTo(mutableSetOf()) { it.id }
-
-        // Remove orphaned catalog files left over from an interrupted source removal.
         File(context.filesDir, "library-catalogs")
             .listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension == "json" && it.nameWithoutExtension !in knownIds }
             .forEach { it.delete() }
+        RadioEmbeddingStore.deleteOrphans(context, knownIds)
 
         val needsRefresh = mutableListOf<String>()
         configs.forEach { config ->

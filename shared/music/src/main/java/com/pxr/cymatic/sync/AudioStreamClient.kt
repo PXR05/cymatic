@@ -31,41 +31,86 @@ class AudioStreamClient(
             val body = requestJson("audio/?page=$page&limit=100&sortBy=uploadedAt&sortOrder=asc")
             val files = body.getJSONArray("files")
             for (index in 0 until files.length()) {
-                val item = files.getJSONObject(index)
-                val metadata = item.optJSONObject("metadata")
-                val artists = parseArtists(metadata?.optJSONArray("artists"))
-                val rawArtist =
-                    (metadata?.opt("artist") as? String)?.trim()?.takeIf(String::isNotEmpty)
-                val title =
-                    (metadata?.opt("title") as? String)?.trim()?.takeIf(String::isNotEmpty)
-                        ?: item.getString("filename").substringBeforeLast('.')
-                val artist =
-                    rawArtist
-                        ?: artists.takeIf { it.isNotEmpty() }?.joinToString("; ")
-                        ?: "Unknown artist"
-                val album =
-                    (metadata?.opt("album") as? String)?.trim()?.takeIf(String::isNotEmpty)
-                        ?: "Unknown album"
-                result +=
-                    RemoteTrack(
-                        id = item.getString("id"),
-                        durationMs = metadata?.optDouble("duration")
-                            ?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 1000).toLong() },
-                        bitRate = metadata?.optLong("bitrate", -1L)?.takeIf { it > 0L },
-                        sampleRate = metadata?.optLong("sampleRate", -1L)?.takeIf { it > 0L },
-                        filename = item.getString("filename"),
-                        size = item.optLong("size", -1L),
-                        updatedAt = item.optString("updatedAt"),
-                        title = title,
-                        artist = artist,
-                        album = album,
-                        artists = artists,
-                    )
+                result += parseTrack(files.getJSONObject(index))
             }
             page++
             hasNext = body.optBoolean("hasNext", false)
         } while (hasNext)
         return result
+    }
+
+    override fun getRadioTracks(trackId: String, limit: Int): List<RemoteTrack> {
+        ensureAuthenticated()
+        val clamped = limit.coerceIn(1, 100)
+        val body =
+            requestJson("audio/radio?seed=${HttpTransport.encodeQuery(trackId)}&limit=$clamped")
+        val files = body.optJSONArray("files") ?: return emptyList()
+        val seen = HashSet<String>()
+        val result = ArrayList<RemoteTrack>(files.length())
+        for (index in 0 until files.length()) {
+            val track = parseTrack(files.getJSONObject(index))
+            if (track.id == trackId) continue
+            if (seen.add(track.id)) {
+                result += track
+            }
+        }
+        return result
+    }
+
+    override fun fetchRadioEmbeddings(
+        sinceMs: Long?,
+        cursor: String?,
+        limit: Int,
+    ): RadioEmbeddingsPage {
+        ensureAuthenticated()
+        val clamped = limit.coerceIn(1, 2000)
+        val query = buildString {
+            append("limit=").append(clamped)
+            if (!cursor.isNullOrBlank()) {
+                append("&cursor=").append(HttpTransport.encodeQuery(cursor))
+            } else if (sinceMs != null && sinceMs > 0L) {
+                append("&since=").append(sinceMs)
+            }
+        }
+        val connection = authenticatedGet("audio/radio/embeddings?$query", binary = true)
+        val bytes =
+            try {
+                connection.inputStream.use { it.readBytes() }
+            } finally {
+                transport.release(connection)
+            }
+        return RadioEmbeddingBinaryCodec.decode(bytes)
+    }
+
+    private fun parseTrack(item: JSONObject): RemoteTrack {
+        val metadata = item.optJSONObject("metadata")
+        val artists = parseArtists(metadata?.optJSONArray("artists"))
+        val rawArtist =
+            (metadata?.opt("artist") as? String)?.trim()?.takeIf(String::isNotEmpty)
+        val title =
+            (metadata?.opt("title") as? String)?.trim()?.takeIf(String::isNotEmpty)
+                ?: item.getString("filename").substringBeforeLast('.')
+        val artist =
+            rawArtist
+                ?: artists.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                ?: "Unknown artist"
+        val album =
+            (metadata?.opt("album") as? String)?.trim()?.takeIf(String::isNotEmpty)
+                ?: "Unknown album"
+        return RemoteTrack(
+            id = item.getString("id"),
+            durationMs = metadata?.optDouble("duration")
+                ?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 1000).toLong() },
+            bitRate = metadata?.optLong("bitrate", -1L)?.takeIf { it > 0L },
+            sampleRate = metadata?.optLong("sampleRate", -1L)?.takeIf { it > 0L },
+            filename = item.getString("filename"),
+            size = item.optLong("size", -1L),
+            updatedAt = item.optString("updatedAt"),
+            title = title,
+            artist = artist,
+            album = album,
+            artists = artists,
+        )
     }
 
     override fun getPlaylists(): List<RemotePlaylist> {

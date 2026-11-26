@@ -96,7 +96,6 @@ abstract class MusicActivity : ComponentActivity() {
         UsbConnectionManager.refresh(this)
     }
 
-    // Activity's public dispatch hook is marked restricted by AndroidX's intermediate class.
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (

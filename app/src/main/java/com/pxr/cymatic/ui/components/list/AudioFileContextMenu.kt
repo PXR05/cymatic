@@ -6,6 +6,7 @@ import com.pxr.cymatic.R
 import com.pxr.cymatic.data.model.AudioFile
 import com.pxr.cymatic.data.model.LibraryAvailability
 import com.pxr.cymatic.sync.LibraryOfflineManager
+import com.pxr.cymatic.sync.LibraryRadioManager
 import com.pxr.cymatic.ui.components.common.LocalWheelNavigation
 import com.pxr.cymatic.ui.components.common.WheelContextMenu
 import com.pxr.cymatic.ui.components.pixelIcon
@@ -20,9 +21,11 @@ fun AudioFileContextMenu(
     onPlayNext: (AudioFile) -> Unit,
     onAddToQueue: (AudioFile) -> Unit,
     onTrackInfo: (AudioFile) -> Unit,
+    onStartRadio: ((AudioFile) -> Unit)? = null,
 ) {
     val title = audioFile.metadata.title ?: "Unknown Title"
     val context = LocalContext.current
+    val canStartRadio = onStartRadio != null && LibraryRadioManager.canStartRadio(audioFile)
     val canDownload =
         audioFile.sourceId != null &&
                 audioFile.remoteId != null &&
@@ -68,6 +71,16 @@ fun AudioFileContextMenu(
                         onDismiss()
                     },
                 ),
+                if (canStartRadio)
+                    NavigationItem(
+                        "Start Radio",
+                        icon = pixelIcon(R.drawable.ic_pixel_wave),
+                        onClick = {
+                            onStartRadio.invoke(audioFile)
+                            onDismiss()
+                        },
+                    )
+                else null,
                 NavigationItem(
                     "Add to Playlist",
                     icon = pixelIcon(R.drawable.ic_pixel_add),

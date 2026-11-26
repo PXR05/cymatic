@@ -73,7 +73,6 @@ object RemoteSourceRemover {
             audioDao.deleteRemoteAudio(sourceId)
         }
 
-        // Managed downloads are private to the app and always removed.
         runCatching {
             File(context.filesDir, "library-downloads/$sourceId").deleteRecursively()
         }.onFailure { Log.w("RemoteSourceRemover", "Could not delete managed downloads", it) }
@@ -103,6 +102,7 @@ object RemoteSourceRemover {
         }
 
         SyncCatalogStore.delete(context, sourceId)
+        RadioEmbeddingStore.delete(context, sourceId)
 
         val artworkDir = File(context.filesDir, "library-artwork")
         if (artworkDir.isDirectory && audioIds.isNotEmpty()) {

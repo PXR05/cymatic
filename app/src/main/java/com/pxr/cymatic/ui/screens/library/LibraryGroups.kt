@@ -97,8 +97,6 @@ internal fun rememberLibraryGroups(): LibraryGroups {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                // The screen's loader presents data errors; retain the last available
-                // indicators.
             }
         }
     }

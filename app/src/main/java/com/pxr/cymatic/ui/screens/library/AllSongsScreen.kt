@@ -84,7 +84,7 @@ fun AllSongsScreen(
     val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
     val hasActiveFilter =
         availabilityFilter != LibraryFilter.ALL ||
-            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
+                sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = "All Songs",

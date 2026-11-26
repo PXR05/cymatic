@@ -19,13 +19,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pxr.cymatic.sync.LibraryOfflineManager
+import com.pxr.cymatic.sync.LibraryRadioManager
 
 @Composable
 fun OfflineQueueNotice() {
-    val notice by LibraryOfflineManager.notice.collectAsState()
-    notice?.takeIf { it.failed }?.let { current ->
+    val offlineNotice by LibraryOfflineManager.notice.collectAsState()
+    val radioNotice by LibraryRadioManager.notice.collectAsState()
+    val active =
+        radioNotice?.let { it.message to it.failed }
+            ?: offlineNotice?.takeIf { it.failed }?.let { it.message to it.failed }
+    active?.let { (message, failed) ->
         val color =
-            if (current.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+            if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
         Row(
             Modifier
                 .fillMaxWidth()
@@ -36,7 +41,7 @@ fun OfflineQueueNotice() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                current.message,
+                message,
                 color = color,
                 fontSize = 12.sp,
                 maxLines = 1,

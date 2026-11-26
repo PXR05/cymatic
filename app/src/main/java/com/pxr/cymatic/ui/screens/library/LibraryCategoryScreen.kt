@@ -91,7 +91,7 @@ internal fun LibraryCategoryScreen(category: LibraryCategory, modifier: Modifier
     val sourceFilter by LibraryFilterStore.sourceFilter.collectAsState()
     val hasActiveFilter =
         availabilityFilter != LibraryFilter.ALL ||
-            sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
+                sourceFilter != com.pxr.cymatic.data.model.LibrarySourceFilter.All
 
     BaseScreen(
         title = category.title,
